@@ -1,13 +1,122 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Design tokens extracted from the Bubble app (foreshift-ai), Styles > Variables,
+ * 2026-09-18. Bubble is the source of truth — if the palette changes there, this
+ * file needs updating by hand (no live sync). No dark-mode tokens exist in Bubble,
+ * so none are defined here.
+ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* Font */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Semantic colors */
+  --color-primary: #011442; /* primary buttons, actions, hover on clickable elements */
+  --color-primary-contrast: #ffffff; /* text/icons on a primary button */
+  --color-text: #1a1a1a; /* static text and icons */
+  --color-surface: #ffffff; /* container backgrounds */
+  --color-background: #ffffff; /* page / page-section background */
+  --color-destructive: #b0200c; /* major errors, deleting, negative values */
+  --color-success: #1e6c30; /* successful actions, positive values */
+  --color-alert: #dca114; /* caution, action needed */
+
+  /* Primary scale */
+  --color-primary-10: #f5faff;
+  --color-primary-20: #ebf3ff;
+  --color-primary-30: #d5e5fb;
+  --color-primary-40: #afcef8;
+  --color-primary-50: #1e6df6;
+  --color-primary-60: #0947d7;
+  --color-primary-70: #0c29ab;
+  --color-primary-80: #091e7c;
+
+  /* Secondary scale */
+  --color-secondary-10: #f2f3fd;
+  --color-secondary-20: #e9ebfb;
+  --color-secondary-30: #d8dbf9;
+  --color-secondary-40: #bdc3f4;
+  --color-secondary-50: #625dfe;
+  --color-secondary-60: #513edf;
+  --color-secondary-70: #401fc1;
+  --color-secondary-80: #341a9e;
+
+  /* Destructive scale */
+  --color-destructive-10: #fef6f5;
+  --color-destructive-20: #fdeae7;
+  --color-destructive-30: #fbd0cb;
+  --color-destructive-40: #f9b3a9;
+  --color-destructive-50: #ef2f15;
+  --color-destructive-60: #cd260e;
+  --color-destructive-70: #b0200c;
+  --color-destructive-80: #994411;
+
+  /* Success scale */
+  --color-success-10: #f5faf6;
+  --color-success-20: #eaf5ed;
+  --color-success-30: #cfe8d5;
+  --color-success-40: #b7dcbf;
+  --color-success-50: #2ea84a;
+  --color-success-60: #26883c;
+  --color-success-70: #1e6c30;
+  --color-success-80: #175425;
+
+  /* Alert scale */
+  --color-alert-10: #fffaf0;
+  --color-alert-20: #fff4db;
+  --color-alert-30: #ffefc7;
+  --color-alert-40: #ffdc8a;
+  --color-alert-50: #ffb505;
+  --color-alert-60: #eba500;
+  --color-alert-70: #dca114;
+  --color-alert-80: #b88100;
+
+  /* Gray scale */
+  --color-gray-10: #f7f7f7;
+  --color-gray-20: #f2f2f2;
+  --color-gray-30: #e6e6e6;
+  --color-gray-40: #c7c7c7;
+  --color-gray-50: #a6a6a6;
+  --color-gray-60: #8a8a8a;
+  --color-gray-70: #525252;
+  --color-gray-80: #000000;
+
+  /* Brand accents / one-off tokens (named as in Bubble) */
+  --color-shift-electric-blue: #027ffc; /* default primary button background */
+  --color-shift-cobalt: #0166f7;
+  --color-cyan-accent: #00b8ff;
+  --color-dark-background: #071326;
+  --color-soft-gray: #f4f7fb;
+  --color-borders: #e2e8f0; /* default input border */
+  --color-canvas: #f0f4f9; /* Bubble's "background" variable, distinct from --color-background */
+  --color-lilac: #f5f2fe;
+  --color-pending: #e28517;
+  --color-green-accent: #45e56d;
+
+  /* Typography scale (Inter) — name: weight / size */
+  --text-body-12: 400 12px;
+  --text-body-14: 400 14px;
+  --text-body-16: 400 16px; /* default body */
+  --text-body-18: 400 18px;
+  --text-heading-1: 700 56px;
+  --text-heading-2: 700 44px;
+  --text-heading-3: 700 36px;
+  --text-heading-4: 600 28px;
+  --text-heading-5: 600 24px;
+  --text-heading-6: 700 20px;
+
+  /* Controls (from Bubble's default Button + Input styles) */
+  --radius-control: 12px;
+  --duration-fast: 200ms;
+
+  /* Layout */
+  --sidebar-width: 240px;
+
+  /* One-off colors used by specific components (not part of a named scale) —
+     see DESIGN_SYSTEM.md for exactly which style each one comes from. */
+  --color-grey-text: #464554; /* "Grey text" / "Table heading" text styles */
+  --color-input-label: #90a1b9; /* "input label" text style */
+  --color-status-blue-bg: #dae2fd; /* "Round blue status" button background */
+  --color-status-green-text: #009966; /* "Status" button text */
+  --color-status-green-bg: #00bc7d; /* "Status" button background, used at 13% opacity */
 }
 
 html {
@@ -17,16 +126,18 @@ html {
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* clip, not hidden: `hidden` makes html/body scroll containers, which
+     silently breaks the sticky sidebar in the (app) layout. */
+  overflow-x: clip;
 }
 
 body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-text);
+  background: var(--color-background);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -40,10 +151,4 @@ body {
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }

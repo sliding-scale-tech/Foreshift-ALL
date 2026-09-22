@@ -1,0 +1,21 @@
+.shell {
+  display: flex;
+  flex: 1;
+  min-height: 100vh;
+  background: var(--color-canvas);
+}
+
+/* Sizes below are Bubble's real CSS px, measured in the live app. */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 32px;
+  line-height: 1.43;
+}
+
+@media (max-width: 900px) {
+  .main {
+    padding: 76px 16px 24px;
+  }
+}
+

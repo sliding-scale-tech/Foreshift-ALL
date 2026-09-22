@@ -1,0 +1,481 @@
+/* Events Overview only — shared bits live in ../shared.module.css.
+   Sizes are Bubble's real CSS px (measured in the live app). */
+
+/* ---- Calendar ---- */
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 1400px) {
+  .calendar {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+/* Below the 7-column desktop width, size columns by content instead of a
+   fixed count — a fixed 4-column step (the old rule here) left a real gap:
+   any width just above the "collapse to 2 columns" breakpoint but still far
+   short of comfortably fitting 4 stayed at 4 and overflowed (reported by the
+   owner around ~700-750px). Auto-fit has no such gap at any width. */
+@media (max-width: 1399px) {
+  .calendar {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+.dayCard {
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-text);
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.dayCard:hover {
+  border-color: var(--color-primary-40);
+}
+
+.dayCard.selected {
+  border-color: var(--color-shift-electric-blue);
+  background: var(--color-primary-20);
+}
+
+.dayName {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 25px;
+}
+
+.dayDate {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.icons {
+  margin-top: 8px;
+  min-height: 42px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.count {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.badge {
+  margin-top: 8px;
+  display: inline-block;
+  min-width: 32px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.badgeSpacer {
+  margin-top: 8px;
+  height: 24px;
+}
+
+/* ---- Filters ---- */
+
+.filters {
+  margin-top: 34px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(120px, 1.05fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.control {
+  height: 48px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: var(--radius-control);
+  transition: border-color var(--duration-fast);
+}
+
+.control:focus {
+  outline: none;
+  border-color: var(--color-shift-electric-blue);
+}
+
+.reset {
+  height: 48px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-shift-electric-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.reset svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---- Table + side cards ---- */
+
+.lower {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1023fr) minmax(0, 491fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.tableCard {
+  padding: 24px 24px 32px;
+}
+
+.tableTitle {
+  margin-bottom: 20px;
+}
+
+.head {
+  display: grid;
+  grid-template-columns: 27% 16% 14% 13% 14% 12% 4%;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 17px;
+  text-transform: uppercase;
+  color: var(--color-gray-60);
+  text-align: center;
+  border-bottom: 1px solid var(--color-gray-30);
+}
+
+/* .row is just the Link wrapper now — .tableRow (desktop) and .mobileRow
+   (phone) are its two alternate layouts, toggled by the breakpoint below. */
+.row {
+  display: block;
+  border-bottom: 1px solid var(--color-gray-30);
+  color: var(--color-gray-70);
+  text-decoration: none;
+  transition: background var(--duration-fast);
+}
+
+.row:hover {
+  background: var(--color-primary-10);
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 27% 16% 14% 13% 14% 12% 4%;
+  align-items: center;
+  min-height: 65px;
+  font-size: 12px;
+  line-height: 17px;
+  text-align: center;
+}
+
+.mobileRow {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .head {
+    display: none;
+  }
+
+  .tableRow {
+    display: none;
+  }
+
+  .mobileRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 0;
+    text-align: left;
+  }
+
+  .mobileRow > svg {
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+}
+
+.mobileBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobileMeta {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-gray-60);
+}
+
+.eventCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+  text-align: left;
+}
+
+.eventIcon {
+  width: 56px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.eventName {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.eventClass {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-gray-70);
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary);
+}
+
+.empty {
+  padding: 40px 0 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.pager {
+  margin-top: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 500px) {
+  .pager {
+    margin-top: 28px;
+    justify-content: center;
+  }
+
+  .pages {
+    order: 1;
+    flex-basis: 100%;
+  }
+
+  .goBox {
+    order: 2;
+  }
+}
+
+.pages {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+}
+
+.pageBtn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.pageBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.pageBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.goBox {
+  display: flex;
+  gap: 12px;
+}
+
+.pageInput {
+  width: 78px;
+  height: 48px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  border: 1px solid var(--color-borders);
+  border-radius: var(--radius-control);
+}
+
+.goBtn {
+  height: 48px;
+  width: 60px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-primary-contrast);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sideCard {
+  padding: 20px;
+}
+
+.sideTitle {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--color-text);
+}
+
+.topEvent {
+  margin-top: 30px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.topEvent .eventName {
+  font-size: 14px;
+}
+
+.topEventText {
+  flex: 1;
+  min-width: 0;
+}
+
+.topEventVenue {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-gray-60);
+}
+
+.shape {
+  margin-top: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shapeRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-gray-70);
+}
+
+.shapeIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shapeIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.shapePurple {
+  background: #e9ebfb;
+  color: #513edf;
+}
+.shapeOrange {
+  background: #fdeedd;
+  color: #e28517;
+}
+.shapeBlue {
+  background: #e6efff;
+  color: #0947d7;
+}
+
+.shapeFoot {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-borders);
+  font-size: 12px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--color-gray-60);
+}
+
+@media (max-width: 1100px) {
+  .lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -396,6 +396,42 @@ async function doSync(
       );
     }
 
+    // Mirror the same rows into Convex's own resolvedDemand table (see
+    // signalsStore.ts) — additive, only runs once the Bubble write above has
+    // fully succeeded (no errors thrown). No windowing nuance here: this
+    // always recomputes the full zone×concept×day table, so "stale" is just
+    // "anything stored that isn't in this run's key set."
+    const convexUpserts = rows.map((r) => ({
+      signalKey: r.signal_key,
+      zone: r.zone,
+      concept: r.concept,
+      day: r.day,
+      date: r.date,
+      peakDaypart: r.peak_daypart,
+      peakScore: r.peak_score,
+      peakBand: r.peak_band,
+      morningScore: r.morning_score,
+      morningBand: r.morning_band,
+      middayScore: r.midday_score,
+      middayBand: r.midday_band,
+      dinnerScore: r.dinner_score,
+      dinnerBand: r.dinner_band,
+      lateScore: r.late_score,
+      lateBand: r.late_band,
+    }));
+    let convexDeleteKeys: string[] = [];
+    if (args.deleteStale) {
+      const convexExistingKeys: string[] = await ctx.runQuery(
+        internal.signalsStore.listResolvedDemandKeys,
+        {},
+      );
+      convexDeleteKeys = convexExistingKeys.filter((k) => !seenKeys.has(k));
+    }
+    await ctx.runMutation(internal.signalsStore.syncResolvedDemand, {
+      upserts: convexUpserts,
+      deleteKeys: convexDeleteKeys,
+    });
+
     return { total: rows.length, created, updated, deleted, existingBefore: existing.size };
 }
 

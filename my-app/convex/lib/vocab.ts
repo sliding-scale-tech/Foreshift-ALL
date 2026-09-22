@@ -86,26 +86,57 @@ export function dayFromLocalDate(localDate: string): Day | null {
   return DAYS[(d.getUTCDay() + 6) % 7]; // getUTCDay: 0=Sun -> shift so Mon=0
 }
 
-// Calendar date (YYYY-MM-DD) of the Monday that starts the UTC week containing
-// `now`. Anchor point for the weekly sync so it always targets one coherent
-// Monday..Sunday week, never a rolling window that can straddle two weeks.
-export function mondayOfWeek(now: Date): string {
-  const sinceMonday = (now.getUTCDay() + 6) % 7; // 0 if `now` is already Monday
-  const monday = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - sinceMonday),
-  );
-  return monday.toISOString().slice(0, 10);
+// --- Detroit-anchored calendar helpers ---------------------------------------
+//
+// The daily signal syncs run as a cron at a fixed UTC time (03:55 UTC), which is
+// still the PREVIOUS calendar day in Detroit (UTC-4 EDT / UTC-5 EST). WeatherAPI
+// and Ticketmaster both anchor their "next N days" window to the LOCAL Detroit
+// date, so deriving "today" / the week window from `now`'s UTC fields made the
+// window end a day early and the upcoming Sunday was never fetched. Everything
+// below therefore works from Detroit's wall-clock date, not UTC.
+
+// Calendar date ("YYYY-MM-DD") as read from a wall clock in Detroit at `now`.
+// `Intl` resolves EST/EDT per instant, so there is no hardcoded offset to drift.
+export function detroitDate(now: Date = new Date()): string {
+  // en-CA renders as yyyy-mm-dd.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Detroit",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+// Add `n` whole days to a "YYYY-MM-DD" string. Parsed at noon UTC so a DST
+// transition (02:00 local) can never bump the result across a day boundary.
+export function addDays(date: string, n: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Day-of-week index for a bare "YYYY-MM-DD": Mon=0 … Sun=6.
+function dowIndex(date: string): number {
+  return (new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7;
+}
+
+// Calendar date (YYYY-MM-DD) of the Monday that starts the Detroit week
+// containing `now`. Anchor point for the daily sync so it always targets one
+// coherent Monday..Sunday week, never a rolling window that straddles two weeks.
+export function mondayOfWeek(now: Date = new Date()): string {
+  const today = detroitDate(now);
+  return addDays(today, -dowIndex(today));
 }
 
 // The 7 calendar dates (YYYY-MM-DD) for Mon..Sun of the week containing `now`,
 // keyed by day name. Lets a day-of-week row (e.g. ResolvedDemand's "Mon") always
 // carry the correct date for THIS week, independent of whether a live signal
 // (event/weather) happens to exist for that day.
-export function currentWeekDates(now: Date): Record<Day, string> {
-  const monday = new Date(`${mondayOfWeek(now)}T00:00:00Z`);
+export function currentWeekDates(now: Date = new Date()): Record<Day, string> {
+  const monday = mondayOfWeek(now);
   const out = {} as Record<Day, string>;
   DAYS.forEach((day, i) => {
-    out[day] = new Date(monday.getTime() + i * 86_400_000).toISOString().slice(0, 10);
+    out[day] = addDays(monday, i);
   });
   return out;
 }
@@ -114,17 +145,15 @@ export function currentWeekDates(now: Date): Record<Day, string> {
 // exclusive of that Monday) — caps a sync's fetch window so it never reaches
 // into next week's Mon/Tue/Wed. On a run that starts exactly on Monday this is
 // 7 (the full week); on a mid-week run it's whatever's left of the current week.
-export function daysUntilNextMonday(now: Date): number {
-  const sinceMonday = (now.getUTCDay() + 6) % 7;
-  return 7 - sinceMonday;
+export function daysUntilNextMonday(now: Date = new Date()): number {
+  return 7 - dowIndex(detroitDate(now));
 }
 
 // Calendar date (YYYY-MM-DD) of the Monday that STARTS next week — i.e. the
 // exclusive upper bound of the [mondayOfWeek(now), nextMondayDate(now)) window
 // the daily signal syncs retain in Bubble. Just `mondayOfWeek(now)` + 7 days.
-export function nextMondayDate(now: Date): string {
-  const monday = new Date(`${mondayOfWeek(now)}T00:00:00Z`);
-  return new Date(monday.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+export function nextMondayDate(now: Date = new Date()): string {
+  return addDays(mondayOfWeek(now), 7);
 }
 
 // Map a Ticketmaster localTime ("HH:MM:SS") to a daypart, using the windows in

@@ -1,0 +1,104 @@
+/* FAQS — sizes are Bubble's real CSS px (measured live); the open/close
+   animation is ours (Bubble has none). */
+
+.list {
+  margin-top: 37px;
+  max-width: 1166px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+  transition: box-shadow 250ms ease, border-color 250ms ease;
+}
+
+.item.open {
+  border-color: var(--color-primary-40);
+  box-shadow: 0 2px 10px rgba(16, 26, 44, 0.06);
+}
+
+.question {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 0 0 1px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: left;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.question:focus-visible {
+  outline: 2px solid var(--color-shift-electric-blue);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.chevron {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-right: 5px;
+  color: var(--color-text);
+  transition: transform 250ms ease, color 250ms ease;
+}
+
+.open .chevron {
+  transform: rotate(180deg);
+  color: var(--color-shift-electric-blue);
+}
+
+/* Height animation without measuring: grid rows 0fr -> 1fr. */
+.panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms ease;
+}
+
+.open .panel {
+  grid-template-rows: 1fr;
+}
+
+.panelInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.answer {
+  padding: 0 1px 9px;
+  margin-top: -3px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-line;
+  color: var(--color-text);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+
+.open .answer {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .answer,
+  .chevron,
+  .item {
+    transition: none;
+  }
+}

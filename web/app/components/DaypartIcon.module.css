@@ -1,0 +1,31 @@
+.circle {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.morning {
+  background: #eaf3ff;
+  color: var(--color-primary-50);
+}
+.midday {
+  background: #fff3d6;
+  color: #f5a800;
+}
+.dinner {
+  background: #fdeceb;
+  color: #e04b3a;
+}
+.late {
+  background: #d7dbe6;
+  color: #0b1b47;
+}

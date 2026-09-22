@@ -1,0 +1,461 @@
+.wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 16px 80px;
+  background: var(--color-gray-10);
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 32px;
+}
+
+.logo span {
+  color: var(--color-shift-electric-blue);
+}
+
+/* ---- Stepper ---- */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-gray-50);
+}
+
+.stepItem.active {
+  color: var(--color-shift-electric-blue);
+  font-weight: 600;
+}
+
+.stepItem.done {
+  color: var(--color-shift-electric-blue);
+}
+
+.stepCircle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-gray-40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.stepItem.active .stepCircle {
+  border-color: var(--color-shift-electric-blue);
+  color: var(--color-shift-electric-blue);
+}
+
+.stepItem.done .stepCircle {
+  background: var(--color-shift-electric-blue);
+  border-color: var(--color-shift-electric-blue);
+  color: #fff;
+}
+
+.stepCircle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.stepLine {
+  width: 48px;
+  height: 1px;
+  background: var(--color-gray-30);
+}
+
+/* ---- Card ---- */
+
+.card {
+  width: 100%;
+  max-width: 760px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 20px;
+  padding: 40px 48px;
+  box-shadow: var(--shadow, 0 8px 30px rgba(1, 20, 66, 0.06));
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 28px 20px;
+  }
+}
+
+/* ---- Done screen ---- */
+
+.doneWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px 0 4px;
+}
+
+.doneIllustration {
+  width: 320px;
+  max-width: 100%;
+  margin-bottom: 8px;
+}
+
+.doneTitle {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-shift-electric-blue);
+  margin-bottom: 6px;
+}
+
+.doneSubtitle {
+  font-size: 14px;
+  color: var(--color-grey-text);
+  margin-bottom: 24px;
+}
+
+.doneWrap .choiceBtn {
+  max-width: 360px;
+}
+
+.cardHead h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.cardHead p {
+  font-size: 14px;
+  color: var(--color-grey-text);
+  margin-bottom: 28px;
+}
+
+/* ---- Step 1: choice cards ---- */
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .choiceGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.choiceCard {
+  border: 1px solid var(--color-borders);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.choiceCard.disabled {
+  opacity: 0.6;
+}
+
+.choiceIllustration {
+  width: 130px;
+  height: 100px;
+  margin-bottom: 8px;
+}
+
+.choiceTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.choiceCard h2 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.comingSoon {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-gray-60);
+  background: var(--color-gray-20);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.choiceCard p {
+  font-size: 13px;
+  color: var(--color-grey-text);
+  margin-bottom: 20px;
+}
+
+.choiceBtn {
+  width: 100%;
+  background: var(--color-shift-electric-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-control);
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: auto;
+}
+
+.choiceBtn:disabled {
+  background: var(--color-gray-30);
+  cursor: not-allowed;
+}
+
+/* ---- Step 2: restaurant info ---- */
+
+.field {
+  margin-bottom: 22px;
+}
+
+.fieldRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-gray-60);
+}
+
+.label .req {
+  color: var(--color-destructive);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--color-gray-50);
+}
+
+.hintBtn {
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-gray-50);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--duration-fast);
+}
+
+.hintBtn:hover,
+.hintBtn:focus-visible {
+  color: var(--color-shift-electric-blue);
+  text-decoration: underline;
+  outline: none;
+}
+
+.zoneNote {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-gray-60);
+}
+
+.zoneNoteWarn {
+  color: var(--color-destructive-70);
+}
+
+.input,
+.select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-borders);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary-50);
+}
+
+.conceptGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .conceptGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.conceptCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-borders);
+  background: var(--color-gray-10);
+  border-radius: 12px;
+  padding: 16px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  text-align: center;
+  cursor: pointer;
+  min-height: 92px;
+}
+
+.conceptCard svg {
+  width: 24px;
+  height: 24px;
+  color: var(--color-gray-70);
+}
+
+.conceptCard.selected {
+  border-color: var(--color-shift-electric-blue);
+  background: var(--color-primary-10);
+}
+
+.conceptCard.selected svg {
+  color: var(--color-shift-electric-blue);
+}
+
+/* ---- Step 3: operating hours ---- */
+
+.hoursHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 24px;
+}
+
+.sameTimingsLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+  cursor: pointer;
+}
+
+.hourRow {
+  display: grid;
+  grid-template-columns: 64px 1fr 24px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Four columns can't fit a "12:00 AM" select on a phone screen — stack the
+   day label above a [open - to - close] row instead of squeezing it in. */
+@media (max-width: 480px) {
+  .hourRow {
+    grid-template-columns: 1fr 24px 1fr;
+    row-gap: 6px;
+  }
+
+  .dayLabel {
+    grid-column: 1 / -1;
+  }
+}
+
+.dayLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.toLabel {
+  font-size: 13px;
+  color: var(--color-grey-text);
+  text-align: center;
+}
+
+/* ---- Footer buttons ---- */
+
+.footerRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.backBtn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-borders);
+  border-radius: var(--radius-control);
+  padding: 13px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.backBtn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.continueBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-shift-electric-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-control);
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.continueBtn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.continueBtn:disabled {
+  background: var(--color-gray-30);
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--color-destructive);
+  margin-top: 16px;
+}

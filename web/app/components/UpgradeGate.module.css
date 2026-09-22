@@ -1,0 +1,99 @@
+/* Fixed, not part of the (app) layout's padded <main> flow — this needs to be
+   a genuine full-bleed white screen (per spec), not a card floating inside
+   the page's usual margins. */
+.screen {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-width);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  overflow-y: auto;
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  padding: 40px 32px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(16, 26, 44, 0.08);
+}
+
+.icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary-20);
+  color: var(--color-shift-electric-blue);
+}
+
+.icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.body {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-gray-70);
+}
+
+.price {
+  margin-top: 20px;
+  font-size: 15px;
+  color: var(--color-gray-70);
+}
+
+.priceAmount {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.cta {
+  width: 100%;
+  margin-top: 24px;
+  height: 48px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--duration-fast), opacity var(--duration-fast);
+}
+
+.cta:hover:not(:disabled) {
+  background: var(--color-shift-cobalt);
+}
+
+.cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--color-destructive-70);
+}

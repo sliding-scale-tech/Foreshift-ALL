@@ -1,0 +1,85 @@
+/* Styles shared by the signed-in screens (Daily / Weekly / Events / Weather).
+   All sizes are Bubble's real CSS px, measured in the live app. */
+
+.title {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin-top: 13px;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.status {
+  margin-top: 40px;
+  font-size: 16px;
+  color: var(--color-gray-70);
+}
+
+.statusError {
+  color: var(--color-destructive-70);
+}
+
+/* Navy "operations brief" banner. */
+.banner {
+  margin-top: 23px;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #c7c4d7;
+  background: linear-gradient(90deg, #0b1d57 0%, #172a63 100%);
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(1, 20, 66, 0.18);
+}
+
+.bannerTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding-left: 1px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-primary-50);
+}
+
+.bannerTitle svg {
+  width: 24px;
+  height: 24px;
+}
+
+.bannerText {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.sectionTitle {
+  margin: 24px 0 12px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.cardTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+
+/* Title above an Apex chart (Bubble leaves 40px before the plot). */
+.chartTitle {
+  margin-bottom: 40px;
+}

@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery, query } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { geocodeAddress } from "./lib/geocode";
 import { ZONES } from "./lib/vocab";
 import {
   assignZone,
@@ -104,5 +106,40 @@ export const assign = internalQuery({
     const match = assignZone(args.lat, args.lng, features);
     if (!match) return { zone: null, marketIndex: null, outsideCoverage: true };
     return { zone: match.name, marketIndex: match.marketIndex, outsideCoverage: false };
+  },
+});
+
+export type FindZoneResult =
+  | { status: "ok"; zone: string; matchedAddress: string }
+  | { status: "outside_coverage"; matchedAddress: string }
+  | { status: "not_found" };
+
+/** Address -> zone: geocode, then point-in-polygon (the `assign` query above).
+ * No auth — the public `findMyZone` wrapper below is what the web app calls. */
+export const findZoneForAddress = internalAction({
+  args: { address: v.string() },
+  handler: async (ctx, args): Promise<FindZoneResult> => {
+    const hit = await geocodeAddress(args.address);
+    if (!hit) return { status: "not_found" };
+    const match: { zone: string | null } = await ctx.runQuery(internal.zones.assign, {
+      lat: hit.lat,
+      lng: hit.lng,
+    });
+    return match.zone
+      ? { status: "ok", zone: match.zone, matchedAddress: hit.matchedAddress }
+      : { status: "outside_coverage", matchedAddress: hit.matchedAddress };
+  },
+});
+
+/** Onboarding's "Need help identifying your zone?" — signed-in users only, so
+ * the public geocoding calls can't be used anonymously. */
+export const findMyZone = action({
+  args: { address: v.string() },
+  handler: async (ctx, args): Promise<FindZoneResult> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not signed in.");
+    const address = args.address.trim();
+    if (address.length < 4 || address.length > 200) return { status: "not_found" };
+    return await ctx.runAction(internal.zones.findZoneForAddress, { address });
   },
 });

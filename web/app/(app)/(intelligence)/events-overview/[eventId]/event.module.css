@@ -1,0 +1,214 @@
+/* Event Outlook (single event) — shared bits live in ../../../shared.module.css.
+   Sizes are Bubble's real CSS px (measured in the live app). */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-gray-70);
+  text-decoration: none;
+}
+
+.back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.back:hover {
+  color: var(--color-text);
+}
+
+.title {
+  margin-top: 24px;
+}
+
+.layout {
+  margin-top: 33px;
+  display: grid;
+  grid-template-columns: minmax(0, 613fr) minmax(0, 900fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* ---- Left: the event ---- */
+
+.eventCard {
+  padding: 16px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--color-text);
+}
+
+.eventHead {
+  margin-top: 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dateChip {
+  flex-shrink: 0;
+  width: 60px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: var(--color-gray-30);
+  text-align: center;
+  white-space: pre-line;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 17px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.venue {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-gray-60);
+}
+
+.impactRow {
+  margin-top: 16px;
+  padding-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-borders);
+}
+
+.impactPct {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+  color: var(--color-success-60);
+}
+
+.facts {
+  padding: 11px 0 0;
+}
+
+.fact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.factLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-gray-60);
+}
+
+.factLabel svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-shift-electric-blue);
+}
+
+.factValue {
+  color: var(--color-text);
+}
+
+/* ---- Right: impact by daypart ---- */
+
+.impactTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.dpCard {
+  padding: 16px;
+  min-height: 142px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dpHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.dpText {
+  flex: 1;
+  min-width: 0;
+}
+
+.dpTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.dpWindow {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.dpBottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.dpPct {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 30px;
+  color: var(--color-success-60);
+}
+
+.dpPct svg {
+  width: 24px;
+  height: 24px;
+}
+
+.dpScore {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 30px;
+  color: var(--color-text);
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

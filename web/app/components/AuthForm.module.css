@@ -1,0 +1,180 @@
+.field {
+  margin-bottom: 20px;
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-borders);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  transition: border-color var(--duration-fast) ease;
+}
+
+.inputWrap .input {
+  padding-right: 44px;
+}
+
+.input::placeholder {
+  color: var(--color-gray-40);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary-50);
+}
+
+.inputIcon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-50);
+  display: flex;
+  pointer-events: none;
+}
+
+.inputIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.eyeButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-50);
+  padding: 6px;
+  display: flex;
+  border-radius: 8px;
+}
+
+.eyeButton:hover {
+  color: var(--color-gray-70);
+}
+
+.eyeButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.forgotRow {
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px 0 24px;
+}
+
+.forgotRow span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--color-destructive);
+  margin: -8px 0 16px;
+}
+
+.primaryBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border: none;
+  border-radius: var(--radius-control);
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.primaryBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primaryBtn:not(:disabled):hover {
+  opacity: 0.92;
+}
+
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--color-surface);
+  color: var(--color-gray-70);
+  border: 0.5px solid var(--color-borders);
+  border-radius: var(--radius-control);
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.15s ease;
+}
+
+.googleBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.googleBtn:not(:disabled):hover {
+  background: var(--color-gray-10);
+}
+
+.switchLine {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--color-grey-text);
+}
+
+.switchLine a {
+  color: var(--color-shift-electric-blue);
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.verifyNote {
+  font-size: 14px;
+  color: var(--color-grey-text);
+  margin: -8px 0 20px;
+  line-height: 1.5;
+}

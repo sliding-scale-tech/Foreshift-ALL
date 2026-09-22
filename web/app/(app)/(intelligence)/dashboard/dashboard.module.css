@@ -1,0 +1,186 @@
+/* Daily Outlook only — shared bits live in ../shared.module.css.
+   Sizes are Bubble's real CSS px (measured in the live app). */
+
+/* ---- Operations brief (two columns: text + score) ---- */
+
+.brief {
+  margin-top: 23px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 506px);
+  gap: 32px;
+  align-items: start;
+  padding: 24px;
+  border: 1px solid #c7c4d7;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #0b1d57 0%, #172a63 100%);
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(1, 20, 66, 0.18);
+}
+
+.scoreHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+  color: var(--color-primary-50);
+}
+
+.scoreTrack {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: #e3e7ef;
+  overflow: hidden;
+}
+
+.scoreFill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-primary-50);
+}
+
+.scoreScale {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  line-height: 22px;
+}
+
+/* ---- Daypart cards ---- */
+
+.dayparts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.dayparts .dpCard {
+  padding: 16px;
+  border-color: var(--color-gray-40);
+}
+
+.dpHead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.dpTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.dpWindow {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.dpMeta {
+  margin-top: 15px;
+  padding-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-borders);
+}
+
+.lift {
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.weather {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid var(--color-borders);
+}
+
+.weatherIcon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.weatherName {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.weatherTemp {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.eventHead {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-left: 1px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.eventHead svg {
+  width: 20px;
+  height: 20px;
+}
+
+.eventNote {
+  margin-top: 5px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+/* ---- Chart + drivers ---- */
+
+.lower {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 900fr) minmax(0, 613fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.chartCard {
+  padding: 24px;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1250px) {
+  .dayparts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .brief {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .dayparts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

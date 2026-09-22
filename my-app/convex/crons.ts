@@ -32,7 +32,15 @@ const crons = cronJobs();
 // resolved-demand sync (weather.ts).
 crons.cron(
   "daily signal sync",
-  "55 3 * * *", // 03:55 UTC every day (same clock time the weekly sync used)
+  // 05:05 UTC every day = 00:05 EST / 01:05 EDT — just after the day starts in
+  // Detroit. The sync's fetch window (today..upcoming Sunday) and WeatherAPI's
+  // forecast are both anchored to the Detroit local date, so running right after
+  // the local day rolls over keeps the two in lockstep and the whole Mon..Sun
+  // week is always in reach. (Cron time is fixed UTC and can't track DST, so
+  // 05:05 is the value that stays inside the new Detroit day in both seasons;
+  // the date math in lib/vocab.ts makes correctness independent of the exact
+  // time regardless.)
+  "5 5 * * *",
   internal.events.syncEventSignalsToBubble,
   { deleteStale: true },
 );

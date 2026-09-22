@@ -36,12 +36,22 @@ import {
   dayFromLocalDate,
   currentWeekDates,
   mondayOfWeek,
+  detroitDate,
   type Zone,
   type Concept,
   type Day,
   type Daypart,
   type Band,
 } from "./vocab";
+
+// Pre-loaded signal rows. When supplied, the compute* functions use these
+// instead of reading Bubble's Data API — this is how the web app runs the very
+// same math straight off Convex's own mirror tables.
+export interface OutlookInputs {
+  records: DemandRecord[];
+  events: EventSignalRead[];
+  weather: WeatherSignalRead[];
+}
 
 export interface DaypartOutlook {
   daypart: Daypart;
@@ -372,16 +382,24 @@ async function resolveTodayDay(args: {
   concept: Concept;
   coeffs: CoefficientBundle;
   now?: Date;
+  inputs?: OutlookInputs;
 }): Promise<DayOutlook> {
   const now = args.now ?? new Date();
-  const date = now.toISOString().slice(0, 10);
+  const date = detroitDate(now);
   const day = dayFromLocalDate(date) as Day;
 
-  const [records, events, weather] = await Promise.all([
-    fetchDemandRecords({ zones: [args.zone], concepts: [args.concept], days: [day] }),
-    fetchEventSignals({ zones: [args.zone], days: [day] }),
-    fetchWeatherSignals({ zones: [args.zone], days: [day] }),
-  ]);
+  const inputs = args.inputs;
+  const [records, events, weather] = inputs
+    ? [
+        inputs.records.filter((r) => r.day === day),
+        inputs.events.filter((e) => e.day === day),
+        inputs.weather.filter((w) => w.day === day),
+      ]
+    : await Promise.all([
+        fetchDemandRecords({ zones: [args.zone], concepts: [args.concept], days: [day] }),
+        fetchEventSignals({ zones: [args.zone], days: [day] }),
+        fetchWeatherSignals({ zones: [args.zone], days: [day] }),
+      ]);
 
   const record: DemandRecord | undefined = records[0];
   if (!record) {
@@ -410,6 +428,29 @@ export interface TodayDaypartOutlook extends DaypartOutlook {
   event_note: string;
 }
 
+// The "headline" numbers shown above the 4 daypart tiles — one figure per
+// metric for the whole day, rolled up from the dayparts.
+//
+//   base_score / score — Σ over the 4 dayparts (closed dayparts contribute 0).
+//   band               — the day's PEAK daypart band, NOT a re-band of Σ score
+//                        (a sum of 4 dayparts isn't on the 0-150 cell scale).
+//   weather_percent    — weather's effect on the day, DEMAND-WEIGHTED across the
+//                        dayparts rather than a plain mean: each daypart's
+//                        weather effect counts in proportion to that daypart's
+//                        own pre-weather demand (base + event lift), so a storm
+//                        at dinner moves this far more than the same storm at
+//                        1am. Equals Σ(weather_impact_score) / Σ(pre-weather
+//                        subtotal), i.e. (Σ score − Σ subtotal) / Σ subtotal.
+//   combined_percent   — total demand vs a normal day: (Σ score − Σ base) / Σ base.
+// Both percents are signed 1-decimal strings, same convention as the daypart ones.
+export interface DaySummary {
+  base_score: number;
+  score: number;
+  band: Band;
+  weather_percent: string;
+  combined_percent: string;
+}
+
 export interface TodayOutlookResult {
   zone: Zone;
   concept: Concept;
@@ -418,6 +459,7 @@ export interface TodayOutlookResult {
   date: string;
   peak: TodayDaypartOutlook;
   dayparts: TodayDaypartOutlook[];
+  day_summary: DaySummary;
   drivers: DemandDriver[];
   narration: string;
   // The same two paragraphs the standalone "events" and "weather" card types
@@ -429,11 +471,56 @@ export interface TodayOutlookResult {
   usage: TokenUsage;
 }
 
+/**
+ * Roll the 4 resolved dayparts up into the one-line-per-metric DaySummary — see
+ * the interface doc for what each field means. `weather_percent` is the
+ * demand-weighted figure: Σ each daypart's weather_impact_score over Σ each
+ * daypart's pre-weather subtotal (base + event lift). score_dp = subtotal_dp ×
+ * weather_factor_dp (the 150 cap never binds at daypart grain), so
+ * Σ weather_impact = Σ score − Σ subtotal and no per-daypart factor needs
+ * re-deriving.
+ */
+function computeDaySummary(outlook: DayOutlook): DaySummary {
+  // Event lift per daypart = Σ of that daypart's individual event lift_scores.
+  // drivers.events is already de-duped per cell (indexEventsByCell), so this
+  // matches the event_lift resolveCell summed into each cell.
+  const eventLiftByDaypart = new Map<Daypart, number>();
+  for (const e of outlook.drivers.events) {
+    eventLiftByDaypart.set(
+      e.daypart,
+      (eventLiftByDaypart.get(e.daypart) ?? 0) + e.lift_score,
+    );
+  }
+
+  let sumBase = 0;
+  let sumScore = 0;
+  let sumSubtotal = 0; // Σ (base + event_lift) — the quantity weather multiplies
+  for (const dp of outlook.dayparts) {
+    sumBase += dp.base_score;
+    sumScore += dp.score;
+    sumSubtotal += dp.base_score + (eventLiftByDaypart.get(dp.daypart) ?? 0);
+  }
+
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  return {
+    base_score: round2(sumBase),
+    score: round2(sumScore),
+    band: outlook.peak.band,
+    weather_percent: signedPercent(
+      sumSubtotal > 0 ? ((sumScore - sumSubtotal) / sumSubtotal) * 100 : 0,
+    ),
+    combined_percent: signedPercent(
+      sumBase > 0 ? ((sumScore - sumBase) / sumBase) * 100 : 0,
+    ),
+  };
+}
+
 export async function computeTodayOutlook(args: {
   zone: Zone;
   concept: Concept;
   coeffs: CoefficientBundle;
   now?: Date;
+  inputs?: OutlookInputs;
 }): Promise<TodayOutlookResult> {
   const outlook = await resolveTodayDay(args);
 
@@ -483,6 +570,7 @@ export async function computeTodayOutlook(args: {
     date: outlook.date,
     peak,
     dayparts: withNotes,
+    day_summary: computeDaySummary(outlook),
     // Narration above still gets both raw arrays (it needs the full picture);
     // only the response is flattened + capped.
     drivers: topDrivers(flattenDrivers(outlook.drivers, outlook.date)),
@@ -510,6 +598,7 @@ export async function computeEventOutlook(args: {
   concept: Concept;
   coeffs: CoefficientBundle;
   now?: Date;
+  inputs?: OutlookInputs;
 }): Promise<EventOutlookResult> {
   const outlook = await resolveTodayDay(args);
 
@@ -546,6 +635,10 @@ export interface WeatherOutlookResult {
   day: Day;
   date: string;
   weather: DayDrivers["weather"];
+  // Same whole-day rollup the "today" card returns — so the weather card's
+  // headline panel has a demand-weighted day figure alongside the per-daypart
+  // weather[] breakdown. See DaySummary.
+  day_summary: DaySummary;
   narration: string;
   usage: TokenUsage;
 }
@@ -555,6 +648,7 @@ export async function computeWeatherOutlook(args: {
   concept: Concept;
   coeffs: CoefficientBundle;
   now?: Date;
+  inputs?: OutlookInputs;
 }): Promise<WeatherOutlookResult> {
   const outlook = await resolveTodayDay(args);
 
@@ -574,6 +668,7 @@ export async function computeWeatherOutlook(args: {
     day: outlook.day,
     date: outlook.date,
     weather: outlook.drivers.weather,
+    day_summary: computeDaySummary(outlook),
     narration: text.trim(),
     usage,
   };
@@ -623,17 +718,20 @@ export async function computeWeeklyOutlook(args: {
   concept: Concept;
   coeffs: CoefficientBundle;
   now?: Date;
+  inputs?: OutlookInputs;
 }): Promise<WeeklyOutlookResult> {
   const now = args.now ?? new Date();
   const weekStart = mondayOfWeek(now);
   const weekDates = currentWeekDates(now);
   const weekEnd = weekDates.Sun;
 
-  const [records, events, weather] = await Promise.all([
-    fetchDemandRecords({ zones: [args.zone], concepts: [args.concept], days: [] }),
-    fetchEventSignals({ zones: [args.zone], days: [] }),
-    fetchWeatherSignals({ zones: [args.zone], days: [] }),
-  ]);
+  const [records, events, weather] = args.inputs
+    ? [args.inputs.records, args.inputs.events, args.inputs.weather]
+    : await Promise.all([
+        fetchDemandRecords({ zones: [args.zone], concepts: [args.concept], days: [] }),
+        fetchEventSignals({ zones: [args.zone], days: [] }),
+        fetchWeatherSignals({ zones: [args.zone], days: [] }),
+      ]);
   if (records.length === 0) {
     throw new Error(`No base demand data for ${args.zone} / ${args.concept}.`);
   }

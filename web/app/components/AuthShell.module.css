@@ -1,0 +1,181 @@
+.wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  background: var(--color-gray-10);
+}
+
+.card {
+  display: flex;
+  width: 100%;
+  max-width: 960px;
+  min-height: 600px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(1, 20, 66, 0.14);
+  background: var(--color-surface);
+}
+
+.panelLeft {
+  flex: 0 0 45%;
+  background: linear-gradient(160deg, var(--color-dark-background) 0%, var(--color-primary) 100%);
+  color: #fff;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelRight {
+  flex: 1;
+  min-width: 0;
+  padding: 48px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-primary-50), var(--color-shift-electric-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.logoIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.logoText {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.logoText span {
+  color: var(--color-shift-electric-blue);
+}
+
+.headline {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 36px 0 12px;
+}
+
+.blurb {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.65);
+  max-width: 320px;
+}
+
+.features {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.featureIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-shift-electric-blue);
+  color: var(--color-shift-electric-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.featureIcon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.status {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.statusIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-success-50);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statusIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.statusTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.statusSub {
+  font-size: 12px;
+  color: var(--color-green-accent);
+}
+
+.formHead h1 {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.formHead p {
+  font-size: 14px;
+  color: var(--color-grey-text);
+  margin-bottom: 28px;
+}
+
+@media (max-width: 760px) {
+  .panelLeft {
+    display: none;
+  }
+  .card {
+    min-height: 0;
+  }
+  .panelRight {
+    padding: 40px 24px;
+  }
+}

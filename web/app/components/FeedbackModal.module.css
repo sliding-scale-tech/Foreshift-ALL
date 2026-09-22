@@ -1,0 +1,335 @@
+/* "How was your day?" dialog. Sizes are Bubble's real CSS px (measured live). */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow-y: auto;
+  padding: 100px 16px 40px;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.panel {
+  width: 100%;
+  max-width: 1200px;
+  padding: 20px 0 32px;
+  background: var(--color-surface);
+  border-radius: 20px;
+  color: var(--color-text);
+}
+
+.head {
+  padding: 0 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-height: 51px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.subtitle {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.close {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-gray-50);
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--color-text);
+}
+
+.close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.divider {
+  margin-top: 0;
+  border: none;
+  border-top: 1px solid var(--color-gray-30);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 300px) minmax(0, 1fr) 150px;
+  column-gap: 0;
+  padding: 0 24px;
+}
+
+.colHead {
+  margin-top: 26px;
+  margin-bottom: 17px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.colHead.center {
+  text-align: center;
+}
+
+.colHead.end {
+  text-align: center;
+}
+
+.row {
+  display: contents;
+}
+
+.rowLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 66px;
+  margin-bottom: 24px;
+}
+
+.dpIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dpIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.dpMorning {
+  background: #fefce8;
+  color: #eab308;
+}
+.dpMidday {
+  background: #fff7ed;
+  color: #f97316;
+}
+.dpDinner {
+  background: #fef2f2;
+  color: #ef4444;
+}
+.dpLate {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.dpName {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.dpWindow {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.options {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.option {
+  width: 105px;
+  height: 66px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 8px;
+  color: #8a8a8a;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.option:hover {
+  border-color: var(--color-primary-40);
+}
+
+.option.selected {
+  border-color: var(--color-shift-electric-blue);
+  background: var(--color-primary-20);
+  color: var(--color-primary-60);
+}
+
+.option svg {
+  width: 24px;
+  height: 24px;
+}
+
+.optionLabel {
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.predicted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 66px;
+  margin-bottom: 24px;
+}
+
+.pill {
+  min-width: 74px;
+  height: 24px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.pillDead {
+  background: var(--color-gray-20);
+  border-color: var(--color-gray-30);
+  color: var(--color-gray-70);
+}
+.pillSlow {
+  background: var(--color-primary-20);
+  border-color: var(--color-primary-30);
+  color: var(--color-shift-electric-blue);
+}
+.pillSteady {
+  background: var(--color-success-20);
+  border-color: var(--color-success-40);
+  color: var(--color-success-50);
+}
+.pillBusy {
+  background: var(--color-alert-20);
+  border-color: var(--color-alert-40);
+  color: var(--color-alert-80);
+}
+.pillSlammed {
+  background: var(--color-destructive-20);
+  border-color: var(--color-destructive-30);
+  color: var(--color-destructive-70);
+}
+
+.footer {
+  padding: 22px 24px 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+}
+
+.footerDivider {
+  margin-top: -4px;
+}
+
+.btn {
+  width: 154px;
+  height: 44px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--duration-fast), opacity var(--duration-fast);
+}
+
+.cancel {
+  color: var(--color-gray-70);
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+}
+
+.cancel:hover {
+  background: var(--color-gray-10);
+}
+
+.submit {
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border: none;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--color-shift-cobalt);
+}
+
+.submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.error {
+  padding: 12px 24px 0;
+  font-size: 14px;
+  color: var(--color-destructive-70);
+  text-align: right;
+}
+
+.state {
+  padding: 60px 24px 40px;
+  text-align: center;
+  font-size: 16px;
+  color: var(--color-gray-70);
+}
+
+.thanks {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+@media (max-width: 1000px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .colHead {
+    display: none;
+  }
+  .options {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-bottom: 8px;
+  }
+  .rowLabel,
+  .predicted {
+    min-height: 0;
+    margin-bottom: 12px;
+  }
+  .predicted {
+    justify-content: flex-start;
+    margin-bottom: 32px;
+  }
+}

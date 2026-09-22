@@ -1,0 +1,138 @@
+/* Weekly Outlook only — shared bits live in ../shared.module.css.
+   Sizes are Bubble's real CSS px (measured in the live app). */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+
+
+@media (min-width: 1400px) {
+  .grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+/* Below the 7-column desktop width, size columns by content instead of a
+   fixed count — a fixed 4-column step (the old rule here) left a real gap:
+   any width just above the "collapse to 2 columns" breakpoint but still far
+   short of comfortably fitting 4 stayed at 4 and overflowed (reported by the
+   owner around ~700-750px). Auto-fit has no such gap at any width. */
+@media (max-width: 1399px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+/* Laptop-width windows (~1470px): keep 7 columns by tightening the gaps. */
+@media (max-width: 1700px) {
+  .grid {
+    gap: 16px;
+  }
+  .weatherIcon {
+    width: 30px;
+    height: 30px;
+  }
+  .weatherRow {
+    gap: 8px;
+  }
+}
+
+.day {
+  padding: 12px;
+  font-size: 14px;
+}
+
+.dow {
+  padding-top: 1px;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--color-gray-60);
+}
+
+.date {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.scoreRow {
+  margin-top: 12px;
+  padding-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-borders);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.weatherRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0 12px;
+  border-bottom: 1px solid var(--color-borders);
+}
+
+.eventsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 0 4px;
+}
+
+.weatherIcon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.eventsIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.eventsIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.strong {
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.muted {
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.lower {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 900fr) minmax(0, 613fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.chartCard {
+  padding: 24px;
+}
+
+@media (max-width: 1100px) {
+  .lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

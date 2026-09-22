@@ -14,6 +14,8 @@ import {
   daysUntilNextMonday,
   mondayOfWeek,
   nextMondayDate,
+  detroitDate,
+  addDays,
 } from "./lib/vocab";
 import {
   listEventSignalIds,
@@ -326,10 +328,8 @@ async function gatherHuntingtonSignalRows(
   now: Date,
   days: number,
 ): Promise<HuntingtonGatherResult> {
-  const windowStart = now.toISOString().slice(0, 10);
-  const windowEnd = new Date(now.getTime() + days * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
+  const windowStart = detroitDate(now);
+  const windowEnd = addDays(windowStart, days);
 
   // Drift guard, same as attachClassAndMagnitude: the class we emit must exist
   // in the owner-editable catalog or its lift silently resolves to 0.
@@ -445,7 +445,7 @@ export const fetchHuntingtonEventsRaw = internalAction({
     const days = args.days ?? daysUntilNextMonday(now);
     const res = await gatherHuntingtonSignalRows(ctx, now, days);
     return {
-      window: { start: now.toISOString().slice(0, 10), days },
+      window: { start: detroitDate(now), days },
       summary: res.summary,
       events: res.events,
       sampleRows: res.rows.slice(0, 24),
@@ -550,7 +550,7 @@ export const syncEventSignalsToBubble = internalAction({
         // Monday's signal on Tuesday.
         const weekStart = mondayOfWeek(now);
         const weekEnd = nextMondayDate(now); // exclusive
-        const today = now.toISOString().slice(0, 10);
+        const today = detroitDate(now);
         for (const [key, { id, date }] of existing) {
           const isHuntington = key.startsWith("hp_");
           const outOfWindow = date === "" || date < weekStart || date >= weekEnd;
@@ -568,6 +568,50 @@ export const syncEventSignalsToBubble = internalAction({
           }
         }
       }
+
+      // Mirror the same rows into Convex's own eventSignals table (see
+      // signalsStore.ts) — additive, doesn't touch anything above. Applies
+      // the identical windowed stale-row rule, just evaluated against
+      // Convex's own existing rows instead of Bubble's.
+      const convexUpserts = rows.map((row) => ({
+        signalKey: row.signal_key,
+        eventId: row.eventId,
+        name: row.name,
+        venueName: row.venueName ?? undefined,
+        eventClass: row.eventClass,
+        zone: row.zone,
+        proximity: row.proximity,
+        distanceMiles: row.distanceMiles,
+        eventTime: row.time ?? undefined,
+        date: row.date,
+        day: row.day ?? undefined,
+        daypart: row.daypart ?? undefined,
+        allDayparts: row.allDayparts,
+      }));
+      let convexDeleteKeys: string[] = [];
+      if (args.deleteStale) {
+        const convexExisting = await ctx.runQuery(
+          internal.signalsStore.listEventSignalKeys,
+          {},
+        );
+        const weekStart = mondayOfWeek(now);
+        const weekEnd = nextMondayDate(now);
+        const today = detroitDate(now);
+        convexDeleteKeys = convexExisting
+          .filter(({ signalKey, date }) => {
+            const isHuntington = signalKey.startsWith("hp_");
+            const outOfWindow = date === "" || date < weekStart || date >= weekEnd;
+            const sourceRefreshed = isHuntington ? huntingtonClean : true;
+            const vanishedFuture =
+              sourceRefreshed && date >= today && !seen.has(signalKey);
+            return outOfWindow || vanishedFuture;
+          })
+          .map(({ signalKey }) => signalKey);
+      }
+      await ctx.runMutation(internal.signalsStore.syncEventSignals, {
+        upserts: convexUpserts,
+        deleteKeys: convexDeleteKeys,
+      });
 
       return {
         computed: summary,

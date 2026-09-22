@@ -14,6 +14,8 @@ import {
   daysUntilNextMonday,
   mondayOfWeek,
   nextMondayDate,
+  detroitDate,
+  addDays,
   DAYPARTS,
 } from "./lib/vocab";
 import {
@@ -117,6 +119,9 @@ export const syncWeatherSignalsToBubble = internalAction({
       // Cap at the upcoming Monday (not a flat 7) — same reasoning as the event
       // sync: a mid-week run must stay inside this week, never spill into next
       // week's Mon/Tue/Wed and overwrite this week's day-slots with wrong dates.
+      // All "today"/week math is anchored to Detroit's local date (see vocab.ts):
+      // WeatherAPI's forecast window starts from the local date, and the cron
+      // fires while Detroit is still on the previous UTC day.
       const now = new Date();
       const query = args.query ?? "Detroit";
       const days = args.days ?? daysUntilNextMonday(now);
@@ -127,12 +132,10 @@ export const syncWeatherSignalsToBubble = internalAction({
       // mid-week or delayed sync would otherwise leave those day-slots with no
       // weather signal at all even though the real data is available via history.
       const weekStart = mondayOfWeek(now);
-      const todayStr = now.toISOString().slice(0, 10);
+      const todayStr = detroitDate(now);
       let history: Awaited<ReturnType<typeof fetchWeatherHistory>> = [];
       if (weekStart < todayStr) {
-        const yesterday = new Date(now.getTime() - 86_400_000)
-          .toISOString()
-          .slice(0, 10);
+        const yesterday = addDays(todayStr, -1);
         history = await fetchWeatherHistory({
           apiKey,
           query,
@@ -209,7 +212,7 @@ export const syncWeatherSignalsToBubble = internalAction({
         //       are kept, not deleted.
         const weekStart = mondayOfWeek(now);
         const weekEnd = nextMondayDate(now); // exclusive
-        const today = now.toISOString().slice(0, 10);
+        const today = detroitDate(now);
         for (const [key, id] of existing) {
           const date = key.slice(-10);
           const outOfWindow = date < weekStart || date >= weekEnd;
@@ -220,6 +223,67 @@ export const syncWeatherSignalsToBubble = internalAction({
           }
         }
       }
+
+      // Mirror the same rows into Convex's own weatherSignals table (see
+      // signalsStore.ts) — additive, doesn't touch anything above. Same
+      // windowed stale-row rule as the Bubble block, evaluated against
+      // Convex's own existing rows (which carry `date` as a real field, no
+      // need to slice it out of the key).
+      const convexUpserts = rows.map((r) => ({
+        signalKey: r.signal_key,
+        zone: r.zone,
+        date: r.date,
+        day: r.day ?? undefined,
+        severity: r.severity,
+        condition: r.condition,
+        precipChance: r.precip_chance,
+        tempF: r.temp_f,
+        morning: {
+          severity: r.morning.severity,
+          condition: r.morning.condition,
+          tempF: r.morning.temp_f,
+          precipChance: r.morning.precip_chance,
+        },
+        midday: {
+          severity: r.midday.severity,
+          condition: r.midday.condition,
+          tempF: r.midday.temp_f,
+          precipChance: r.midday.precip_chance,
+        },
+        dinner: {
+          severity: r.dinner.severity,
+          condition: r.dinner.condition,
+          tempF: r.dinner.temp_f,
+          precipChance: r.dinner.precip_chance,
+        },
+        late: {
+          severity: r.late.severity,
+          condition: r.late.condition,
+          tempF: r.late.temp_f,
+          precipChance: r.late.precip_chance,
+        },
+      }));
+      let convexDeleteKeys: string[] = [];
+      if (args.deleteStale) {
+        const convexExisting = await ctx.runQuery(
+          internal.signalsStore.listWeatherSignalKeys,
+          {},
+        );
+        const weekStart = mondayOfWeek(now);
+        const weekEnd = nextMondayDate(now);
+        const today = detroitDate(now);
+        convexDeleteKeys = convexExisting
+          .filter(({ signalKey, date }) => {
+            const outOfWindow = date < weekStart || date >= weekEnd;
+            const vanishedFuture = date >= today && !seen.has(signalKey);
+            return outOfWindow || vanishedFuture;
+          })
+          .map(({ signalKey }) => signalKey);
+      }
+      await ctx.runMutation(internal.signalsStore.syncWeatherSignals, {
+        upserts: convexUpserts,
+        deleteKeys: convexDeleteKeys,
+      });
 
       return {
         days: allDays.length,

@@ -17,6 +17,8 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { answerQuestion, type CoefficientBundle } from "./lib/orchestrator";
 import { verifySvixSignature } from "./lib/svix";
+import { verifyStripeSignature } from "./lib/stripeWebhook";
+import { stripe } from "./lib/stripe";
 
 const http = httpRouter();
 
@@ -446,6 +448,106 @@ http.route({
     }
 
     return new Response(null, { status: 200 });
+  }),
+});
+
+// POST {CONVEX_SITE_URL}/stripe/webhook — Stripe's source of truth for
+// subscription state (renewals, failed payments, cancellations). Configure in
+// the Stripe dashboard: Developers > Webhooks > Add endpoint, this URL,
+// events checkout.session.completed / customer.subscription.updated /
+// customer.subscription.deleted; copy its signing secret into
+// STRIPE_WEBHOOK_SECRET (`npx convex env set`). checkout.session.completed is
+// handled here too (not just the client-side syncCheckoutSession) so access
+// still updates if the browser tab closes before the redirect back.
+http.route({
+  path: "/stripe/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error("[stripe-webhook] STRIPE_WEBHOOK_SECRET is not set — rejecting.");
+      return new Response("Webhook not configured", { status: 500 });
+    }
+
+    const payload = await req.text();
+    const verified = await verifyStripeSignature({
+      secret,
+      header: req.headers.get("stripe-signature"),
+      payload,
+    });
+    if (!verified) {
+      console.warn("[stripe-webhook] signature verification FAILED");
+      return new Response("Invalid signature", { status: 401 });
+    }
+
+    let evt: {
+      type?: string;
+      created?: number; // unix seconds — the event's own timestamp, for out-of-order detection
+      data?: {
+        object?: {
+          id?: string;
+          customer?: string;
+          status?: string;
+          current_period_end?: number;
+          subscription?: string;
+          client_reference_id?: string;
+        };
+      };
+    };
+    try {
+      evt = JSON.parse(payload);
+    } catch {
+      return new Response("Body must be JSON.", { status: 400 });
+    }
+
+    const type = evt.type ?? "";
+    const obj = evt.data?.object ?? {};
+    console.log("[stripe-webhook] verified event", { type, id: obj.id });
+
+    try {
+      if (type === "checkout.session.completed") {
+        const customerId = obj.customer;
+        const subscriptionId = obj.subscription;
+        if (customerId && subscriptionId) {
+          const op = await ctx.runQuery(internal.stripe.getByCustomerId, { stripeCustomerId: customerId });
+          if (op) {
+            const sub = await stripe.retrieveSubscription(subscriptionId);
+            await ctx.runMutation(internal.stripe.setSubscription, {
+              operatorId: op._id,
+              stripeSubscriptionId: sub.id,
+              subscriptionStatus: sub.status,
+              currentPeriodEnd: sub.current_period_end * 1000,
+              eventCreatedAt: Date.now(), // a live read of Stripe, taken right now
+            });
+          } else {
+            console.warn("[stripe-webhook] no operator for customer", customerId);
+          }
+        }
+      } else if (type === "customer.subscription.updated" || type === "customer.subscription.deleted") {
+        const customerId = obj.customer;
+        if (customerId && obj.id && obj.status && obj.current_period_end !== undefined) {
+          const op = await ctx.runQuery(internal.stripe.getByCustomerId, { stripeCustomerId: customerId });
+          if (op) {
+            await ctx.runMutation(internal.stripe.setSubscription, {
+              operatorId: op._id,
+              stripeSubscriptionId: obj.id,
+              subscriptionStatus: obj.status,
+              currentPeriodEnd: obj.current_period_end * 1000,
+              // This webhook event's own timestamp, not "now" — Stripe doesn't
+              // guarantee delivery order, so setSubscription needs the event's
+              // real age to drop a stale one that arrives late.
+              eventCreatedAt: (evt.created ?? Math.floor(Date.now() / 1000)) * 1000,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[stripe-webhook] handler error:", err instanceof Error ? err.message : err);
+      // Still 200 — a transient error here shouldn't make Stripe hammer
+      // retries; the next subscription.updated event will self-heal the state.
+    }
+
+    return new Response("ok", { status: 200 });
   }),
 });
 

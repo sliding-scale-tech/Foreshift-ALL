@@ -1,0 +1,314 @@
+/* Weather Outlook only — shared bits live in ../shared.module.css.
+   Sizes are Bubble's real CSS px (measured in the live app). */
+
+/* ---- Banner with the day's snapshot card ---- */
+
+.banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 40px;
+  align-items: center;
+}
+
+.snapshot {
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--color-text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.snapshotTop {
+  min-height: 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.snapshotTemp {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+  color: var(--color-primary);
+}
+
+.snapshotIcon {
+  width: 52px;
+  height: 44px;
+}
+
+.snapshotBottom {
+  margin-top: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---- Calendar ---- */
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+@media (min-width: 1400px) {
+  .calendar {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+/* Below the 7-column desktop width, size columns by content instead of a
+   fixed count — a fixed 4-column step (the old rule here) left a real gap:
+   any width just above the "collapse to 2 columns" breakpoint but still far
+   short of comfortably fitting 4 stayed at 4 and overflowed (reported by the
+   owner around ~700-750px). Auto-fit has no such gap at any width. */
+@media (max-width: 1399px) {
+  .calendar {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 1700px) {
+  .calendar {
+    gap: 16px;
+  }
+}
+
+.dayCard {
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-text);
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.dayCard:hover {
+  border-color: var(--color-primary-40);
+}
+
+.dayCard.selected {
+  border-color: var(--color-shift-electric-blue);
+  background: var(--color-primary-20);
+}
+
+.dayName {
+  padding-top: 2px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 25px;
+}
+
+.dayDate {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.dayIcon {
+  margin: 12px auto 0;
+  width: 64px;
+  height: 64px;
+  padding: 8px;
+}
+
+.dayCond {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+/* ---- Selected day + daypart impact ---- */
+
+.detail {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 460fr) minmax(0, 1054fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.dayPanel {
+  padding: 16px;
+  text-align: center;
+}
+
+.dayPanelDate {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--color-gray-60);
+}
+
+.dayPanelIcon {
+  margin: 28px auto 0;
+  width: 64px;
+  height: 58px;
+}
+
+.dayPanelTemp {
+  margin-top: 16px;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+}
+
+.dayPanelCond {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-60);
+}
+
+.dayPanelPct {
+  margin-top: 16px;
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+}
+
+.impactTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+
+.impactGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.dpCard {
+  padding: 16px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dpHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.dpText {
+  flex: 1;
+  min-width: 0;
+}
+
+.dpTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.dpWindow {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.severity {
+  font-size: 14px;
+  line-height: 20px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.sevLow {
+  background: var(--color-primary-20);
+  border-color: var(--color-primary-30);
+  color: var(--color-shift-electric-blue);
+}
+.sevModerate {
+  background: var(--color-alert-20);
+  border-color: var(--color-alert-40);
+  color: var(--color-alert-80);
+}
+.sevHigh {
+  background: var(--color-destructive-20);
+  border-color: var(--color-destructive-30);
+  color: var(--color-destructive-70);
+}
+
+.dpBottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dpPct {
+  margin-bottom: 18px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.dpWeather {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: right;
+}
+
+.dpWeatherIcon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.dpCond {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.dpTemp {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-gray-70);
+}
+
+.pos {
+  color: var(--color-success-60);
+}
+.neg {
+  color: var(--color-destructive-60);
+}
+.panelPos {
+  background: var(--color-success-30);
+  color: var(--color-success-60);
+}
+.panelNeg {
+  background: var(--color-destructive-30);
+  color: var(--color-destructive-60);
+}
+
+@media (max-width: 1100px) {
+  .detail,
+  .banner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .impactGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

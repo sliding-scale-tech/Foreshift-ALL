@@ -1,5 +1,31 @@
 <!-- foreshift-start -->
 
+## Frontend scope rule — READ FIRST (non-negotiable)
+
+**Bubble is the live production frontend and Convex is the live production backend.
+Neither is to be changed, refactored, or touched as a side effect of other work —
+they must keep working exactly as they do today.**
+
+- **Do not modify Bubble** (pages, workflows, option sets, API connector calls) and
+  do not change any existing Convex function's behavior, request/response shape, or
+  schema in a way that could break what Bubble already calls — unless the user
+  explicitly asks for a Bubble-facing or existing-Convex-behavior change in that
+  specific request.
+- **From now on, every frontend request from the user is for a new, separate
+  frontend** (e.g. a React/Next.js app) that runs **alongside** Bubble, not a
+  replacement for it and not an edit to it. Assume it talks to Convex as its
+  backend (new functions/endpoints are fine to add; do not repurpose or break
+  existing ones Bubble depends on).
+- **This new frontend is a fully separate app/codebase: `foreshift-new/web/`.**
+  It is its own standalone Next.js project (own `package.json`, own deploy),
+  not routes inside this repo. It points at the **same Convex deployment**
+  (same `NEXT_PUBLIC_CONVEX_URL` etc.) and the **same Clerk instance** (same
+  publishable/secret keys) as this admin console, via its own `.env.local` —
+  sharing backend and auth provider, not codebase. Never add operator-facing
+  routes into this repo's `app/`.
+- If a request seems to require changing existing Bubble-facing Convex behavior,
+  stop and confirm with the user before proceeding — don't assume it's in scope.
+
 # ForeShift Demand Service — Build Reference
 
 Source of truth: `ForeShift_Backend_Service_Spec.pdf` (the build spec) and
