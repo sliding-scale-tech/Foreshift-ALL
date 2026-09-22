@@ -1,0 +1,8 @@
+{
+  "name": "foreshift-new",
+  "private": true,
+  "workspaces": [
+    "my-app",
+    "web"
+  ]
+}

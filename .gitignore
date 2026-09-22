@@ -1,0 +1,17 @@
+# Monorepo root — each app also has its own .gitignore
+
+node_modules/
+.DS_Store
+
+# Build output
+.next/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
