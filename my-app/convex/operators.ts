@@ -36,12 +36,17 @@ const operatingHoursValidator = v.array(
 /** Create the operator profile at the end of onboarding. One per account —
  * throws if this Clerk user already has one. */
 export const create = mutation({
+  // Zone and concept are the only fields the demand math actually needs, so
+  // the "I'm exploring" onboarding branch supplies just those two and leaves
+  // the restaurant details blank. Such an operator is a normal operator in
+  // every other respect (trial, gate, billing); filling the blanks in on the
+  // Settings page is all it takes to become a fully registered restaurant.
   args: {
-    restaurantName: v.string(),
-    address: v.string(),
+    restaurantName: v.optional(v.string()),
+    address: v.optional(v.string()),
     zone: v.string(),
     conceptType: v.string(),
-    operatingHours: operatingHoursValidator,
+    operatingHours: v.optional(operatingHoursValidator),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -55,7 +60,14 @@ export const create = mutation({
       throw new Error("Onboarding has already been completed for this account.");
     }
 
-    await ctx.db.insert("operators", { clerkId: identity.subject, ...args });
+    await ctx.db.insert("operators", {
+      clerkId: identity.subject,
+      restaurantName: args.restaurantName ?? "",
+      address: args.address ?? "",
+      zone: args.zone,
+      conceptType: args.conceptType,
+      operatingHours: args.operatingHours ?? [],
+    });
   },
 });
 

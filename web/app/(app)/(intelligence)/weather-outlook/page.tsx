@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { WeatherOutlookResult } from "my-app/convex/lib/outlook";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
+import { operatorLabel } from "@/app/lib/displayName";
 import { useOutlook } from "@/app/hooks/useOutlook";
 import { useWeek } from "@/app/hooks/useWeek";
 import { BandPill } from "@/app/components/BandPill";
@@ -57,7 +58,7 @@ export default function WeatherOutlookPage() {
     <>
       <h1 className={shared.title}>Weather Outlook</h1>
       <p className={shared.subtitle}>
-        {weekLabel(week.weekStart)} - {operator?.restaurantName} - {operator?.conceptType}
+        {weekLabel(week.weekStart)} - {operatorLabel(operator)} - {operator?.conceptType}
       </p>
 
       <section className={`${shared.banner} ${styles.banner}`}>

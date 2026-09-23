@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { EventOutlookResult } from "my-app/convex/lib/outlook";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
+import { operatorLabel } from "@/app/lib/displayName";
 import { useOutlook } from "@/app/hooks/useOutlook";
 import { useWeek, type WeekData, type WeekEvent } from "@/app/hooks/useWeek";
 import { EVENT_CLASS_ORDER, EventIcon } from "@/app/components/EventIcon";
@@ -103,7 +104,7 @@ export default function EventsOverviewPage() {
     <>
       <h1 className={shared.title}>Events Overview</h1>
       <p className={shared.subtitle}>
-        {weekLabel(week.weekStart)} - {operator?.restaurantName} - {operator?.conceptType}
+        {weekLabel(week.weekStart)} - {operatorLabel(operator)} - {operator?.conceptType}
       </p>
 
       <section className={shared.banner}>

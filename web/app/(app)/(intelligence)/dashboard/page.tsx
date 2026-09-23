@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
+import { operatorLabel } from "@/app/lib/displayName";
 import { IconSparkle, IconCalendarCheck } from "@/app/components/dashboard-icons";
 import { BandPill } from "@/app/components/BandPill";
 import { DaypartIcon } from "@/app/components/DaypartIcon";
@@ -50,7 +51,7 @@ function DailyOutlook() {
   const { operator } = useMyOperator();
   const date = useSearchParams().get("date") ?? undefined;
   const outlook = useDailyOutlook(date);
-  const name = operator?.restaurantName ?? "";
+  const name = operatorLabel(operator);
 
   // Nothing renders until the whole outlook is ready — no placeholders.
   if (outlook.status === "loading") return <PageLoading label="Preparing today's forecast…" />;

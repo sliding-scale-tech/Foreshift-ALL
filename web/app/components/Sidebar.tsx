@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
+import { operatorLabel } from "@/app/lib/displayName";
 import { NAV_SECTIONS } from "./nav";
 import { IconLogout } from "./dashboard-icons";
 import { IconClose } from "./icons";
@@ -91,7 +92,7 @@ export function Sidebar() {
           <div className={styles.avatar}>{name.charAt(0)}</div>
           <div className={styles.userText}>
             <div className={styles.userName}>{name}</div>
-            <div className={styles.userSub}>{operator?.restaurantName}</div>
+            <div className={styles.userSub}>{operatorLabel(operator)}</div>
           </div>
         </div>
         <button

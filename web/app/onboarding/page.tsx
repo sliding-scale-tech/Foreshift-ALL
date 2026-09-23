@@ -66,6 +66,12 @@ type DayHours = {
 
 const STEPS = ["Signup Choice", "Restaurant Info", "Operating Hours"] as const;
 
+// "I'm exploring" skips the venue details and operating hours — zone and
+// concept are all the demand math needs — so it runs one step shorter.
+const EXPLORER_STEPS = ["Signup Choice", "Restaurant Info"] as const;
+
+type Mode = "restaurant" | "explorer";
+
 export default function OnboardingPage() {
   return (
     <>
@@ -96,9 +102,11 @@ function OnboardingWizard() {
   const router = useRouter();
   const createOperator = useMutation(api.operators.create);
 
-  // 4 = the "You are all set!" success screen after onboarding is saved —
+  // One past the last real step is the "You are all set!" success screen —
   // not one of STEPS, just renders the stepper with everything checked off.
+  // That's 4 for the restaurant branch and 3 for the shorter explorer one.
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [mode, setMode] = useState<Mode>("restaurant");
 
   const [restaurantName, setRestaurantName] = useState("");
   const [address, setAddress] = useState("");
@@ -141,6 +149,20 @@ function OnboardingWizard() {
     }
   }
 
+  // Explorer branch: zone + concept only, restaurant details left blank.
+  async function handleFinishExploring() {
+    setError("");
+    setSubmitting(true);
+    try {
+      await createOperator({ zone, conceptType });
+      setStep(3);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function updateDay(day: string, patch: Partial<DayHours>) {
     setHours((hs) => hs.map((h) => (h.day === day ? { ...h, ...patch } : h)));
   }
@@ -151,12 +173,42 @@ function OnboardingWizard() {
         Fore<span>Shift</span>
       </div>
 
-      <Stepper step={step} />
+      <Stepper step={step} steps={mode === "explorer" ? EXPLORER_STEPS : STEPS} />
 
       <div className={styles.card}>
-        {step === 1 && <StepChoice onPickRestaurant={() => setStep(2)} />}
+        {step === 1 && (
+          <StepChoice
+            onPickRestaurant={() => {
+              setMode("restaurant");
+              setStep(2);
+            }}
+            onPickExploring={() => {
+              setMode("explorer");
+              setStep(2);
+            }}
+          />
+        )}
 
-        {step === 2 && (
+        {step === 2 && mode === "explorer" && (
+          <StepExploreZone
+            zone={zone}
+            setZone={onManualZone}
+            zoneNote={zoneNote}
+            conceptType={conceptType}
+            setConceptType={setConceptType}
+            valid={Boolean(zone && conceptType)}
+            onOpenZoneFinder={() => setZoneModalOpen(true)}
+            onContinue={handleFinishExploring}
+            submitting={submitting}
+            error={error}
+          />
+        )}
+
+        {step === 3 && mode === "explorer" && (
+          <StepDone exploring onViewDashboard={() => router.push("/dashboard")} />
+        )}
+
+        {step === 2 && mode === "restaurant" && (
           <StepRestaurantInfo
             restaurantName={restaurantName}
             setRestaurantName={setRestaurantName}
@@ -174,7 +226,7 @@ function OnboardingWizard() {
           />
         )}
 
-        {step === 3 && (
+        {step === 3 && mode === "restaurant" && (
           <StepOperatingHours
             hours={hours}
             updateDay={updateDay}
@@ -218,10 +270,16 @@ function OnboardingWizard() {
   );
 }
 
-function Stepper({ step }: { step: 1 | 2 | 3 | 4 }) {
+function Stepper({
+  step,
+  steps,
+}: {
+  step: 1 | 2 | 3 | 4;
+  steps: readonly string[];
+}) {
   return (
     <div className={styles.stepper}>
-      {STEPS.map((label, i) => {
+      {steps.map((label, i) => {
         const n = i + 1;
         const state = n < step ? "done" : n === step ? "active" : "";
         return (
@@ -230,7 +288,7 @@ function Stepper({ step }: { step: 1 | 2 | 3 | 4 }) {
               <span className={styles.stepCircle}>{n < step ? <IconCheck /> : n}</span>
               {label}
             </div>
-            {i < STEPS.length - 1 && <div className={styles.stepLine} />}
+            {i < steps.length - 1 && <div className={styles.stepLine} />}
           </div>
         );
       })}
@@ -238,7 +296,13 @@ function Stepper({ step }: { step: 1 | 2 | 3 | 4 }) {
   );
 }
 
-function StepChoice({ onPickRestaurant }: { onPickRestaurant: () => void }) {
+function StepChoice({
+  onPickRestaurant,
+  onPickExploring,
+}: {
+  onPickRestaurant: () => void;
+  onPickExploring: () => void;
+}) {
   return (
     <>
       <div className={styles.choiceGrid}>
@@ -253,16 +317,13 @@ function StepChoice({ onPickRestaurant }: { onPickRestaurant: () => void }) {
           </button>
         </div>
 
-        <div className={`${styles.choiceCard} ${styles.disabled}`}>
+        <div className={styles.choiceCard}>
           <div className={styles.choiceIllustration}>
             <IllustrationExplore />
           </div>
-          <div className={styles.choiceTitleRow}>
-            <h2>I&apos;m exploring</h2>
-            <span className={styles.comingSoon}>Coming soon</span>
-          </div>
+          <h2>I&apos;m exploring</h2>
           <p>Check demand before I commit</p>
-          <button type="button" className={styles.choiceBtn} disabled>
+          <button type="button" className={styles.choiceBtn} onClick={onPickExploring}>
             Continue to Zone Explorer
           </button>
         </div>
@@ -271,18 +332,119 @@ function StepChoice({ onPickRestaurant }: { onPickRestaurant: () => void }) {
   );
 }
 
-function StepDone({ onViewDashboard }: { onViewDashboard: () => void }) {
+function StepDone({
+  onViewDashboard,
+  exploring = false,
+}: {
+  onViewDashboard: () => void;
+  exploring?: boolean;
+}) {
   return (
     <div className={styles.doneWrap}>
       <div className={styles.doneIllustration}>
         <IllustrationSuccess />
       </div>
       <h1 className={styles.doneTitle}>You are all set!</h1>
-      <p className={styles.doneSubtitle}>View your demand forecast</p>
+      <p className={styles.doneSubtitle}>
+        {exploring ? "View free demand report" : "View your demand forecast"}
+      </p>
       <button type="button" className={styles.choiceBtn} onClick={onViewDashboard}>
-        View Demand Score
+        {exploring ? "View Demand Report" : "View Demand Score"}
       </button>
     </div>
+  );
+}
+
+// The explorer branch's only step: the same zone and concept controls as the
+// restaurant form, without the venue details it doesn't collect.
+function StepExploreZone(props: {
+  zone: string;
+  setZone: (v: string) => void;
+  zoneNote: ZoneNote;
+  conceptType: string;
+  setConceptType: (v: string) => void;
+  valid: boolean;
+  onOpenZoneFinder: () => void;
+  onContinue: () => void;
+  submitting: boolean;
+  error: string;
+}) {
+  return (
+    <>
+      <div className={styles.cardHead}>
+        <h1>Which zone and concept would you like to explore?</h1>
+      </div>
+
+      <div className={styles.field}>
+        <div className={styles.fieldRow}>
+          <span className={styles.label}>
+            Zone<span className={styles.req}>*</span>
+          </span>
+          <button type="button" className={styles.hintBtn} onClick={props.onOpenZoneFinder}>
+            Need help identifying your zone?
+          </button>
+        </div>
+        <select
+          className={styles.select}
+          value={props.zone}
+          onChange={(e) => props.setZone(e.target.value)}
+        >
+          <option value="">Choose an option...</option>
+          {ZONES.map((z) => (
+            <option key={z} value={z}>
+              {z}
+            </option>
+          ))}
+        </select>
+        {props.zoneNote && (
+          <p
+            className={`${styles.zoneNote} ${props.zoneNote.kind === "warn" ? styles.zoneNoteWarn : ""}`}
+            role={props.zoneNote.kind === "warn" ? "alert" : "status"}
+          >
+            {props.zoneNote.text}
+          </p>
+        )}
+      </div>
+
+      <div className={styles.field}>
+        <div className={styles.fieldRow}>
+          <span className={styles.label}>
+            Concept Type<span className={styles.req}>*</span>
+          </span>
+        </div>
+        <div className={styles.conceptGrid}>
+          {CONCEPT_DISPLAY_ORDER.map((c) => {
+            const Icon = CONCEPT_ICONS[c];
+            const selected = props.conceptType === c;
+            return (
+              <button
+                type="button"
+                key={c}
+                className={`${styles.conceptCard} ${selected ? styles.selected : ""}`}
+                onClick={() => props.setConceptType(c)}
+              >
+                <Icon />
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className={styles.footerRow}>
+        <button
+          type="button"
+          className={styles.continueBtn}
+          disabled={!props.valid || props.submitting}
+          onClick={props.onContinue}
+        >
+          Continue
+          <IconArrowRight />
+        </button>
+      </div>
+
+      {props.error && <p className={styles.error}>{props.error}</p>}
+    </>
   );
 }
 
