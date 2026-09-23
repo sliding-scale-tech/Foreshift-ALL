@@ -15,6 +15,9 @@ export default function SignInPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Set once Clerk asks for an emailed code to verify this browser.
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,14 +46,48 @@ export default function SignInPage() {
         return;
       }
 
-      // Anything left (2FA, a forced password reset) has no UI yet. Log the
-      // status so an unhandled case is identifiable instead of anonymous.
+      // Signing in from a browser Clerk doesn't recognise yet: the password
+      // was accepted, but Clerk wants the device confirmed with an emailed
+      // code before it will hand over a session.
+      if (result.status === "needs_client_trust" || result.status === "needs_second_factor") {
+        await signIn.prepareSecondFactor({ strategy: "email_code" });
+        setNeedsCode(true);
+        return;
+      }
+
+      // Anything left (a forced password reset, say) has no UI yet — log it
+      // so an unhandled case is identifiable rather than anonymous.
       console.warn("[sign-in] unhandled status:", result.status, result);
       setError("Additional verification is required for this account.");
     } catch (err) {
       if (isClerkAPIResponseError(err)) {
         // Don't parrot Clerk's specific reason (account-enumeration risk).
         setError("Invalid email or password.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      const result = await signIn.attemptSecondFactor({ strategy: "email_code", code });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push("/");
+        return;
+      }
+
+      setError("That code didn't work. Please check and try again.");
+    } catch (err) {
+      if (isClerkAPIResponseError(err)) {
+        setError(err.errors[0]?.longMessage || err.errors[0]?.message || "Verification failed.");
       } else {
         setError("Something went wrong. Please try again.");
       }
@@ -73,6 +110,43 @@ export default function SignInPage() {
       setGoogleLoading(false);
     }
   };
+
+  if (needsCode) {
+    return (
+      <AuthShell
+        title="Check your email"
+        subtitle="Confirm it's you to finish signing in."
+        headline="Predictive clarity for your operations."
+        blurb="Access intelligent forecasts and operational insights designed for modern management."
+      >
+        <form onSubmit={handleVerifyCode} noValidate>
+          <p className={formStyles.verifyNote}>
+            We sent a 6-digit code to <strong>{email}</strong> to verify this device.
+          </p>
+          <div className={formStyles.field}>
+            <label htmlFor="code">Verification code</label>
+            <input
+              id="code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              className={formStyles.input}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+            />
+          </div>
+
+          {error && <p className={formStyles.error}>{error}</p>}
+
+          <button type="submit" className={formStyles.primaryBtn} disabled={submitting}>
+            {submitting ? "Verifying…" : "Verify and sign in"}
+            {!submitting && <IconArrowRight />}
+          </button>
+        </form>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell
