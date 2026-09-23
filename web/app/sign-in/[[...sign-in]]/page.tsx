@@ -27,7 +27,15 @@ export default function SignInPage() {
     setError("");
     setSubmitting(true);
     try {
-      const result = await signIn.create({ identifier: email, password });
+      const created = await signIn.create({ identifier: email, password });
+
+      // Passing the password to create() doesn't always authenticate it on its
+      // own — Clerk can come back asking for the first factor to be attempted
+      // explicitly, which is what actually checks the password.
+      const result =
+        created.status === "needs_first_factor"
+          ? await signIn.attemptFirstFactor({ strategy: "password", password })
+          : created;
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
@@ -35,8 +43,9 @@ export default function SignInPage() {
         return;
       }
 
-      // This form only handles the plain password flow — any other status
-      // (2FA, unexpected verification) isn't built out yet.
+      // Anything left (2FA, a forced password reset) has no UI yet. Log the
+      // status so an unhandled case is identifiable instead of anonymous.
+      console.warn("[sign-in] unhandled status:", result.status, result);
       setError("Additional verification is required for this account.");
     } catch (err) {
       if (isClerkAPIResponseError(err)) {
