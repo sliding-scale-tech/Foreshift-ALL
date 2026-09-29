@@ -224,6 +224,10 @@ export default function SignInPage() {
         Don&apos;t have an account?
         <Link href="/sign-up">Signup</Link>
       </p>
+      <p className={formStyles.switchLine}>
+        Just looking?
+        <Link href="/sample-outlook">See a sample outlook</Link>
+      </p>
     </AuthShell>
   );
 }

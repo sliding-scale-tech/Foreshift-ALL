@@ -243,6 +243,10 @@ export default function SignUpPage() {
         Already have an account?
         <Link href="/sign-in">Login</Link>
       </p>
+      <p className={formStyles.switchLine}>
+        Just looking?
+        <Link href="/sample-outlook">See a sample outlook</Link>
+      </p>
     </AuthShell>
   );
 }
