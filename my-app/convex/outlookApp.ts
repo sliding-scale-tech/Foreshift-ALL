@@ -18,6 +18,7 @@
 import { v } from "convex/values";
 import {
   action,
+  type ActionCtx,
   internalMutation,
   internalQuery,
   query,
@@ -174,38 +175,66 @@ async function operatorFor(ctx: QueryCtx) {
  * `result` is null until the first generation; `fresh` is false when the
  * inputs have changed since it was generated. `weather` is the raw reading for
  * that day (the daypart cards show it), null past the forecast horizon. */
+async function readOutlook(
+  ctx: QueryCtx,
+  zone: string,
+  concept: string,
+  type: OutlookType,
+  dateArg: string | undefined,
+) {
+  const date = cacheDate(type, dateArg);
+  const days = daysFor(type, date);
+
+  const cached = await ctx.db
+    .query("outlookCache")
+    .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, type, date)))
+    .unique();
+  const current = await fingerprint(ctx, zone, concept, days);
+
+  const weatherRows = await ctx.db
+    .query("weatherSignals")
+    .withIndex("by_zone_day", (q) => q.eq("zone", zone).eq("day", days[0]))
+    .collect();
+  const w = weatherRows[0];
+
+  return {
+    date,
+    result: cached ? (cached.result as unknown) : null,
+    fresh: cached !== null && cached.fingerprint === current,
+    weather: w
+      ? {
+          morning: w.morning,
+          midday: w.midday,
+          dinner: w.dinner,
+          late: w.late,
+        }
+      : null,
+  };
+}
+
+/** The signed-in operator's outlook of `type` for `date` (default today).
+ * `result` is null until the first generation; `fresh` is false when the
+ * inputs have changed since it was generated. `weather` is the raw reading for
+ * that day (the daypart cards show it), null past the forecast horizon. */
 export const getMine = query({
   args: { type: outlookType, date: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const { zone, concept } = await operatorFor(ctx);
-    const date = cacheDate(args.type, args.date);
-    const days = daysFor(args.type, date);
+    return readOutlook(ctx, zone, concept, args.type, args.date);
+  },
+});
 
-    const cached = await ctx.db
-      .query("outlookCache")
-      .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, args.type, date)))
-      .unique();
-    const current = await fingerprint(ctx, zone, concept, days);
-
-    const weatherRows = await ctx.db
-      .query("weatherSignals")
-      .withIndex("by_zone_day", (q) => q.eq("zone", zone).eq("day", days[0]))
-      .collect();
-    const w = weatherRows[0];
-
-    return {
-      date,
-      result: cached ? (cached.result as unknown) : null,
-      fresh: cached !== null && cached.fingerprint === current,
-      weather: w
-        ? {
-            morning: w.morning,
-            midday: w.midday,
-            dinner: w.dinner,
-            late: w.late,
-          }
-        : null,
-    };
+/** Today's outlook for any zone × concept — public, no sign-in. Powers the
+ * "sample outlook" page shown to visitors. Only known zone/concept strings are
+ * accepted, so the cache it reads (and `ensureSample` fills) stays bounded to
+ * the 13 × 9 real combinations. */
+export const getSample = query({
+  args: { zone: v.string(), concept: v.string() },
+  handler: async (ctx, args) => {
+    const [zone] = keepKnown([args.zone], ZONES);
+    const [concept] = keepKnown([args.concept], CONCEPTS);
+    if (!zone || !concept) throw new Error("Unknown zone or concept.");
+    return readOutlook(ctx, zone, concept, "today", undefined);
   },
 });
 
@@ -468,24 +497,39 @@ export const loadInputs = internalQuery({
   },
 });
 
+async function statusOf(
+  ctx: QueryCtx,
+  zone: string,
+  concept: string,
+  type: OutlookType,
+  dateArg: string | undefined,
+) {
+  const date = cacheDate(type, dateArg);
+  const cached = await ctx.db
+    .query("outlookCache")
+    .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, type, date)))
+    .unique();
+  return {
+    zone,
+    concept,
+    date,
+    key: cacheKey(zone, concept, type, date),
+    fingerprint: await fingerprint(ctx, zone, concept, daysFor(type, date)),
+    cachedFingerprint: cached?.fingerprint ?? null,
+  };
+}
+
 export const status = internalQuery({
   args: { type: outlookType, date: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const { zone, concept } = await operatorFor(ctx);
-    const date = cacheDate(args.type, args.date);
-    const cached = await ctx.db
-      .query("outlookCache")
-      .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, args.type, date)))
-      .unique();
-    return {
-      zone,
-      concept,
-      date,
-      key: cacheKey(zone, concept, args.type, date),
-      fingerprint: await fingerprint(ctx, zone, concept, daysFor(args.type, date)),
-      cachedFingerprint: cached?.fingerprint ?? null,
-    };
+    return statusOf(ctx, zone, concept, args.type, args.date);
   },
+});
+
+export const statusFor = internalQuery({
+  args: { zone: v.string(), concept: v.string(), type: outlookType, date: v.optional(v.string()) },
+  handler: async (ctx, args) => statusOf(ctx, args.zone, args.concept, args.type, args.date),
 });
 
 export const store = internalMutation({
@@ -501,6 +545,52 @@ export const store = internalMutation({
   },
 });
 
+type OutlookStatus = {
+  zone: string;
+  concept: string;
+  date: string;
+  key: string;
+  fingerprint: string;
+  cachedFingerprint: string | null;
+};
+
+async function generateIfStale(
+  ctx: ActionCtx,
+  s: OutlookStatus,
+  type: OutlookType,
+): Promise<{ generated: boolean }> {
+  if (s.cachedFingerprint === s.fingerprint) return { generated: false };
+
+  const [zone] = keepKnown([s.zone], ZONES);
+  const [concept] = keepKnown([s.concept], CONCEPTS);
+  const days = type === "weekly" ? [] : [dayFromLocalDate(s.date) as string];
+  const inputs = await ctx.runQuery(internal.outlookApp.loadInputs, {
+    zone,
+    concept,
+    days,
+  });
+  const coeffs: CoefficientBundle = await ctx.runQuery(internal.coefficients.getAll, {});
+
+  // Anchor at noon UTC so the chosen calendar date survives any timezone.
+  const now = new Date(`${s.date}T12:00:00Z`);
+  const common = { zone, concept, coeffs, inputs };
+  const result =
+    type === "weekly"
+      ? await computeWeeklyOutlook({ ...common, now })
+      : type === "events"
+        ? await computeEventOutlook({ ...common, now })
+        : type === "weather"
+          ? await computeWeatherOutlook({ ...common, now })
+          : await computeTodayOutlook({ ...common, now });
+
+  await ctx.runMutation(internal.outlookApp.store, {
+    key: s.key,
+    fingerprint: s.fingerprint,
+    result,
+  });
+  return { generated: true };
+}
+
 /** Generate the caller's outlook if it is missing or stale. Returns whether it
  * actually generated (false = cache was already fresh). The result itself is
  * read back through getMine, which updates reactively. */
@@ -510,36 +600,24 @@ export const ensure = action({
     // `status` reads the operator from the caller's identity — the identity
     // carries through ctx.runQuery from an authenticated action.
     const s = await ctx.runQuery(internal.outlookApp.status, args);
-    if (s.cachedFingerprint === s.fingerprint) return { generated: false };
+    return generateIfStale(ctx, s, args.type);
+  },
+});
 
-    const [zone] = keepKnown([s.zone], ZONES);
-    const [concept] = keepKnown([s.concept], CONCEPTS);
-    const days = args.type === "weekly" ? [] : [dayFromLocalDate(s.date) as string];
-    const inputs = await ctx.runQuery(internal.outlookApp.loadInputs, {
+/** Public counterpart of `ensure` for the sample page: fills today's cached
+ * outlook for one known zone × concept when it's missing or stale. */
+export const ensureSample = action({
+  args: { zone: v.string(), concept: v.string() },
+  handler: async (ctx, args): Promise<{ generated: boolean }> => {
+    const [zone] = keepKnown([args.zone], ZONES);
+    const [concept] = keepKnown([args.concept], CONCEPTS);
+    if (!zone || !concept) throw new Error("Unknown zone or concept.");
+    const s = await ctx.runQuery(internal.outlookApp.statusFor, {
       zone,
       concept,
-      days,
+      type: "today",
     });
-    const coeffs: CoefficientBundle = await ctx.runQuery(internal.coefficients.getAll, {});
-
-    // Anchor at noon UTC so the chosen calendar date survives any timezone.
-    const now = new Date(`${s.date}T12:00:00Z`);
-    const common = { zone, concept, coeffs, inputs };
-    const result =
-      args.type === "weekly"
-        ? await computeWeeklyOutlook({ ...common, now })
-        : args.type === "events"
-          ? await computeEventOutlook({ ...common, now })
-          : args.type === "weather"
-            ? await computeWeatherOutlook({ ...common, now })
-            : await computeTodayOutlook({ ...common, now });
-
-    await ctx.runMutation(internal.outlookApp.store, {
-      key: s.key,
-      fingerprint: s.fingerprint,
-      result,
-    });
-    return { generated: true };
+    return generateIfStale(ctx, s, "today");
   },
 });
 
