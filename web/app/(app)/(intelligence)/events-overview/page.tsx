@@ -110,7 +110,7 @@ export default function EventsOverviewPage() {
       <section className={shared.banner}>
         <div className={shared.bannerTitle}>
           <IconSparkle />
-          Event Demand Impact
+          Event impact at a glance
         </div>
         <p className={shared.bannerText}>{outlook.result.narration}</p>
       </section>
@@ -147,7 +147,7 @@ export default function EventsOverviewPage() {
           </select>
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>Venue Types</span>
+          <span className={styles.label}>Venues</span>
           <select
             className={styles.control}
             value={type}
@@ -228,7 +228,7 @@ export default function EventsOverviewPage() {
 
         <div className={styles.side}>
           <section className={`${shared.card} ${styles.sideCard}`}>
-            <h2 className={styles.sideTitle}>Top Event Today</h2>
+            <h2 className={styles.sideTitle}>Top events today</h2>
             {topEvent ? (
               <Link
                 href={

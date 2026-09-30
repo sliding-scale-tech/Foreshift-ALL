@@ -116,8 +116,8 @@ export default function SignInPage() {
       <AuthShell
         title="Check your email"
         subtitle="Confirm it's you to finish signing in."
-        headline="Predictive clarity for your operations."
-        blurb="Access intelligent forecasts and operational insights designed for modern management."
+        headline="Know demand before you open."
+        blurb="Demand intelligence for smarter operations."
       >
         <form onSubmit={handleVerifyCode} noValidate>
           <p className={formStyles.verifyNote}>
@@ -150,10 +150,10 @@ export default function SignInPage() {
 
   return (
     <AuthShell
-      title="Welcome Back"
+      title="Welcome back"
       subtitle="Sign in to your ForeShift account."
-      headline="Predictive clarity for your operations."
-      blurb="Access intelligent forecasts and operational insights designed for modern management."
+      headline="Know demand before you open."
+      blurb="Demand intelligence for smarter operations."
     >
       <form onSubmit={handleSubmit} noValidate>
         <div className={formStyles.field}>
@@ -205,7 +205,7 @@ export default function SignInPage() {
         {error && <p className={formStyles.error}>{error}</p>}
 
         <button type="submit" className={formStyles.primaryBtn} disabled={submitting}>
-          {submitting ? "Signing in…" : "Login"}
+          {submitting ? "Signing in…" : "Sign in"}
           {!submitting && <IconArrowRight />}
         </button>
       </form>
@@ -217,12 +217,12 @@ export default function SignInPage() {
         disabled={googleLoading}
       >
         <IconGoogle />
-        {googleLoading ? "Redirecting…" : "Google"}
+        {googleLoading ? "Redirecting…" : "Continue with Google"}
       </button>
 
       <p className={formStyles.switchLine}>
         Don&apos;t have an account?
-        <Link href="/sign-up">Signup</Link>
+        <Link href="/sign-up">Sign up</Link>
       </p>
       <p className={formStyles.switchLine}>
         Just looking?

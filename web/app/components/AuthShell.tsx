@@ -47,7 +47,7 @@ export function AuthShell({ title, subtitle, headline, blurb, features, children
             </span>
             <div>
               <div className={styles.statusTitle}>System Status</div>
-              <div className={styles.statusSub}>All predictive models operational</div>
+              <div className={styles.statusSub}>All systems operational.</div>
             </div>
           </div>
         </div>

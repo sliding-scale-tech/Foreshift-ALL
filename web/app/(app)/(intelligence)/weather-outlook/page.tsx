@@ -65,7 +65,7 @@ export default function WeatherOutlookPage() {
         <div>
           <div className={shared.bannerTitle}>
             <IconSparkle />
-            Weather Demand Impact
+            Weather impact at a glance
           </div>
           <p className={shared.bannerText}>
             {outlook.status === "ready" ? outlook.result.narration : "Updating for this day…"}
@@ -128,7 +128,7 @@ export default function WeatherOutlookPage() {
           </section>
 
           <div>
-            <h2 className={styles.impactTitle}>Impact by Daypart</h2>
+            <h2 className={styles.impactTitle}>Weather during service</h2>
             <div className={styles.impactGrid}>
               {DAYPARTS.map((dp) => {
                 const w = outlook.status === "ready"

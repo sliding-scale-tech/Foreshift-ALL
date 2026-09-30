@@ -2,7 +2,7 @@
    All sizes are Bubble's real CSS px, measured in the live app. */
 
 .title {
-  font-size: 44px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.2;
   color: var(--color-text);
@@ -44,7 +44,7 @@
   font-size: 20px;
   font-weight: 700;
   line-height: 1.4;
-  color: var(--color-primary-50);
+  color: var(--color-primary-40);
 }
 
 .bannerTitle svg {
@@ -55,6 +55,7 @@
 .bannerText {
   font-size: 18px;
   line-height: 1.4;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .sectionTitle {

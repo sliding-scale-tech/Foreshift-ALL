@@ -36,7 +36,7 @@ export default function WeeklyOutlookPage() {
 
   return (
     <>
-      <h1 className={shared.title}>This week’s outlook</h1>
+      <h1 className={shared.title}>Weekly outlook</h1>
       <p className={shared.subtitle}>
         {weekLabel(week.weekStart)} - {operatorLabel(operator)} - {operator?.conceptType}
       </p>
@@ -44,7 +44,7 @@ export default function WeeklyOutlookPage() {
       <section className={shared.banner}>
         <div className={shared.bannerTitle}>
           <IconSparkle />
-          This Week&apos;s Operations Brief
+          This week at a glance
         </div>
         <p className={shared.bannerText}>{outlook.result.narration}</p>
       </section>
@@ -67,7 +67,7 @@ export default function WeeklyOutlookPage() {
 
         <DriversCard
           drivers={toDrivers(outlook.result.drivers)}
-          subtitle="Factors influencing today's forecast."
+          subtitle="Factors influencing this week's forecast."
         />
       </div>
     </>

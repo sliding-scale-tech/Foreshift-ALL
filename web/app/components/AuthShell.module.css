@@ -78,7 +78,7 @@
 .blurb {
   font-size: 14px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.88);
   max-width: 320px;
 }
 
@@ -96,7 +96,7 @@
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .featureIcon {
@@ -164,7 +164,7 @@
 
 .formHead p {
   font-size: 14px;
-  color: var(--color-grey-text);
+  color: var(--color-text);
   margin-bottom: 28px;
 }
 

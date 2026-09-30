@@ -64,11 +64,10 @@ type DayHours = {
   closeTime: string;
 };
 
-const STEPS = ["Signup Choice", "Restaurant Info", "Operating Hours"] as const;
-
-// "I'm exploring" skips the venue details and operating hours — zone and
-// concept are all the demand math needs — so it runs one step shorter.
-const EXPLORER_STEPS = ["Signup Choice", "Restaurant Info"] as const;
+// Shown only on the restaurant route, after the choice screen. "I'm
+// exploring" skips venue details and operating hours (zone and concept are all
+// the demand math needs), so it has no stepper.
+const STEPS = ["Restaurant details", "Operating hours"] as const;
 
 type Mode = "restaurant" | "explorer";
 
@@ -102,9 +101,8 @@ function OnboardingWizard() {
   const router = useRouter();
   const createOperator = useMutation(api.operators.create);
 
-  // One past the last real step is the "You are all set!" success screen —
-  // not one of STEPS, just renders the stepper with everything checked off.
-  // That's 4 for the restaurant branch and 3 for the shorter explorer one.
+  // 1 is the choice screen; the last number (4 for the restaurant branch, 3
+  // for the shorter explorer one) is the "You're all set!" success screen.
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [mode, setMode] = useState<Mode>("restaurant");
 
@@ -173,7 +171,9 @@ function OnboardingWizard() {
         Fore<span>Shift</span>
       </div>
 
-      <Stepper step={step} steps={mode === "explorer" ? EXPLORER_STEPS : STEPS} />
+      {mode === "restaurant" && (step === 2 || step === 3) && (
+        <Stepper step={step - 1} steps={STEPS} />
+      )}
 
       <div className={styles.card}>
         {step === 1 && (
@@ -205,7 +205,7 @@ function OnboardingWizard() {
         )}
 
         {step === 3 && mode === "explorer" && (
-          <StepDone exploring onViewDashboard={() => router.push("/dashboard")} />
+          <StepDone onViewDashboard={() => router.push("/dashboard")} />
         )}
 
         {step === 2 && mode === "restaurant" && (
@@ -270,13 +270,7 @@ function OnboardingWizard() {
   );
 }
 
-function Stepper({
-  step,
-  steps,
-}: {
-  step: 1 | 2 | 3 | 4;
-  steps: readonly string[];
-}) {
+function Stepper({ step, steps }: { step: number; steps: readonly string[] }) {
   return (
     <div className={styles.stepper}>
       {steps.map((label, i) => {
@@ -305,15 +299,19 @@ function StepChoice({
 }) {
   return (
     <>
+      <div className={styles.choiceHead}>
+        <h1>How will you use ForeShift?</h1>
+        <p>Set up your restaurant or explore demand by concept and location.</p>
+      </div>
       <div className={styles.choiceGrid}>
         <div className={styles.choiceCard}>
           <div className={styles.choiceIllustration}>
             <IllustrationRestaurant />
           </div>
           <h2>I run a restaurant</h2>
-          <p>Get instant demand insight for my venue</p>
+          <p>Understand upcoming demand to plan daily operations.</p>
           <button type="button" className={styles.choiceBtn} onClick={onPickRestaurant}>
-            Continue to Venue Setup
+            Set up my restaurant
           </button>
         </div>
 
@@ -321,10 +319,10 @@ function StepChoice({
           <div className={styles.choiceIllustration}>
             <IllustrationExplore />
           </div>
-          <h2>I&apos;m exploring</h2>
-          <p>Check demand before I commit</p>
+          <h2>I&apos;m exploring opportunities</h2>
+          <p>Explore demand for your restaurant concept across different locations.</p>
           <button type="button" className={styles.choiceBtn} onClick={onPickExploring}>
-            Continue to Zone Explorer
+            Explore demand
           </button>
         </div>
       </div>
@@ -332,24 +330,18 @@ function StepChoice({
   );
 }
 
-function StepDone({
-  onViewDashboard,
-  exploring = false,
-}: {
-  onViewDashboard: () => void;
-  exploring?: boolean;
-}) {
+function StepDone({ onViewDashboard }: { onViewDashboard: () => void }) {
   return (
     <div className={styles.doneWrap}>
       <div className={styles.doneIllustration}>
         <IllustrationSuccess />
       </div>
-      <h1 className={styles.doneTitle}>You are all set!</h1>
+      <h1 className={styles.doneTitle}>You&apos;re all set!</h1>
       <p className={styles.doneSubtitle}>
-        {exploring ? "View free demand report" : "View your demand forecast"}
+        Explore today&apos;s demand outlook and what&apos;s driving it.
       </p>
       <button type="button" className={styles.choiceBtn} onClick={onViewDashboard}>
-        {exploring ? "View Demand Report" : "View Demand Score"}
+        View today&apos;s outlook
       </button>
     </div>
   );
@@ -412,6 +404,7 @@ function StepExploreZone(props: {
             Concept Type<span className={styles.req}>*</span>
           </span>
         </div>
+        <p className={styles.fieldHelp}>Choose the concept that best describes your business.</p>
         <div className={styles.conceptGrid}>
           {CONCEPT_DISPLAY_ORDER.map((c) => {
             const Icon = CONCEPT_ICONS[c];
@@ -483,7 +476,9 @@ function StepRestaurantInfo(props: {
 
       <div className={styles.field}>
         <div className={styles.fieldRow}>
-          <span className={styles.label}>Address</span>
+          <span className={styles.label}>
+            Address<span className={styles.req}>*</span>
+          </span>
         </div>
         <AddressInput
           className={styles.input}
@@ -531,6 +526,7 @@ function StepRestaurantInfo(props: {
             Concept Type<span className={styles.req}>*</span>
           </span>
         </div>
+        <p className={styles.fieldHelp}>Choose the concept that best describes your business.</p>
         <div className={styles.conceptGrid}>
           {CONCEPT_DISPLAY_ORDER.map((c) => {
             const Icon = CONCEPT_ICONS[c];
@@ -557,7 +553,7 @@ function StepRestaurantInfo(props: {
           disabled={!props.valid}
           onClick={props.onContinue}
         >
-          Continue
+          Continue to operating hours
           <IconArrowRight />
         </button>
       </div>
@@ -578,8 +574,10 @@ function StepOperatingHours(props: {
     <>
       <div className={styles.hoursHead}>
         <div className={styles.cardHead} style={{ marginBottom: 0 }}>
-          <h1 style={{ marginBottom: 4 }}>Operating Hours</h1>
-          <p style={{ marginBottom: 0 }}>Add operating hours of your restaurant</p>
+          <h1 style={{ marginBottom: 4 }}>When are you open?</h1>
+          <p style={{ marginBottom: 0 }}>
+            Set your regular service hours. Adjustable by individual day.
+          </p>
         </div>
         <button type="button" className={styles.sameTimingsLink} onClick={props.onOpenSameTimings}>
           Same timings?

@@ -50,9 +50,9 @@ function DailyOutlook() {
 
   return (
     <>
-      <h1 className={shared.title}>Today’s Demand Forecast For {name}</h1>
+      <h1 className={shared.title}>Daily outlook</h1>
       <p className={shared.subtitle}>
-        {formatDate(outlook.date)} - {name} - {operator?.conceptType}
+        {name} · {operator?.conceptType} · {operator?.zone} · {formatDate(outlook.date)}
       </p>
       <OutlookBody data={outlook.data} />
     </>

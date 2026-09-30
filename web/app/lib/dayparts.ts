@@ -9,8 +9,8 @@ export const DAYPARTS: {
   window: string;
   chartLabel: string;
 }[] = [
-  { key: "morning", label: "Morning", window: "7:00 AM – 10:00 AM", chartLabel: "Breakfast" },
-  { key: "midday", label: "Midday", window: "11:00 AM – 2:00 PM", chartLabel: "Lunch" },
+  { key: "morning", label: "Morning", window: "7:00 AM – 10:00 AM", chartLabel: "Morning" },
+  { key: "midday", label: "Midday", window: "11:00 AM – 2:00 PM", chartLabel: "Midday" },
   { key: "dinner", label: "Dinner", window: "5:00 PM – 10:00 PM", chartLabel: "Dinner" },
-  { key: "late", label: "Late", window: "10:00 PM – 12:00 AM", chartLabel: "Late Night" },
+  { key: "late", label: "Late night", window: "10:00 PM – 12:00 AM", chartLabel: "Late night" },
 ];

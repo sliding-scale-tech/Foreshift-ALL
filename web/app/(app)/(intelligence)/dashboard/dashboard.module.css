@@ -24,7 +24,16 @@
   font-size: 28px;
   font-weight: 600;
   line-height: 34px;
-  color: var(--color-primary-50);
+  color: var(--color-primary-40);
+}
+
+.scoreLabel {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .scoreTrack {

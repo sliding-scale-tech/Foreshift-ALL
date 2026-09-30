@@ -10,9 +10,9 @@ import { IconMail, IconEye, IconArrowRight, IconGoogle } from "@/app/components/
 import formStyles from "@/app/components/AuthForm.module.css";
 
 const FEATURES = [
-  "14-day free trial, no card needed",
-  "Setup in under 5 minutes",
-  "AI recommendations from day one",
+  "14-day free trial. No credit card required.",
+  "Get started in a few simple steps.",
+  "AI-powered demand insights tailored to your restaurant from day one.",
 ];
 
 export default function SignUpPage() {
@@ -109,8 +109,8 @@ export default function SignUpPage() {
       <AuthShell
         title="Check your email"
         subtitle="Verify your ForeShift account."
-        headline="Start forecasting smarter today."
-        blurb="Join ForeShift to predict demand and reduce waste."
+        headline="Know demand before you open."
+        blurb="Demand intelligence for smarter operations."
         features={FEATURES}
       >
         <form onSubmit={handleVerify} noValidate>
@@ -144,10 +144,10 @@ export default function SignUpPage() {
 
   return (
     <AuthShell
-      title="Create Account"
-      subtitle="Get started with your ForeShift account."
-      headline="Start forecasting smarter today."
-      blurb="Join ForeShift to predict demand and reduce waste."
+      title="Create your account"
+      subtitle="Start your 14-day free trial."
+      headline="Know demand before you open."
+      blurb="Demand intelligence for smarter operations."
       features={FEATURES}
     >
       <form onSubmit={handleRegister} noValidate>
@@ -209,6 +209,7 @@ export default function SignUpPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
+              aria-describedby="password-rules"
             />
             <button
               type="button"
@@ -219,12 +220,16 @@ export default function SignUpPage() {
               <IconEye off={showPassword} />
             </button>
           </div>
+          <ul id="password-rules" className={formStyles.hints}>
+            <li>At least 8 characters</li>
+            <li>Not a common or previously breached password</li>
+          </ul>
         </div>
 
         {error && <p className={formStyles.error}>{error}</p>}
 
         <button type="submit" className={formStyles.primaryBtn} disabled={submitting}>
-          {submitting ? "Creating account…" : "Create Account"}
+          {submitting ? "Creating account…" : "Create account"}
           {!submitting && <IconArrowRight />}
         </button>
       </form>
@@ -236,12 +241,12 @@ export default function SignUpPage() {
         disabled={googleLoading}
       >
         <IconGoogle />
-        {googleLoading ? "Redirecting…" : "Google"}
+        {googleLoading ? "Redirecting…" : "Continue with Google"}
       </button>
 
       <p className={formStyles.switchLine}>
         Already have an account?
-        <Link href="/sign-in">Login</Link>
+        <Link href="/sign-in">Sign in</Link>
       </p>
       <p className={formStyles.switchLine}>
         Just looking?

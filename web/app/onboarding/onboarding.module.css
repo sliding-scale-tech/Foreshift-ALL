@@ -109,7 +109,7 @@
 }
 
 .doneIllustration {
-  width: 320px;
+  width: 220px;
   max-width: 100%;
   margin-bottom: 8px;
 }
@@ -145,6 +145,29 @@
 }
 
 /* ---- Step 1: choice cards ---- */
+
+.choiceHead {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.choiceHead h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.choiceHead p {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.fieldHelp {
+  font-size: 13px;
+  color: var(--color-gray-70);
+  margin-bottom: 10px;
+}
 
 .choiceGrid {
   display: grid;
@@ -201,8 +224,8 @@
 }
 
 .choiceCard p {
-  font-size: 13px;
-  color: var(--color-grey-text);
+  font-size: 14px;
+  color: var(--color-text);
   margin-bottom: 20px;
 }
 
@@ -242,7 +265,7 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--color-gray-60);
+  color: var(--color-gray-70);
 }
 
 .label .req {
@@ -251,14 +274,14 @@
 
 .hint {
   font-size: 12px;
-  color: var(--color-gray-50);
+  color: var(--color-gray-70);
 }
 
 .hintBtn {
   padding: 0;
   font: inherit;
   font-size: 12px;
-  color: var(--color-gray-50);
+  color: var(--color-gray-70);
   background: none;
   border: none;
   cursor: pointer;
@@ -276,7 +299,7 @@
   margin-top: 8px;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--color-gray-60);
+  color: var(--color-gray-70);
 }
 
 .zoneNoteWarn {
@@ -288,7 +311,7 @@
   width: 100%;
   padding: 12px 14px;
   border-radius: var(--radius-control);
-  border: 1px solid var(--color-borders);
+  border: 1px solid var(--color-gray-50);
   background: var(--color-surface);
   font: inherit;
   font-size: 14px;
@@ -303,7 +326,7 @@
 
 .conceptGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 

@@ -13,7 +13,7 @@ import {
 import styles from "@/app/(app)/(intelligence)/dashboard/dashboard.module.css";
 
 function formatPct(n: number): string {
-  return `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
+  return `${n >= 0 ? "+" : ""}${Math.round(n)}%`;
 }
 
 // The Daily Outlook body (brief, daypart cards, chart, drivers) — shared by the
@@ -25,11 +25,12 @@ export function OutlookBody({ data }: { data: DailyOutlookData }) {
         <div>
           <div className={shared.bannerTitle}>
             <IconSparkle />
-            Today&apos;s Operations Brief
+            Today&apos;s demand brief
           </div>
           <p className={shared.bannerText}>{data.brief}</p>
         </div>
         <div>
+          <div className={styles.scoreLabel}>Demand score</div>
           <div className={styles.scoreHead}>
             <span>{data.band}</span>
             <span>{data.score.toFixed(1)}</span>
@@ -47,7 +48,7 @@ export function OutlookBody({ data }: { data: DailyOutlookData }) {
         </div>
       </section>
 
-      <h2 className={shared.sectionTitle}>Daypart</h2>
+      <h2 className={shared.sectionTitle}>Demand throughout the day</h2>
       <div className={styles.dayparts}>
         {data.dayparts.map((dp) => (
           <DaypartCard key={dp.key} dp={dp} />
@@ -97,7 +98,7 @@ function DaypartCard({ dp }: { dp: DaypartOutlook }) {
 
       <div className={styles.eventHead}>
         <IconCalendarCheck />
-        Event Lift
+        What&apos;s driving demand
       </div>
       <p className={styles.eventNote}>{dp.eventNote}</p>
     </div>
