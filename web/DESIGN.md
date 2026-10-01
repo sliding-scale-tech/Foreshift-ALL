@@ -85,7 +85,7 @@ by different windows (6–11 / 11–4 / 4–9 / 9 PM–2 AM; `daypartFromLocalTi
 | Use | Size / weight | Notes |
 |---|---|---|
 | Page title (`shared.title`) | 32 / 700 | Daily, Weekly, Events, Weather, Settings, FAQS |
-| Page subtitle (`shared.subtitle`) | 14 / 400 | Daily: "Name · Concept · Zone · Date"; Weekly/Events/Weather: "Date range - Name - Concept" |
+| Page subtitle (`shared.subtitle`) | 14 / 400 | "Name · Concept · Zone · Date or date range" on every Intelligence page |
 | Section title (`shared.sectionTitle`) | 20 / 700 | Margin 24 above, 12 below |
 | Card title (`shared.cardTitle`) | 20 / 700 | Drivers card uses 16 / 600 |
 | Banner title | 20 / 700, primary-40 | With 24px sparkle icon |
@@ -101,7 +101,7 @@ by different windows (6–11 / 11–4 / 4–9 / 9 PM–2 AM; `daypartFromLocalTi
 
 | Radius | Used for |
 |---|---|
-| 6 | Band pills, severity pills |
+| 6 | Band pills |
 | 8 | Sidebar nav items, small buttons |
 | 10 | Hours editor inputs and buttons, mobile menu button |
 | 12 (`--radius-control`) | Cards in the app shell, inputs, primary buttons |
@@ -172,6 +172,7 @@ down under `prefers-reduced-motion`. FAQ accordion is the only animated reveal.
 | DemandBarChart | `components/DemandBarChart` | Daily Outlook: one bar per daypart, coloured by band ([lib/bands.ts](app/lib/bands.ts)), value on top, fixed 0–150 axis titled "Demand score". A second label line says "Closed" or "No data". The tooltip gives period, score, band and vs. normal, and a screen-reader list repeats it. Also used for Weekly "Daily totals" (7 bars), where `selected` fades the other bars and `onSelect` makes bars clickable |
 | Select | `components/Select` | App-styled dropdown used everywhere instead of `<select>` (the browser draws a native list itself, which CSS can't restyle). Trigger variants: `default` (onboarding), `filled` (Settings), `filter` (Events filter bar). List: white card, radius 12, shadow, hovered row primary-10, chosen row blue with a check. Arrow keys, Home/End, Enter, Escape and type-ahead work; opens upward near the bottom of the screen |
 | TimeField | `components/TimeField` | Time input with the same list style: type "9:30 pm" or pick a 15-minute suggestion (filters as you type). Used in the hours editor |
+| WeatherView | `components/WeatherView` | Weather page body, taking the week and the day's outlook as props so it can be tested without a login. Three parts: (1) seven equal day tiles (weekday, date, icon, average temp, rain chance; earlier days greyed and not selectable, no icon when there's no forecast); (2) one navy "Weather impact at a glance" panel for the selected day: date and zone, conditions with a labelled temperature ("Average 66°F · 63–68°F across service periods"), three plain sentences, a white metric box "Estimated weather effect on demand" (−2.9%, "Moderate demand impact", "For the whole day"), and a labelled "Overall demand that day" line with a link to the daily outlook; (3) "Weather during service" list: period, conditions, temperature, rain chance, estimated demand effect, with a row that opens to an explanation. Closed periods get a "Closed" tag and still show weather |
 | WeekGrid / DayStrip / DayDetail | `components/WeekPlanner` | Weekly planning grid: days across, Morning/Midday/Dinner/Late night down. A cell shows the demand level as text on its band colour; point at it for the exact score. Striped = Closed (outside your hours), dashed = Unavailable (no forecast). Today is tagged, earlier days are dimmed and tagged "Earlier". Choosing a day (header, cell, strip or chart bar) fills `DayDetail`: score and level, the four periods, weather with rain chance, events with time and service period, and a "View daily outlook" link. Below 760px the grid shows one day, picked from `DayStrip` |
 | WeekGlance | `components/WeekGlance` | Weekly "This week at a glance" banner: three equal tiles on the navy card (Busiest period, Quietest upcoming period, Main demand drivers). Small uppercase label with an ⓘ, big "Friday dinner", then "Exceptional · 150". Driver names wrap to two lines with the effect in green; tiles stack below 1000px. Printed as plain outlined boxes |
 | DailyTotals | `components/DailyTotals` | Collapsible "Daily totals" card with the 7-bar chart, open by default. The right of the header says "Hide ⌄" / "Show ›" so it's clear it opens and closes |
@@ -221,7 +222,7 @@ Dropdowns are `Select`, never a native `<select>`. In all three, focus turns the
 | Weekly Outlook | Title and date range, with "Export weekly outlook" (paid plans; others see a "Paid plans" link to Billing) → `WeekGlance` banner → "Plan your week ⓘ" grid → selected-day details → `DailyTotals` + drivers card (with "Show only {day}" / "Show full week") |
 | Events Overview | Title → "Event impact at a glance" banner (2–3 sentences built from the same list, hedged with "may") → "Choose a day ⓘ" `EventDaySelector` → "Showing events for …" → filters (search, Event type, Venues, Distance) with removable chips, result count and Clear filters → `EventsList` → collapsible "How events shape demand". The summary, day counts and list all come from one selected day (or the rest of the week) |
 | Event Outlook | Back link → `EventBody`: event card (date chip, estimated effect with ⓘ, local start time, service period, type, distance ⓘ, estimated influence ⓘ, why it matters, actions) + four "Impact by service period" cards (a period with no effect says "No effect", not "+0%") |
-| Weather Outlook | Title → "Weather impact at a glance" banner with snapshot (temp, icon, band + peak) → 7 calendar cards → day panel + "Weather during service" cards (severity pill, ±%, condition, temp) |
+| Weather Outlook | Title and date range → "Choose a day ⓘ" tiles → `WeatherView` summary panel → "Weather during service ⓘ" list → "About this forecast" (source, time zone, estimates not warnings, what isn't shown yet). Effect wording: −x% / +x% with "Low / Moderate / High demand impact" or "May raise demand"; a zero effect says "No material weather effect expected"; a missing forecast says "Unavailable" / "No weather forecast for this day" |
 | Settings | Cards stacked (gap 32): Account, Reset Password, Restaurant (address + DetectedArea, concept), Operating Hours (HoursEditor). Each card saves on its own with an inline "Saved." message |
 | Billing | Status bar → 3 tier cards (navy header, price, features, CTA) |
 | FAQS | Accordion list |
@@ -237,7 +238,7 @@ The 7-column day grids show 7 columns at ≥1400px, then switch to `auto-fit, mi
 - **Loading label:** Daily says "Gathering demand insight…".
 - **Error:**
   - Daily Outlook shows `LoadError` with a "Try again" button that re-runs generation (`retry` from `useOutlook`).
-  - Weekly shows `LoadError` too. Events and Weather: Events has nothing to retry (no AI call); Weather still shows a plain red line (`shared.status statusError`).
+  - Weekly and Weather show `LoadError` too. Events has nothing to retry (no AI call).
 - **Missing vs zero:** on Daily, a missing daypart shows "No forecast" and "Comparison not available" and leaves a gap in the chart. It never shows "0%" or a fake band.
 - **Empty:** inline text. Events keeps three apart: "Event data isn't available for earlier days" (unavailable), "No nearby events are listed for this day" (nothing scheduled) and "No events match your filters" (with Clear filters).
 - **Validation:**
@@ -277,10 +278,10 @@ Most of these overlap with the open design-review items.
 5. **Event icons are emoji** (the Events list and event page still use them). Weather drivers now use `WeatherIcon`.
 6. **Percentages and numbers:**
    - Fixed on Daily: missing values no longer show as 0, and the drivers card shows 0% as gray "No effect".
-   - Still open: the Weather page turns missing values into 0%, and decimals mix (Daily rounds; Weekly chart shows 2 decimals).
-7. **Weather severity pills reuse band colours** (Low = the Light band's blue), so they can be mistaken for demand bands.
+   - Weather: fixed. A missing forecast reads "Unavailable", never 0%. Percentages there keep one decimal on purpose (−8.8%) so period and day figures can be compared.
+7. **Weather severity pills:** fixed. The pills are gone; the effect is a signed percentage in red or green with a text label ("Moderate demand impact"), and zero is plain gray text.
 8. **Events influence:** fixed. Raw 0.5 / 1 values are gone; the list shows "Estimated influence" (High / Moderate / Low) with a tooltip. It reflects distance only (the backend's proximity tiers), not event size.
-9. **Tooltips exist on Daily, Weekly and Events** (and the drivers card). Weather has none yet, and there is no "last updated" time anywhere because the backend doesn't send it.
+9. **Tooltips exist on every Intelligence page.** There is still no "last updated" time anywhere because the backend doesn't send it.
 10. **Disabled buttons:** Settings dims with opacity while other pages use the gray fill.
 11. **Subtitle separators:** fixed. Every Intelligence page now uses `pageSubtitle()` ("Name · Concept · Zone · Date") with repeats removed.
 12. **Daypart windows vs operating hours:** "Closed" is worked out from the windows shown on the cards (7–10, 11–2, 5–10, 10–12), so hours in the 2–5 PM gap don't count toward any period.
@@ -294,6 +295,6 @@ Most of these overlap with the open design-review items.
 - **Explanations:** use `InfoTip` and keep it to one or two sentences. Anything longer goes in the "How this forecast works" section.
 - **Print / PDF:** hide app chrome with `data-print-hide` and page-level `noPrint` classes; the sidebar already does. Keep band colours with `print-color-adjust: exact`.
 - **Percentages:** whole numbers. No change shows as "0%", not "+0%".
-- **Colour plus text:** every coloured meaning (band, severity, positive/negative) also carries its label.
+- **Colour plus text:** every coloured meaning (band, positive/negative effect) also carries its label.
 - **Toggles and keyboard:** toggles use `aria-pressed`; controls work with Tab and Enter/Space.
 - **Mobile:** check every new layout at 375px with no horizontal scroll.

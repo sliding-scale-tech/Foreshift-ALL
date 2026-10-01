@@ -1,0 +1,556 @@
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.muted {
+  color: var(--color-gray-70);
+}
+
+.titleWithTip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---- Compact date selector: seven equal buttons ---- */
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.day:hover:not(:disabled) {
+  border-color: var(--color-primary-40);
+}
+
+.dayOn,
+.dayOn:hover:not(:disabled) {
+  background: var(--color-primary-20);
+  border-color: var(--color-shift-electric-blue);
+  box-shadow: inset 0 0 0 1px var(--color-shift-electric-blue);
+}
+
+.day:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+}
+
+/* Earlier days have no forecast, so they can't be chosen. */
+.past {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dow {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.date {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.dayIcon {
+  width: 34px;
+  height: 34px;
+  margin: 6px 0 2px;
+}
+
+.dayTemp {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.dayNote {
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+.today {
+  position: absolute;
+  top: -9px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border-radius: 999px;
+}
+
+/* ---- Summary: one panel for the selected day ---- */
+
+.summary {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 8px 32px;
+  align-items: start;
+  padding: 24px;
+  color: #fff;
+  background: linear-gradient(90deg, #0b1d57 0%, #172a63 100%);
+  border: 1px solid #c7c4d7;
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(1, 20, 66, 0.18);
+}
+
+.summaryTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-primary-40);
+}
+
+.summaryTitle svg {
+  width: 24px;
+  height: 24px;
+}
+
+.where {
+  margin-top: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.overview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.overviewIcon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 12px;
+}
+
+.overviewCond {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.overviewTemp {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.sentences {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.updating {
+  margin-top: 14px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.card .updating {
+  color: var(--color-gray-70);
+}
+
+.metric {
+  padding: 16px 18px;
+  color: var(--color-text);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.metricLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-gray-70);
+}
+
+.metricValue {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.metricNone {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.metricSub {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-gray-70);
+}
+
+.metricNote {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+.overall {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.overallScore {
+  margin: 0 6px;
+  font-weight: 700;
+}
+
+.overall a {
+  font-weight: 700;
+  color: var(--color-primary-40);
+  text-decoration: underline;
+}
+
+/* ---- Weather during service ---- */
+
+.card {
+  margin-top: 20px;
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.cardTitle {
+  margin-bottom: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.columns,
+.rowBtn {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1.7fr) 16px;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.columns {
+  padding: 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-gray-70);
+  border-bottom: 1px solid var(--color-gray-40);
+}
+
+.colWithTip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  border-bottom: 1px solid var(--color-gray-30);
+}
+
+.rowBtn {
+  width: 100%;
+  padding: 14px 0;
+  font: inherit;
+  text-align: left;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.rowBtn:hover {
+  background: var(--color-primary-10);
+}
+
+.rowBtn:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: -2px;
+}
+
+.cellPeriod {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.periodName {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.periodWindow {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.closedTag {
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border: 1px solid var(--color-gray-40);
+  border-radius: 999px;
+}
+
+.cellCond {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.condIcon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.cellTemp,
+.cellRain {
+  font-size: 14px;
+}
+
+.cellEffect {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.pct {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pctLower,
+.pctLowerOnLight {
+  color: var(--color-destructive-70);
+}
+
+.pctRaise {
+  color: var(--color-success-70);
+}
+
+.effectLabel {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.effectNone {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-gray-70);
+}
+
+.chevron {
+  width: 10px;
+  height: 6px;
+  color: var(--color-gray-70);
+  transition: transform var(--duration-fast);
+}
+
+.rowOpen .chevron {
+  transform: rotate(180deg);
+}
+
+.rowDetail {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-primary-10);
+  border: 1px solid var(--color-primary-30);
+  border-radius: 10px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 16px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.empty strong {
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+/* ---- About ---- */
+
+.about {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.aboutTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.about ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-gray-70);
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1000px) {
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .days {
+    display: flex;
+    overflow-x: auto;
+    padding: 14px 2px 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .day {
+    flex: 0 0 auto;
+    min-width: 92px;
+    scroll-snap-align: start;
+  }
+
+  .summary,
+  .card {
+    padding: 16px;
+  }
+
+  .columns {
+    display: none;
+  }
+
+  /* Compact rows: period and chevron, then conditions / temperature / rain, then the effect. */
+  .rowBtn {
+    grid-template-columns: minmax(0, 1fr) auto auto 16px;
+    grid-template-areas:
+      "period period period chevron"
+      "cond   temp   rain   chevron"
+      "effect effect effect effect";
+    row-gap: 6px;
+    column-gap: 12px;
+  }
+
+  .cellPeriod {
+    grid-area: period;
+  }
+
+  .cellCond {
+    grid-area: cond;
+  }
+
+  .cellTemp {
+    grid-area: temp;
+  }
+
+  .cellRain {
+    grid-area: rain;
+  }
+
+  .cellRain::after {
+    content: " rain";
+    color: var(--color-gray-70);
+  }
+
+  .cellEffect {
+    grid-area: effect;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .chevron {
+    grid-area: chevron;
+    align-self: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

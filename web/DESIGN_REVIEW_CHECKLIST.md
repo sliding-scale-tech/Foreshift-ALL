@@ -341,55 +341,56 @@ click-through with a real login.
 ## 10. Weather page
 
 **1. Consistency**
-- [ ] Summary, icons, conditions and impact from the same data — **needs backend**
-- [ ] Show rain probability when it drives impact under a sunny label (`precipChance` is available)
+- [x] Summary, icons, conditions and impact all come from the same per-period data (the summary is built from the table rows, not from AI text, so they can't disagree)
+  - The page still waits for the day's weather outlook to be generated, which calls Gemini on the backend for text this page no longer shows. A Gemini outage therefore still shows "Try again" (**needs backend** to avoid).
+- [x] Rain probability shown per period; when it drives the impact under a sunny label, the row says so ("labelled Clear/Sunny, but the 60% chance of precipitation is what lowers demand")
 
 **2. Dates**
-- [ ] Sep 23, 2026 under the right weekday — **verify**
-- [ ] Same restaurant-local dates across calendar, panel, summary and periods — **verify**
+- [ ] Sep 23, 2026 under the right weekday — **verify** (web dates come from the same Detroit-calendar helpers as the other pages)
+- [x] Same dates across the day tiles, the summary and the period rows (all driven by one selected date)
 - [x] "Week 4 of September '26" → explicit date range
 
 **3. Weather impact vs overall demand**
-- [ ] Remove "Peak · 98.4" or label it "Overall demand" with a Daily Outlook link
-- [ ] "Estimated weather effect on demand" as the main metric
-- [ ] Explain the daily % and how it relates to the period values
+- [x] "Peak · 98.4" removed from the weather effect; it now appears only as a labelled "Overall demand that day" line with a "View demand outlook for this date" link
+- [x] "Estimated weather effect on demand" is the main metric
+- [x] Daily figure explained (tooltip: it combines the four periods, counting busier ones more, so it isn't their simple average)
 
 **4. Date selector**
-- [ ] Weekday, date, icon, high/low and impact per day (high/low **needs backend**)
-- [ ] Seven same-size days; today and selected highlighted; no wrapping or overflow
+- [ ] Weekday, date, icon, high/low and impact per day — **partial**: weekday, date, icon, average temperature and rain chance are there; high/low and a per-day effect **need backend**
+- [x] Seven same-size days; today and selected highlighted; earlier days greyed; scrolls sideways on phones instead of wrapping
 
 **5. One summary panel**
 - [x] Heading "Weather impact at a glance"
-- [ ] Top card and standalone panel merged (date, location, overview, labelled temperature, effect, most affected period)
+- [x] Top card and standalone panel merged: date and zone, conditions, labelled temperature ("Average 66°F · 63–68°F across service periods"), the effect, and the most affected period in the sentences
 
 **6. Period comparison**
 - [x] "Impact by Daypart" → "Weather during service"
-- [ ] Table on desktop / rows on mobile: period, conditions, temperature, rain chance, effect
-- [ ] Selecting a row shows details
+- [x] Table on desktop and compact rows on phones: period, conditions, temperature, rain chance, estimated demand effect
+- [x] Selecting a row shows its explanation (the most affected period starts open)
 
 **7. Weather factors**
-- [ ] Rain probability and timing
+- [ ] Rain probability and timing — **partial**: probability per period; hour-level timing **needs backend**
 - [ ] Rain amount, wind, gusts, feels-like — **needs backend**
 - [ ] Optional outdoor-seating setting — **needs backend**
 
 **8. Severity labels**
-- [ ] "No material weather effect expected" instead of "Low severity" at 0%
-- [ ] Labelled as demand impact, not weather warnings
+- [x] "No material weather effect expected" instead of "Low severity" at 0%
+- [x] Other effects labelled as demand impact ("Moderate demand impact", "May raise demand"), and the page says they aren't weather warnings
 - [ ] Real alerts shown separately with their source — **needs backend**
 
 **9. Explanations and freshness**
-- [ ] Tooltips: impact %, daily aggregation, rain probability, temperature
-- [ ] Source, last updated and time zone — **needs backend** for last updated
-- [ ] Unavailable data distinguished from no impact (missing values still become 0%)
+- [x] Tooltips: daily effect and its aggregation, estimated demand effect, rain chance, temperature, day selector
+- [ ] Source, last updated and time zone — **partial**: source (WeatherAPI) and time zone (Detroit) are stated; "last updated" **needs backend**
+- [x] Unavailable data distinguished from no impact ("Unavailable" / "No weather forecast for this day", never 0%)
 
 **10. Design and navigation**
 - [x] Smaller heading
-- [ ] Smaller icons and less empty space
+- [ ] Smaller icons and less empty space — **partial**
 - [x] Better contrast for the blue heading on navy
-- [ ] Consistent weather icons
-- [ ] Restrained colours for negative/neutral/positive, with text labels
-- [ ] "View demand outlook for this date"
-- [ ] Closed periods marked without implying zero demand
+- [x] Consistent weather icons (the same `WeatherIcon` in tiles, summary and rows; none shown without a forecast)
+- [x] Restrained colours for negative / neutral / positive, always with text
+- [x] "View demand outlook for this date"
+- [x] Closed periods marked without implying zero demand (weather still shown, labelled "for reference only")
 
 ---
 
@@ -403,7 +404,7 @@ click-through with a real login.
 | Daily Outlook | 46 | 62 |
 | Weekly Outlook | 35 | 44 |
 | Events | 47 | 55 |
-| Weather | 5 | 31 |
-| **Total** | **189** | **250** |
+| Weather | 23 | 31 |
+| **Total** | **207** | **250** |
 
-Next up: the Weather page (compact date selector, "Weather during service" table, severity labels, tooltips).
+Every page in the review has now been worked through. What is left is mostly **needs backend** items (last updated, other weeks, Gemini fallback, wind/alerts, event addresses) and the **verify** items that need a real signed-in session.
