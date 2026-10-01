@@ -261,80 +261,82 @@ click-through with a real login.
 ## 9. Events page
 
 **1. Dates and summary**
-- [ ] Weekday/date mismatch — **verify**
-- [ ] Calendar, list, "today" section and summary from the same dates
-- [ ] Summary and "Top events today" reference the same day — **needs backend** (the summary is weekly)
-- [ ] Active date range explicit; filtering matches it
+- [ ] Weekday/date mismatch — **verify** (the web app reads Detroit dates from the same helpers as the other pages)
+- [x] Day selector, summary, event list and per-day counts all come from one selected day, so they can't disagree
+- [x] Summary and key events reference the same day (the summary is built from the list itself, no AI text)
+- [x] Active date range explicit ("Showing events for …"); filtering stays inside it
 
 **2. Impact numbers**
-- [ ] Stop showing raw 0.5 / 1 values
-- [ ] Low / Moderate / High estimated influence
-- [ ] Tooltip explaining the metric, scope and uncertainty
-- [ ] Event influence distinguished from overall demand
+- [x] Raw 0.5 / 1 values no longer shown
+- [x] Low / Moderate / High "Estimated influence"
+  - It reflects distance only (≤ 0.6 mi High, ≤ 1.5 mi Moderate). The backend drops events beyond 1.5 mi, so "Low" doesn't appear in practice.
+- [x] Tooltip explaining the metric, scope and uncertainty
+- [x] Event influence kept apart from the overall demand forecast (the event page shows the estimated effect separately)
 
 **3. Date selector**
-- [ ] Seven same-size day buttons (weekday, date, event count)
-- [ ] Today and selected day highlighted
-- [ ] Selecting a day updates the summary and list together
-- [ ] "Today", "Next 7 days" and date navigation
-- [ ] Emoji clusters and number badges removed
-- [ ] Horizontal scrolling on mobile
+- [x] Seven same-size day buttons (weekday, date, event count)
+- [x] Today and selected day highlighted
+- [x] Selecting a day updates the summary and list together
+- [ ] "Today", "Next 7 days" and date navigation — **partial**: "Today" and "Rest of this week" are there; the data covers the current week only, so a true next-7-days range or other weeks **needs backend**
+- [x] Emoji clusters and number badges removed
+- [x] Horizontal scrolling on mobile
 
 **4. Filters**
-- [x] "Venue Types" → "Venues"
-- [ ] Separate Event type filter
-- [ ] Distance labelled with units ("Within 1 mile")
-- [ ] Practical distance choices instead of 0.1 steps
-- [ ] Event/venue search
-- [ ] Active filters, result count and "Clear filters"
+- [x] "Venue Types" → "Venues" (list now built from the real venues in the data)
+- [x] Separate Event type filter
+- [x] Distance labelled with units ("Within 1 mile")
+- [x] Practical distance choices (0.25 / 0.5 / 1 / 1.5 miles)
+- [x] Event/venue search
+- [x] Active filters, result count and "Clear filters"
 
 **5. Event list**
-- [ ] Four columns: event and venue / local date and time / distance / estimated influence
-- [ ] Title, category and venue in one cell
-- [ ] Readable times ("7:00 PM"), time zone stated once
-- [ ] Units on every distance (desktop table has none)
-- [ ] Better contrast; more room for names
-- [ ] Sort by start time, distance and influence
-- [ ] Previous/Next with result count instead of "1 of 4 / Go"
-- [ ] Stacked cards on mobile — **partial** (a mobile card layout exists)
+- [x] Four columns: event and venue / date and time / distance / estimated influence
+- [x] Title, category and venue in one cell
+- [x] Readable times ("7:00 PM"), time zone stated once ("Detroit local time (ET)")
+- [x] Units on every distance
+- [x] Better contrast; more room for names
+- [x] Sort by start time, distance and estimated influence
+- [x] Previous/Next with "Showing 1–10 of 22 events"
+- [x] Stacked cards on mobile
 
-**6. Event detail panel**
-- [ ] Venue address and map link
-- [ ] Verified local start time (end time if available)
-- [ ] Source link and last updated
-- [ ] Affected service periods — **partial** (shown on the event page)
-- [ ] Why it's relevant to this location and concept
-- [ ] "View demand outlook for this date"
-- [ ] "Report incorrect event"
-- [ ] Estimated timing/impact labelled
+**6. Event detail**
+- [ ] Venue address and map link — **partial**: a Google Maps link by venue name; no street address (**needs backend**)
+- [x] Local start time ("Detroit time"); no end time is available
+- [ ] Source link and last updated — **needs backend**
+- [x] Affected service period
+- [x] Why it's relevant to this location and concept
+- [x] "View demand outlook for this date"
+- [x] "Report incorrect event" (opens a pre-filled email to support@foreshift.ai)
+- [x] Estimated effect and influence labelled as estimates
 
 **7. Duplicates**
-- [ ] Group duplicate listings and packages (only exact duplicates are merged today) — **needs backend**
-- [ ] Duplicates don't inflate counts or impact — **needs backend**
+- [x] Duplicate listings and packages grouped under the show in the list (same venue, date and start time; shown as "+ n related listings")
+  - Display only. A heuristic: a suite rental or hotel package leads to the show with the plain title.
+- [ ] Duplicates don't inflate forecast impact — **needs backend** (the page's counts are grouped; the forecast is not)
 - [ ] Canceled, postponed and rescheduled events handled consistently — **needs backend**
 
 **8. Geographic relevance**
-- [ ] Explain straight-line vs travel distance
-- [ ] Don't treat nearby venues as equal
-- [ ] Cross-border venues (Caesars Windsor) handled — **needs backend**
+- [x] Straight-line vs travel distance explained (distance tooltip: venue to the centre of your area)
+- [x] Nearby venues aren't treated as equal: closer events rank higher and carry a higher influence label
+- [x] Cross-border venues (Caesars Windsor) tagged "Across the border" with an explanation
+  - Tagged by venue name; the forecast's own weighting of them is unchanged (**needs backend** to change).
 
 **9. Supporting sections**
-- [x] "Top Event Today" → "Top events today"
-- [ ] Highlight key events in the main list instead of a separate section
-- [ ] "How Events Shape Demand" made expandable
-- [ ] Duplicated concert/nightlife sentence removed
-- [ ] Effects phrased as possibilities
+- [x] "Top Event Today" card replaced by "Key event" tags in the main list (up to 3 per day)
+- [x] "How events shape demand" made expandable
+- [x] Duplicated concert/nightlife sentence removed
+- [x] Effects phrased as possibilities ("may increase")
 
 **10. Summary and visual design**
 - [x] Top card renamed "Event impact at a glance"
-- [ ] Two or three sentences naming the affected period and events — **needs backend**
-- [ ] "May increase demand" wording — **needs backend**
+- [x] Two or three sentences naming the busiest period and the most relevant events (built from the list)
+- [x] "May increase demand" wording
 - [x] Smaller header
-- [ ] Less vertical spacing
+- [ ] Less vertical spacing — **partial**
 - [x] Better contrast on the navy card
-- [ ] Consistent icons, borders and spacing
-- [ ] Hover/keyboard/tap explanations for impact and distance
-- [ ] "No matching events" vs "Event data unavailable"
+- [ ] Consistent icons, borders and spacing — **partial** (events are still emoji)
+- [x] Hover/keyboard/tap explanations for influence and distance
+- [x] "No matching events" vs "Event data unavailable" vs "No nearby events"
 
 ## 10. Weather page
 
@@ -400,8 +402,8 @@ click-through with a real login.
 | Onboarding (choice, info, hours, success) | 32 | 34 |
 | Daily Outlook | 46 | 62 |
 | Weekly Outlook | 35 | 44 |
-| Events | 5 | 56 |
+| Events | 47 | 55 |
 | Weather | 5 | 31 |
-| **Total** | **147** | **251** |
+| **Total** | **189** | **250** |
 
-Next up: the Events and Weather quick fixes (impact labels, summaries, tooltips, period table).
+Next up: the Weather page (compact date selector, "Weather during service" table, severity labels, tooltips).

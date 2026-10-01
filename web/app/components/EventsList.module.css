@@ -1,0 +1,410 @@
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.card {
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.zone {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sortLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-gray-70);
+  white-space: nowrap;
+}
+
+.sortSelect {
+  width: 200px;
+}
+
+/* ---- Columns: event · date/time · distance · influence · chevron ---- */
+
+.columns,
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 1.2fr) 24px;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.columns {
+  padding: 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-gray-70);
+  border-bottom: 1px solid var(--color-gray-40);
+}
+
+.colWithTip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-gray-30);
+  transition: background var(--duration-fast);
+}
+
+.row:hover {
+  background: var(--color-primary-10);
+}
+
+.row:has(.name:focus-visible) {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: -2px;
+}
+
+.cellEvent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.icon {
+  width: 36px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.eventText {
+  min-width: 0;
+}
+
+/* The title link covers the whole row, so any click opens the event while the
+   tooltips inside the row (raised above it) still work. */
+.name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 21px;
+  color: var(--color-text);
+}
+
+.name::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.name:focus-visible {
+  outline: none;
+}
+
+.meta {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-gray-70);
+}
+
+.tags {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 6px;
+}
+
+.keyTag,
+.borderTag {
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+}
+
+.keyTag {
+  color: var(--color-primary-70);
+  background: var(--color-primary-20);
+  border: 1px solid var(--color-primary-30);
+}
+
+.borderTag {
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border: 1px solid var(--color-gray-40);
+}
+
+.tagWithTip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.related {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+.cellWhen {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.whenTime {
+  font-weight: 600;
+}
+
+.whenNone {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.cellDistance {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+/* Blues only, so these can't be mistaken for the demand bands. */
+.pillHigh {
+  color: #fff;
+  background: var(--color-primary-70);
+  border-color: var(--color-primary-70);
+}
+
+.pillModerate {
+  color: var(--color-primary-70);
+  background: var(--color-primary-20);
+  border-color: var(--color-primary-30);
+}
+
+.pillLow {
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border-color: var(--color-gray-30);
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary-50);
+}
+
+/* ---- Paging ---- */
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.count {
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.pagerBtns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pageNo {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.pageBtn {
+  height: 40px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-50);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: var(--color-primary-10);
+}
+
+.pageBtn:disabled {
+  color: var(--color-gray-60);
+  background: var(--color-gray-20);
+  border-color: var(--color-gray-30);
+  cursor: not-allowed;
+}
+
+.pageBtn:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+}
+
+/* ---- Empty states ---- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 16px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.empty strong {
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.clear {
+  margin-top: 8px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.clear:hover {
+  text-decoration: underline;
+}
+
+/* ---- Phones: stacked cards ---- */
+
+@media (max-width: 760px) {
+  .card {
+    padding: 16px;
+  }
+
+  .head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sort {
+    justify-content: space-between;
+  }
+
+  .sortSelect {
+    flex: 1;
+    max-width: 240px;
+  }
+
+  .columns {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) 24px;
+    grid-template-areas:
+      "event chevron"
+      "when  chevron"
+      "stats chevron";
+    row-gap: 8px;
+  }
+
+  .cellEvent {
+    grid-area: event;
+  }
+
+  .cellWhen {
+    grid-area: when;
+    flex-direction: row;
+    gap: 8px;
+    padding-left: 48px;
+  }
+
+  .cellDistance,
+  .cellInfluence {
+    padding-left: 48px;
+  }
+
+  /* Distance and influence sit on one line under the time. */
+  .cellDistance {
+    grid-area: stats;
+    justify-self: start;
+  }
+
+  .cellInfluence {
+    grid-area: stats;
+    justify-self: end;
+    padding-left: 0;
+    padding-right: 8px;
+  }
+
+  .chevron {
+    grid-area: chevron;
+    align-self: center;
+  }
+}

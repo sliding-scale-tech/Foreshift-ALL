@@ -183,7 +183,10 @@ down under `prefers-reduced-motion`. FAQ accordion is the only animated reveal.
 | DetectedArea | `components/DetectedArea` | Line under the address: detected area, why there isn't one, "Try again", or manual area select |
 | HoursEditor | `components/HoursEditor` | Shared-hours panel (shortcuts, day chips, Opens/Closes, Apply / Mark closed), then the "Your week" list with Not set / times + Edit / Closed per day |
 | ZoneFinderModal | `components/ZoneFinderModal` | Explorer-only "find my zone" dialog |
-| DatePicker | `components/DatePicker` | Events date filter |
+| EventDaySelector | `components/EventDaySelector` | Events day picker: "Today" and "Rest of this week" chips, then seven equal day buttons (weekday, date, event count). Today is tagged and the chosen day is blue; earlier days are dimmed and say "Earlier". Scrolls sideways on phones |
+| EventsList | `components/EventsList` | The event list: four columns (event and venue, date and time, distance, estimated influence) with a Sort select, "Showing 1–10 of 22 events" and Previous / Next. The title link covers the whole row. Tags: "Key event", "Across the border", "+ n related listings". Phones get stacked cards |
+| EventBody | `components/EventBody` | Event outlook body: details, estimated effect, service period, distance, influence, "Why it matters to you", and the three actions (View demand outlook for this date, Open venue in Google Maps, Report incorrect event) |
+| EventsOverviewView | `components/EventsOverviewView` | The Events page logic, taking the week as a prop so it can be tested without a login |
 | FeedbackModal | `components/FeedbackModal` | "How was your day?" dialog from the sidebar |
 | AuthShell / LegalPage | `components/…` | Page shells (§2) |
 
@@ -216,8 +219,8 @@ Dropdowns are `Select`, never a native `<select>`. In all three, focus turns the
 |---|---|
 | Daily Outlook | Title "Daily outlook" and subtitle → brief banner with score column ("Demand score ⓘ", band, score, 0–150 bar, "Busiest period: X ⓘ") → "Demand throughout the day ⓘ" (band ranges) → amber "Add your operating hours" prompt when the day has no hours → 4 daypart cards (icon + window + "Closed" badge outside the restaurant's hours; band pill + "±x% vs. normal ⓘ"; weather; "What's driving demand ⓘ" note) → "Demand score by period" bar chart + drivers card → collapsible "How this forecast works" (scope, how a score is built, daily score, vs. normal, band table, events and weather) |
 | Weekly Outlook | Title and date range, with "Export weekly outlook" (paid plans; others see a "Paid plans" link to Billing) → `WeekGlance` banner → "Plan your week ⓘ" grid → selected-day details → `DailyTotals` + drivers card (with "Show only {day}" / "Show full week") |
-| Events Overview | Title → "Event impact at a glance" banner → 7 calendar cards (emoji, count, proximity badge) → filters (Date, Radius, Venues, Reset) → paged table + side cards ("Top events today", "How Events Shape Demand") |
-| Event Outlook | Back link → event card (date chip, emoji, impact band/percent, time, type) → 4 per-daypart impact cards |
+| Events Overview | Title → "Event impact at a glance" banner (2–3 sentences built from the same list, hedged with "may") → "Choose a day ⓘ" `EventDaySelector` → "Showing events for …" → filters (search, Event type, Venues, Distance) with removable chips, result count and Clear filters → `EventsList` → collapsible "How events shape demand". The summary, day counts and list all come from one selected day (or the rest of the week) |
+| Event Outlook | Back link → `EventBody`: event card (date chip, estimated effect with ⓘ, local start time, service period, type, distance ⓘ, estimated influence ⓘ, why it matters, actions) + four "Impact by service period" cards (a period with no effect says "No effect", not "+0%") |
 | Weather Outlook | Title → "Weather impact at a glance" banner with snapshot (temp, icon, band + peak) → 7 calendar cards → day panel + "Weather during service" cards (severity pill, ±%, condition, temp) |
 | Settings | Cards stacked (gap 32): Account, Reset Password, Restaurant (address + DetectedArea, concept), Operating Hours (HoursEditor). Each card saves on its own with an inline "Saved." message |
 | Billing | Status bar → 3 tier cards (navy header, price, features, CTA) |
@@ -234,9 +237,9 @@ The 7-column day grids show 7 columns at ≥1400px, then switch to `auto-fit, mi
 - **Loading label:** Daily says "Gathering demand insight…".
 - **Error:**
   - Daily Outlook shows `LoadError` with a "Try again" button that re-runs generation (`retry` from `useOutlook`).
-  - Weekly, Events and Weather still show a plain red line (`shared.status statusError`) without a retry.
+  - Weekly shows `LoadError` too. Events and Weather: Events has nothing to retry (no AI call); Weather still shows a plain red line (`shared.status statusError`).
 - **Missing vs zero:** on Daily, a missing daypart shows "No forecast" and "Comparison not available" and leaves a gap in the chart. It never shows "0%" or a fake band.
-- **Empty:** inline text, e.g. "No events match these filters.", "No events today.", "No forecast".
+- **Empty:** inline text. Events keeps three apart: "Event data isn't available for earlier days" (unavailable), "No nearby events are listed for this day" (nothing scheduled) and "No events match your filters" (with Clear filters).
 - **Validation:**
   - Errors appear after the first submit attempt and update live from then on.
   - They sit under the field in destructive-70 at 13px, and the field gets `aria-invalid`.
@@ -271,13 +274,13 @@ Most of these overlap with the open design-review items.
 2. **Hard-coded navy gradients and borders** instead of tokens.
 3. **No shadow, spacing or breakpoint tokens.** Values repeat by hand.
 4. **Daypart windows** shown on cards don't match the backend's event windows.
-5. **Event icons are emoji.** Weather drivers now use `WeatherIcon`.
+5. **Event icons are emoji** (the Events list and event page still use them). Weather drivers now use `WeatherIcon`.
 6. **Percentages and numbers:**
    - Fixed on Daily: missing values no longer show as 0, and the drivers card shows 0% as gray "No effect".
    - Still open: the Weather page turns missing values into 0%, and decimals mix (Daily rounds; Weekly chart shows 2 decimals).
 7. **Weather severity pills reuse band colours** (Low = the Light band's blue), so they can be mistaken for demand bands.
-8. **Raw proximity values (0.5 / 1)** appear as "Est. Impact" on Events.
-9. **Tooltips exist on Daily Outlook and the drivers card only.** Weekly, Events and Weather have none, and there is no "last updated" time anywhere because the backend doesn't send it.
+8. **Events influence:** fixed. Raw 0.5 / 1 values are gone; the list shows "Estimated influence" (High / Moderate / Low) with a tooltip. It reflects distance only (the backend's proximity tiers), not event size.
+9. **Tooltips exist on Daily, Weekly and Events** (and the drivers card). Weather has none yet, and there is no "last updated" time anywhere because the backend doesn't send it.
 10. **Disabled buttons:** Settings dims with opacity while other pages use the gray fill.
 11. **Subtitle separators:** fixed. Every Intelligence page now uses `pageSubtitle()` ("Name · Concept · Zone · Date") with repeats removed.
 12. **Daypart windows vs operating hours:** "Closed" is worked out from the windows shown on the cards (7–10, 11–2, 5–10, 10–12), so hours in the 2–5 PM gap don't count toward any period.
