@@ -38,7 +38,7 @@ export function Sidebar() {
       {mobileOpen && (
         <div className={styles.backdrop} onClick={() => setMobileOpen(false)} aria-hidden="true" />
       )}
-      <aside className={`${styles.sidebar} ${mobileOpen ? styles.open : ""}`}>
+      <aside data-print-hide className={`${styles.sidebar} ${mobileOpen ? styles.open : ""}`}>
         <button
           type="button"
           className={styles.closeBtn}

@@ -5,7 +5,16 @@ import { WeatherIcon } from "./WeatherIcon";
 import styles from "./DriversCard.module.css";
 
 // "Top Demand Drivers" — shared by the Daily and Weekly Outlook.
-export function DriversCard({ drivers, subtitle }: { drivers: Driver[]; subtitle: string }) {
+export function DriversCard({
+  drivers,
+  subtitle,
+  empty = "No major drivers expected.",
+}: {
+  drivers: Driver[];
+  subtitle: string;
+  /** Shown when the list is empty. */
+  empty?: string;
+}) {
   return (
     <section className={styles.card}>
       <h2 className={styles.title}>
@@ -17,6 +26,7 @@ export function DriversCard({ drivers, subtitle }: { drivers: Driver[]; subtitle
       </h2>
       <p className={styles.sub}>{subtitle}</p>
       <div className={styles.list}>
+        {drivers.length === 0 && <p className={styles.detail}>{empty}</p>}
         {drivers.map((d, i) => (
           <div key={i} className={styles.row}>
             <div className={styles.icon}>

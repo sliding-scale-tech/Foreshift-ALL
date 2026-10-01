@@ -1,0 +1,560 @@
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.muted {
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+/* ---- Phone day selector ---- */
+
+.strip {
+  display: none;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.stripBtn {
+  flex: 0 0 auto;
+  min-width: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-50);
+  border-radius: 12px;
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+
+.stripOn {
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border-color: var(--color-shift-electric-blue);
+}
+
+.stripDow {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stripDate {
+  font-size: 12px;
+}
+
+.todayDot {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ---- Grid ---- */
+
+.gridWrap {
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.grid {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 6px;
+}
+
+.corner {
+  width: 134px;
+}
+
+.dayHead,
+.cellTd {
+  padding: 0;
+  border-radius: 10px;
+}
+
+.dayBtn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  font: inherit;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.dayBtn:hover {
+  background: var(--color-primary-10);
+}
+
+.dow {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.dateText {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.dayNote {
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+.todayTag,
+.pastTag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+}
+
+.todayTag {
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+}
+
+.dayBtn .todayTag {
+  margin-left: 0;
+}
+
+.pastTag {
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+}
+
+.rowHead {
+  padding: 0 8px 0 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.periodName {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.periodWindow {
+  display: block;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-gray-70);
+}
+
+/* Earlier days are history, not plans: toned down. */
+.past .dayBtn,
+.past .cell {
+  opacity: 0.6;
+}
+
+.selCol {
+  background: var(--color-primary-20);
+}
+
+.dayHead.selCol {
+  box-shadow: inset 0 -3px 0 var(--color-shift-electric-blue);
+}
+
+.cell {
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cell:focus-visible,
+.dayBtn:focus-visible,
+.stripBtn:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+}
+
+/* Hover / keyboard-focus tip with the exact score. Tapping a cell opens the
+   day's details, which list every score. */
+.cell::after {
+  content: attr(data-tip);
+  position: absolute;
+  z-index: 15;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 240px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(16, 26, 44, 0.16);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+@media (hover: hover) {
+  .cell:hover::after {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+.cell:focus-visible::after {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Band colours (same as BandPill) */
+.bandMinimal {
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border-color: var(--color-gray-30);
+}
+.bandLight {
+  color: var(--color-shift-electric-blue);
+  background: var(--color-primary-20);
+  border-color: var(--color-primary-30);
+}
+.bandModerate {
+  color: var(--color-alert-80);
+  background: var(--color-alert-20);
+  border-color: var(--color-alert-40);
+}
+.bandHigh {
+  color: var(--color-destructive-70);
+  background: var(--color-destructive-20);
+  border-color: var(--color-destructive-30);
+}
+.bandPeak {
+  color: var(--color-success-70);
+  background: var(--color-success-20);
+  border-color: var(--color-success-30);
+}
+.bandExceptional {
+  color: var(--color-secondary-70);
+  background: var(--color-secondary-20);
+  border-color: var(--color-secondary-30);
+}
+
+/* Closed: striped, so it can't be mistaken for a low-demand (gray) cell. */
+.cellClosed {
+  color: var(--color-gray-70);
+  background: repeating-linear-gradient(135deg, #fff 0 6px, var(--color-gray-20) 6px 12px);
+  border-color: var(--color-gray-40);
+}
+
+/* Unavailable: empty and dashed. */
+.cellNone {
+  font-weight: 500;
+  color: var(--color-gray-70);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-gray-50);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendSwatch {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.legendText {
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+/* ---- Selected-day details ---- */
+
+.detail {
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.detailHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.detailTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.detailSub {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-gray-70);
+}
+
+.dailyLink {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border-radius: var(--radius-control);
+  transition: background var(--duration-fast);
+}
+
+.dailyLink:hover {
+  background: var(--color-shift-cobalt);
+}
+
+.detailCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.blockTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.eventsTitle {
+  margin-top: 20px;
+}
+
+.bigScore {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.periodList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.periodRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-borders);
+}
+
+.periodRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.periodScore {
+  min-width: 44px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.closedTag {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border: 1px solid var(--color-gray-40);
+  border-radius: 999px;
+}
+
+.footnote {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+.weather {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.weatherIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.weatherName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 6px;
+  margin: 0 -6px;
+  border-radius: 8px;
+}
+
+.event:hover,
+.event:focus-visible {
+  background: var(--color-primary-10);
+  outline: none;
+}
+
+.eventText {
+  min-width: 0;
+}
+
+.eventName {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.eventMeta {
+  display: block;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-gray-70);
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1100px) {
+  .corner {
+    width: 134px;
+  }
+  .detailCols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Phones: one day at a time, chosen from the strip. */
+@media (max-width: 760px) {
+  .strip {
+    display: flex;
+  }
+  .gridWrap {
+    padding: 12px;
+  }
+  .grid {
+    border-spacing: 0 6px;
+  }
+  .dayHead:not(.selCol),
+  .cellTd:not(.selCol) {
+    display: none;
+  }
+  .selCol {
+    background: transparent;
+    box-shadow: none;
+  }
+  .cell {
+    min-height: 48px;
+    font-size: 14px;
+  }
+  /* The tip would hang off-screen; the details panel has the numbers. */
+  .cell::after {
+    display: none;
+  }
+  .detailHead {
+    flex-direction: column;
+  }
+  .dailyLink {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell::after {
+    transition: none;
+  }
+}

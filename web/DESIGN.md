@@ -169,10 +169,12 @@ down under `prefers-reduced-motion`. FAQ accordion is the only animated reveal.
 | WeatherIcon | `components/WeatherIcon` | Hand-drawn SVG for Clear/Sunny, Partly Cloudy, Cloudy, Rain, Snow, Fog, Thunder. Sized by its parent |
 | EventIcon | `components/EventIcon` | **Emoji** by event class (🏟️ 🎫 🎪 🎙️, fallback 📅) |
 | DriversCard | `components/DriversCard` | "Top Demand Drivers" list: icon, green "+x%" (whole percent) or gray "No effect", then name and detail. Weather rows use `WeatherIcon`. The same condition is merged into one row that lists its periods, and all no-effect weather shares one row at the bottom ([lib/drivers.ts](app/lib/drivers.ts)) |
-| DemandBarChart | `components/DemandBarChart` | Daily Outlook: one bar per daypart, coloured by band ([lib/bands.ts](app/lib/bands.ts)), value on top, fixed 0–150 axis titled "Demand score". A second label line says "Closed" or "No data". The tooltip gives period, score, band and vs. normal, and a screen-reader list repeats it |
-| DemandAreaChart | `components/DemandAreaChart` | ApexCharts smooth area. Now used on Weekly only (7 points, y 0–150). `null` values are drawn as gaps, never as 0 |
+| DemandBarChart | `components/DemandBarChart` | Daily Outlook: one bar per daypart, coloured by band ([lib/bands.ts](app/lib/bands.ts)), value on top, fixed 0–150 axis titled "Demand score". A second label line says "Closed" or "No data". The tooltip gives period, score, band and vs. normal, and a screen-reader list repeats it. Also used for Weekly "Daily totals" (7 bars), where `selected` fades the other bars and `onSelect` makes bars clickable |
 | Select | `components/Select` | App-styled dropdown used everywhere instead of `<select>` (the browser draws a native list itself, which CSS can't restyle). Trigger variants: `default` (onboarding), `filled` (Settings), `filter` (Events filter bar). List: white card, radius 12, shadow, hovered row primary-10, chosen row blue with a check. Arrow keys, Home/End, Enter, Escape and type-ahead work; opens upward near the bottom of the screen |
 | TimeField | `components/TimeField` | Time input with the same list style: type "9:30 pm" or pick a 15-minute suggestion (filters as you type). Used in the hours editor |
+| WeekGrid / DayStrip / DayDetail | `components/WeekPlanner` | Weekly planning grid: days across, Morning/Midday/Dinner/Late night down. A cell shows the demand level as text on its band colour; point at it for the exact score. Striped = Closed (outside your hours), dashed = Unavailable (no forecast). Today is tagged, earlier days are dimmed and tagged "Earlier". Choosing a day (header, cell, strip or chart bar) fills `DayDetail`: score and level, the four periods, weather with rain chance, events with time and service period, and a "View daily outlook" link. Below 760px the grid shows one day, picked from `DayStrip` |
+| WeekGlance | `components/WeekGlance` | Weekly "This week at a glance" banner: three equal tiles on the navy card (Busiest period, Quietest upcoming period, Main demand drivers). Small uppercase label with an ⓘ, big "Friday dinner", then "Exceptional · 150". Driver names wrap to two lines with the effect in green; tiles stack below 1000px. Printed as plain outlined boxes |
+| DailyTotals | `components/DailyTotals` | Collapsible "Daily totals" card with the 7-bar chart, open by default. The right of the header says "Hide ⌄" / "Show ›" so it's clear it opens and closes |
 | InfoTip | `components/InfoTip` | ⓘ button with a short explanation. Opens on hover (real pointers only), keyboard focus or tap. Escape, tapping again or blurring closes it. `tone="dark"` for the navy banner; `align` picks start/center/end |
 | PageLoading | `components/PageLoading` | Full-page spinner and label, shown until **all** of a page's data is ready |
 | LoadError | `components/LoadError` | Full-page "We couldn't load this forecast." with the message and a "Try again" button |
@@ -213,7 +215,7 @@ Dropdowns are `Select`, never a native `<select>`. In all three, focus turns the
 | Page | Structure |
 |---|---|
 | Daily Outlook | Title "Daily outlook" and subtitle → brief banner with score column ("Demand score ⓘ", band, score, 0–150 bar, "Busiest period: X ⓘ") → "Demand throughout the day ⓘ" (band ranges) → amber "Add your operating hours" prompt when the day has no hours → 4 daypart cards (icon + window + "Closed" badge outside the restaurant's hours; band pill + "±x% vs. normal ⓘ"; weather; "What's driving demand ⓘ" note) → "Demand score by period" bar chart + drivers card → collapsible "How this forecast works" (scope, how a score is built, daily score, vs. normal, band table, events and weather) |
-| Weekly Outlook | Title and date range → "This week at a glance" banner → 7 day cards (band + peak score, weather, event count) → weekly curve + drivers |
+| Weekly Outlook | Title and date range, with "Export weekly outlook" (paid plans; others see a "Paid plans" link to Billing) → `WeekGlance` banner → "Plan your week ⓘ" grid → selected-day details → `DailyTotals` + drivers card (with "Show only {day}" / "Show full week") |
 | Events Overview | Title → "Event impact at a glance" banner → 7 calendar cards (emoji, count, proximity badge) → filters (Date, Radius, Venues, Reset) → paged table + side cards ("Top events today", "How Events Shape Demand") |
 | Event Outlook | Back link → event card (date chip, emoji, impact band/percent, time, type) → 4 per-daypart impact cards |
 | Weather Outlook | Title → "Weather impact at a glance" banner with snapshot (temp, icon, band + peak) → 7 calendar cards → day panel + "Weather during service" cards (severity pill, ±%, condition, temp) |
@@ -252,6 +254,7 @@ The 7-column day grids show 7 columns at ≥1400px, then switch to `auto-fit, mi
 | ≤1100 | Daily brief and lower row stack to one column |
 | ≤900 | Sidebar becomes a drawer; main padding shrinks |
 | ≤800 | Settings two-column fields stack |
+| ≤760 | Weekly grid shows one day at a time with a day strip |
 | ≤700 | Daily daypart cards: 1 column; legal/sample pages tighten |
 | ≤640 | Onboarding card padding shrinks; concepts 3 → 2 columns; choice cards stack |
 | ≤560 | Hours editor rows stack (day + Closed on top, times below) |
@@ -286,6 +289,7 @@ Most of these overlap with the open design-review items.
 - **Primary action:** an electric-blue button, with the gray-30 / gray-60 disabled style.
 - **Errors:** red text under the field, only after the first submit attempt.
 - **Explanations:** use `InfoTip` and keep it to one or two sentences. Anything longer goes in the "How this forecast works" section.
+- **Print / PDF:** hide app chrome with `data-print-hide` and page-level `noPrint` classes; the sidebar already does. Keep band colours with `print-color-adjust: exact`.
 - **Percentages:** whole numbers. No change shows as "0%", not "+0%".
 - **Colour plus text:** every coloured meaning (band, severity, positive/negative) also carries its label.
 - **Toggles and keyboard:** toggles use `aria-pressed`; controls work with Tab and Enter/Space.

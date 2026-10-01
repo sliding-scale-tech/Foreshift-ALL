@@ -1,129 +1,154 @@
 "use client";
 
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { WeeklyOutlookResult } from "my-app/convex/lib/outlook";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
-import { pageSubtitle } from "@/app/lib/displayName";
+import { useAccess } from "@/app/hooks/useAccess";
+import { hasRestaurant, operatorLabel, pageSubtitle } from "@/app/lib/displayName";
 import { useOutlook } from "@/app/hooks/useOutlook";
-import { useWeek, type WeekData, type WeekDay } from "@/app/hooks/useWeek";
-import { BandPill } from "@/app/components/BandPill";
-import { DemandAreaChart } from "@/app/components/DemandAreaChart";
+import { useWeek } from "@/app/hooks/useWeek";
+import { DailyTotals } from "@/app/components/DailyTotals";
 import { DriversCard } from "@/app/components/DriversCard";
+import { InfoTip } from "@/app/components/InfoTip";
+import { LoadError } from "@/app/components/LoadError";
 import { PageLoading } from "@/app/components/PageLoading";
-import { IconCalendarCheck, IconSparkle } from "@/app/components/dashboard-icons";
-import { WeatherIcon } from "@/app/components/WeatherIcon";
+import { DayDetail, DayStrip, WeekGrid } from "@/app/components/WeekPlanner";
+import { WeekGlance } from "@/app/components/WeekGlance";
 import { toDrivers } from "@/app/lib/drivers";
-import { FULL_DAY, shortDate, trimNumber, weekLabel } from "@/app/lib/week";
+import { FULL_DAY, weekLabel, type DayKey } from "@/app/lib/week";
+import { buildPlan, glance } from "@/app/lib/weekPlan";
 import shared from "../../shared.module.css";
 import styles from "./weekly.module.css";
 
-// Weekly Outlook — the operator's Mon..Sun demand at a glance. The grid and
-// curve come from the week's resolved demand + weather + events (live query);
-// the brief and driver list come from the cached weekly outlook.
+// Weekly Outlook — which days and service periods need attention. The
+// planning grid, details and glance points all come from the week's resolved
+// demand (live query), so they can't disagree; the driver list comes from the
+// cached weekly outlook.
 export default function WeeklyOutlookPage() {
   const { operator } = useMyOperator();
+  const { access } = useAccess();
   const week = useWeek();
   const outlook = useOutlook<WeeklyOutlookResult>("weekly");
 
+  const [picked, setPicked] = useState<string | null>(null);
+  const [onlyDay, setOnlyDay] = useState(false);
+  const stamp = useRef<HTMLSpanElement>(null);
+
+  const restaurant = hasRestaurant(operator);
+  const hours = restaurant ? operator?.operatingHours : undefined;
+  const plan = useMemo(() => (week ? buildPlan(week, hours) : []), [week, hours]);
+
   // Nothing renders until the week AND the weekly outlook are both ready.
-  if (outlook.status === "error") {
-    return (
-      <p className={`${shared.status} ${shared.statusError}`} role="alert">
-        {outlook.message}
-      </p>
-    );
+  if (outlook.status === "error") return <LoadError message={outlook.message} onRetry={outlook.retry} />;
+  if (!week || outlook.status !== "ready") return <PageLoading label="Gathering demand insight…" />;
+
+  const selected = picked ?? (plan.some((d) => d.date === week.today) ? week.today : plan[0].date);
+  const selectedIdx = Math.max(0, plan.findIndex((d) => d.date === selected));
+  const selectedPlan = plan[selectedIdx];
+  const eventCounts = Object.fromEntries(plan.map((d) => [d.date, week.events.filter((e) => e.date === d.date).length]));
+
+  const { busiest, quietest } = glance(plan);
+  const allDrivers = toDrivers(outlook.result.drivers);
+  const drivers = onlyDay ? allDrivers.filter((d) => d.date === selected) : allDrivers;
+  const topDrivers = allDrivers.filter((d) => d.liftPct > 0).slice(0, 3);
+  const hoursMissing = restaurant && plan.some((d) => d.hoursUnknown);
+
+  function exportPdf() {
+    // Stamp the printout with the moment it was generated, then open the print dialog (Save as PDF).
+    if (stamp.current) {
+      stamp.current.textContent = new Intl.DateTimeFormat("en-US", {
+        dateStyle: "long",
+        timeStyle: "short",
+        timeZone: "America/Detroit",
+      }).format(new Date());
+    }
+    window.print();
   }
-  if (!week || outlook.status !== "ready") return <PageLoading label="Preparing this week’s forecast…" />;
 
   return (
     <>
-      <h1 className={shared.title}>Weekly outlook</h1>
-      <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
-
-      <section className={shared.banner}>
-        <div className={shared.bannerTitle}>
-          <IconSparkle />
-          This week at a glance
+      <div className={styles.titleRow}>
+        <div>
+          <h1 className={shared.title}>Weekly outlook</h1>
+          <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
         </div>
-        <p className={shared.bannerText}>{outlook.result.narration}</p>
-      </section>
 
-      <h2 className={shared.sectionTitle}>7-day Demand Grid</h2>
-      <DemandGrid week={week} />
-
-      <div className={styles.lower}>
-        <section className={`${shared.card} ${styles.chartCard}`}>
-          <h2 className={`${shared.cardTitle} ${shared.chartTitle}`}>Weekly Demand Curve</h2>
-          <DemandAreaChart
-            categories={week.days.map((d) => FULL_DAY[d.day])}
-            values={week.days.map((d) => d.demand?.peakScore ?? 0)}
-            yMax={150}
-            tickAmount={3}
-            decimals={2}
-            showLegend={false}
-          />
-        </section>
-
-        <DriversCard
-          drivers={toDrivers(outlook.result.drivers)}
-          subtitle="Factors influencing this week's forecast."
-        />
-      </div>
-    </>
-  );
-}
-
-function DemandGrid({ week }: { week: WeekData }) {
-  return (
-    <div className={styles.grid}>
-      {week.days.map((day) => (
-        <DayCard
-          key={day.date}
-          day={day}
-          eventCount={week.events.filter((e) => e.date === day.date).length}
-        />
-      ))}
-    </div>
-  );
-}
-
-function DayCard({ day, eventCount }: { day: WeekDay; eventCount: number }) {
-  return (
-    <div className={`${shared.card} ${styles.day}`}>
-      <div className={styles.dow}>{day.day}</div>
-      <div className={styles.date}>{shortDate(day.date)}</div>
-
-      <div className={styles.scoreRow}>
-        {day.demand ? (
-          <>
-            <BandPill band={day.demand.peakBand} />
-            <span>{trimNumber(day.demand.peakScore)}</span>
-          </>
+        {/* Paid plans only; everyone else is pointed at Billing. */}
+        {access?.isSubscribed ? (
+          <button type="button" className={`${styles.exportBtn} ${styles.noPrint}`} onClick={exportPdf}>
+            Export weekly outlook
+          </button>
         ) : (
-          <span className={styles.muted}>—</span>
+          <Link href="/billing" className={`${styles.exportBtn} ${styles.exportLocked} ${styles.noPrint}`}>
+            Export weekly outlook
+            <span className={styles.paidTag}>Paid plans</span>
+          </Link>
         )}
       </div>
 
-      <div className={styles.weatherRow}>
-        <div className={styles.weatherIcon}>
-          <WeatherIcon condition={day.weather?.condition ?? ""} />
-        </div>
-        <div>
-          <div className={styles.strong}>{day.weather?.condition ?? "No forecast"}</div>
-          {day.weather && <div className={styles.muted}>{day.weather.tempF}°F</div>}
-        </div>
+      {/* Only appears on the printed / saved-as-PDF copy. */}
+      <div className={styles.printHeader}>
+        <strong>ForeShift weekly outlook</strong> · {operatorLabel(operator)} · {weekLabel(week.weekStart)}
+        <br />
+        Generated <span ref={stamp} /> (Detroit time)
       </div>
 
-      <div className={styles.eventsRow}>
-        <div className={styles.eventsIcon}>
-          <IconCalendarCheck />
-        </div>
+      <WeekGlance busiest={busiest} quietest={quietest} drivers={topDrivers} />
+
+      {hoursMissing && (
+        <p className={`${styles.hoursPrompt} ${styles.noPrint}`}>
+          Add your operating hours to see which periods you&apos;re closed.{" "}
+          <Link href="/settings">Add hours</Link>
+        </p>
+      )}
+
+      <h2 className={`${shared.sectionTitle} ${styles.titleWithTip}`}>
+        Plan your week
+        <InfoTip label="the planning grid" align="start">
+          Each cell is one service period. The label is its demand level; point at a cell to see the exact score, or
+          select a day for the details. Striped cells are outside your hours and dashed cells have no forecast.
+        </InfoTip>
+      </h2>
+
+      <div className={styles.noPrintStrip}>
+        <DayStrip plan={plan} selected={selected} onSelect={setPicked} />
+      </div>
+      <WeekGrid plan={plan} eventCounts={eventCounts} selected={selected} onSelect={setPicked} />
+      <DayDetail plan={selectedPlan} weekDay={week.days[selectedIdx]} events={week.events.filter((e) => e.date === selected)} />
+
+      <div className={styles.lower}>
+        <DailyTotals
+          selected={selectedIdx}
+          onSelect={(i) => setPicked(plan[i].date)}
+          items={plan.map((d) => ({
+            label: d.day,
+            score: d.peak?.score ?? null,
+            band: d.peak?.band ?? null,
+            liftPct: null,
+            closed: false,
+          }))}
+        />
+
         <div>
-          <div className={styles.strong}>Events</div>
-          <div className={styles.muted}>
-            {eventCount} {eventCount === 1 ? "event" : "events"}
-          </div>
+          {allDrivers.length > 0 && (
+            <div className={`${styles.driverFilter} ${styles.noPrint}`}>
+              <button type="button" className={styles.linkBtn} onClick={() => setOnlyDay((v) => !v)} aria-pressed={onlyDay}>
+                {onlyDay ? "Show full week" : `Show only ${FULL_DAY[selectedPlan.day as DayKey]}`}
+              </button>
+            </div>
+          )}
+          <DriversCard
+            drivers={drivers}
+            subtitle={
+              onlyDay
+                ? `Top drivers for ${FULL_DAY[selectedPlan.day as DayKey]}.`
+                : "Factors influencing this week's forecast."
+            }
+            empty={onlyDay ? `No major drivers on ${FULL_DAY[selectedPlan.day as DayKey]}.` : undefined}
+          />
         </div>
       </div>
-    </div>
+    </>
   );
 }

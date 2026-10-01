@@ -12,6 +12,7 @@ export type Driver = {
   subtitle?: string;
   eventClass?: string; // events: picks the icon
   condition?: string; // weather: picks the icon
+  date?: string; // weekly drivers: the day it falls on ("2026-10-01")
 };
 
 const PERIOD_LABEL: Record<string, string> = Object.fromEntries(DAYPARTS.map((d) => [d.key, d.label]));
@@ -24,7 +25,7 @@ const PERIOD_LABEL: Record<string, string> = Object.fromEntries(DAYPARTS.map((d)
  * (Bubble showed lift_percent >= 0 only). Weekly drivers carry a `day`, which
  * prefixes the period ("Fri Dinner").
  */
-export function toDrivers(list: (DemandDriver & { day?: string })[]): Driver[] {
+export function toDrivers(list: (DemandDriver & { day?: string; date?: string })[]): Driver[] {
   const out: Driver[] = [];
   const weather = new Map<string, { driver: Driver; conditions: string[]; periods: string[] }>();
 
@@ -33,24 +34,30 @@ export function toDrivers(list: (DemandDriver & { day?: string })[]): Driver[] {
     const liftPct = Math.round(d.lift_percent);
 
     if (d.type === "event") {
+      // Weekly drivers say which day and period the event falls in.
+      const when = [d.day, formatEventTime(d.time)].filter(Boolean).join(" ");
       out.push({
         kind: "event",
         liftPct,
         title: d.name,
-        subtitle: [d.venue !== "N/A" ? d.venue : "", formatEventTime(d.time)].filter(Boolean).join(" - "),
+        subtitle: [d.venue !== "N/A" ? d.venue : "", when, d.day ? PERIOD_LABEL[d.daypart] : ""]
+          .filter(Boolean)
+          .join(" - "),
         eventClass: d.class,
+        date: d.date,
       });
       continue;
     }
 
-    const key = liftPct === 0 ? "neutral" : `${d.condition}|${liftPct}`;
+    // Weather merges only within one day, so "Show only Friday" stays accurate.
+    const key = liftPct === 0 ? `neutral|${d.date ?? ""}` : `${d.condition}|${liftPct}|${d.date ?? ""}`;
     const period = [d.day, PERIOD_LABEL[d.daypart] ?? d.daypart].filter(Boolean).join(" ");
     const group = weather.get(key);
     if (group) {
       if (!group.conditions.includes(d.condition)) group.conditions.push(d.condition);
       group.periods.push(period);
     } else {
-      const driver: Driver = { kind: "weather", liftPct, title: d.condition, condition: d.condition };
+      const driver: Driver = { kind: "weather", liftPct, title: d.condition, condition: d.condition, date: d.date };
       weather.set(key, { driver, conditions: [d.condition], periods: [period] });
       out.push(driver);
     }

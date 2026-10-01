@@ -4,10 +4,10 @@ import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
 import type { ApexOptions } from "apexcharts";
 import type { Props as ApexProps } from "react-apexcharts";
-import { bandColor, MAX_SCORE } from "@/app/lib/bands";
+import { bandColor, MAX_SCORE, withAlpha } from "@/app/lib/bands";
 import styles from "./DemandBarChart.module.css";
 
-// ApexCharts touches `window`, so it's client-only (cast: see DemandAreaChart).
+// ApexCharts touches `window`, so it's client-only (the cast: react-apexcharts types its default export as a bare class that next/dynamic won't accept).
 const ReactApexChart = dynamic(
   () => import("react-apexcharts").then((m) => m.default as unknown as ComponentType<ApexProps>),
   { ssr: false },
@@ -40,7 +40,18 @@ function describe(i: BarItem): string {
 
 // Daily Outlook: one bar per daypart, coloured by its demand band, value on
 // top, on the fixed 0–150 scale so days are comparable.
-export function DemandBarChart({ items, height = 340 }: { items: BarItem[]; height?: number }) {
+export function DemandBarChart({
+  items,
+  height = 340,
+  selected = null,
+  onSelect,
+}: {
+  items: BarItem[];
+  height?: number;
+  /** Highlights one bar and fades the rest (kept in sync with a grid elsewhere on the page). */
+  selected?: number | null;
+  onSelect?: (index: number) => void;
+}) {
   const options: ApexOptions = {
     chart: {
       type: "bar",
@@ -50,8 +61,17 @@ export function DemandBarChart({ items, height = 340 }: { items: BarItem[]; heig
       foreColor: AXIS_TEXT,
       parentHeightOffset: 0,
       animations: { enabled: false },
+      // Leave `events` out entirely when nothing listens: Apex reads
+      // `chart.events.updated` internally and crashes if the key is present but undefined.
+      ...(onSelect && {
+        events: {
+          dataPointSelection: (_e, _chart, opts) => {
+            if (opts && opts.dataPointIndex >= 0) onSelect(opts.dataPointIndex);
+          },
+        },
+      }),
     },
-    colors: items.map((i) => bandColor(i.band)),
+    colors: items.map((i, n) => withAlpha(bandColor(i.band), selected === null || selected === n ? 1 : 0.35)),
     plotOptions: {
       bar: {
         distributed: true,

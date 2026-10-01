@@ -196,67 +196,67 @@ click-through with a real login.
 **1. Date mismatch**
 - [ ] Brief and cards cover the same dates — **verify** (web dates come from Detroit's calendar; the mismatch was seen in Bubble)
 - [ ] Sep 23, 2026 shown under Wednesday — **verify**
-- [ ] Weekday labels, dates, chart, events and narration all from the same restaurant-local dates — **verify**
-- [ ] Daily and Weekly show matching forecasts for the same date — **verify**
+- [x] Weekday labels, dates, grid, chart, events and glance points all come from the same week query (restaurant-local dates)
+- [ ] Daily and Weekly show matching forecasts for the same date — **verify** with real data (both read the same scores)
 
 **2. Week selector**
 - [x] Heading "Weekly outlook"
 - [x] "September 21–27, 2026" style date range
 - [ ] Previous/next week and "This week" controls — **needs backend** (current week only)
-- [ ] Only future dates within the forecast range enabled
-- [ ] Today highlighted; elapsed days distinguished; historical forecasts labelled
+- [ ] Only future dates within the forecast range enabled — **needs backend**
+- [x] Today highlighted; elapsed days distinguished and labelled "Earlier"
 
 **3. Planning grid (heatmap)**
-- [ ] Columns Mon–Sun with dates; rows Morning / Midday / Dinner / Late night
-- [ ] Each cell shows the demand category; score on hover/tap
-- [ ] Consistent colours plus text
-- [ ] Closed / Unavailable / low demand distinguished
-- [ ] Uses period-level forecasts (data already available in `getWeek`)
+- [x] Columns Mon–Sun with dates; rows Morning / Midday / Dinner / Late night
+- [x] Each cell shows the demand category; exact score on hover or keyboard focus, and in the day details on tap
+- [x] Consistent colours plus text
+- [x] Closed (striped), Unavailable (dashed) and low demand (gray "Minimal") distinguished
+- [x] Uses period-level forecasts, not daily totals
 
 **4. Selected-day detail panel**
-- [ ] Score and category
-- [ ] Comparison with normal
-- [ ] Weather and events
-- [ ] Short explanation
-- [ ] "View daily outlook" for that date
-- [ ] Defaults to today
+- [x] Score and category
+- [ ] Comparison with the defined normal baseline — **needs backend** (the week query has no baseline scores); the panel links to the daily outlook for it
+- [x] Weather (with rain chance) and events (time and service period)
+- [x] Short explanation
+- [x] "View daily outlook" for that date
+- [x] Defaults to today
 
 **5. Weekly chart**
-- [ ] Moved to a secondary "Daily totals" view
-- [ ] Seven bars instead of a curve
-- [ ] "Demand score" axis and explanation
-- [ ] Consistent scale, at most one decimal (currently two)
-- [ ] Chart, grid and detail panel selection kept in sync
+- [x] Moved to a secondary, collapsible "Daily totals" view
+- [x] Seven bars instead of a curve
+- [x] "Demand score" axis; calculation explained in a tooltip
+- [x] Consistent 0–150 scale, one decimal
+- [x] Chart, grid and detail panel selection kept in sync (click a bar or a day)
 
 **6. Weekly brief**
 - [x] Renamed "This week at a glance"
-- [ ] Three short points: busiest period, quietest upcoming period, main drivers
-- [ ] Generated from the same data as the grid; no guaranteed-crowd wording — **needs backend** for the AI text
+- [x] Three short points: busiest period, quietest upcoming period, main demand drivers
+- [x] Generated from the same data as the grid (no AI text), so it can't contradict it; no guaranteed-crowd wording
 
 **7. Weekly drivers**
 - [x] "Factors influencing this week's forecast."
-- [ ] Date, local start time and affected period on every event (weather rows now show "Fri Dinner")
+- [x] Date, local start time and affected period on every event (drivers list and day details)
 - [ ] Investigate why every event shows 10:00 AM — **needs backend**
-- [ ] Filter to the selected day, with "Show full week"
-- [ ] Ranked by impact with the percentage explained — **partial** (ⓘ on the drivers card)
-- [ ] Event counts clickable
+- [x] Filter to the selected day, with "Show full week" (the list is the week's top 5 drivers; the day details list all of its events)
+- [x] Percentages explained in a tooltip
+- [x] Event counts shown on each day; selecting a day lists its events
 
 **8. Tooltips and freshness**
-- [ ] Score and thresholds, daily score, baseline, event impact, grid cells and chart bars
-- [ ] Hover, keyboard and tap support on this page
+- [x] Score and thresholds, daily score, events, grid cells, daily totals
+- [x] Hover, keyboard and tap support
 - [ ] "Last updated" — **needs backend**
-- [ ] Missing data distinguished from zero impact
+- [x] Missing data ("Unavailable") distinguished from zero impact
 
 **9. Hierarchy and responsiveness**
 - [x] Smaller heading (32px)
 - [x] Better contrast for the blue heading on the navy card
-- [ ] Less vertical spacing
-- [ ] Week selector, brief and grid near the top
-- [ ] Consistent icons, colours, borders and number formatting
-- [ ] Mobile: horizontal day selector with selected-day details
+- [x] Week selector, brief and grid near the top
+- [ ] Consistent icons — **partial** (events are still emoji)
+- [x] Mobile: horizontal day selector with selected-day details
 
 **10. Sharing**
-- [ ] "Export weekly outlook" PDF (date range, restaurant, grid, drivers, timestamp), paid plans only
+- [x] "Export weekly outlook" as a printable PDF (restaurant, date range, grid, drivers, generation timestamp), paid plans only
+  - Uses the browser's Save as PDF. Not yet tried in a real signed-in session.
 
 ## 9. Events page
 
@@ -399,9 +399,9 @@ click-through with a real login.
 | Signup | 13 | 13 |
 | Onboarding (choice, info, hours, success) | 32 | 34 |
 | Daily Outlook | 46 | 62 |
-| Weekly Outlook | 6 | 45 |
+| Weekly Outlook | 35 | 44 |
 | Events | 5 | 56 |
 | Weather | 5 | 31 |
-| **Total** | **118** | **212** |
+| **Total** | **147** | **251** |
 
-Next up: Weekly Outlook (planning grid and selected-day panel; no backend needed), then the Events and Weather quick fixes.
+Next up: the Events and Weather quick fixes (impact labels, summaries, tooltips, period table).

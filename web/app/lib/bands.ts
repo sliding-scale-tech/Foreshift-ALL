@@ -15,6 +15,18 @@ export const BANDS: { name: Band; min: number; max: number; meaning: string; col
   { name: "Exceptional", min: 110, max: 150, meaning: "Unusually busy, e.g. a major event nearby", color: "#625dfe" },
 ];
 
+/** Band for a score — same thresholds as the backend. */
+export function bandOf(score: number): Band {
+  for (let i = BANDS.length - 1; i >= 0; i--) if (score >= BANDS[i].min) return BANDS[i].name;
+  return "Minimal";
+}
+
+/** "#027ffc" + 0.4 -> "rgba(2,127,252,0.4)" */
+export function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 /** Bar colour for a band (same hue family as its BandPill). Gray when unknown. */
 export function bandColor(band: string | null): string {
   return BANDS.find((b) => b.name === band)?.color ?? "#c7c7c7";

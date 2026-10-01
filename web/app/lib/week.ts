@@ -53,6 +53,19 @@ export function trimNumber(n: number, maxDecimals = 2): string {
   return String(Number(n.toFixed(maxDecimals)));
 }
 
+/** "18:40" -> "6:40 PM" (the backend's HH:MM event times are Detroit local). */
+export function formatClock(hhmm: string | null): string {
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "";
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
+/** "2026-10-01" -> "Oct 1" */
+export function monthDay(iso: string): string {
+  return fmt({ month: "short", day: "numeric" }).format(at(iso));
+}
+
 /** "2026-09-21T18:40:00-04:00" -> "6:40PM" (restaurant's timezone). */
 export function formatEventTime(iso: string): string {
   if (!iso) return "";

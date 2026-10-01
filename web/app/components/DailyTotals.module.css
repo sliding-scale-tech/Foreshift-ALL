@@ -1,0 +1,60 @@
+/* Weekly "Daily totals": a collapsible bar chart. */
+
+.totals {
+  padding: 0 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.totals[open] {
+  padding-bottom: 24px;
+}
+
+.totals summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* The default ▸ marker is lost once the summary is a flex box, so draw our own. */
+.totals summary::-webkit-details-marker {
+  display: none;
+}
+
+.totalsToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+}
+
+.chevron {
+  width: 10px;
+  height: 6px;
+  transition: transform var(--duration-fast);
+}
+
+.totals:not([open]) .chevron {
+  transform: rotate(-90deg);
+}
+
+.totals summary:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media print {
+  .totals {
+    display: none;
+  }
+}

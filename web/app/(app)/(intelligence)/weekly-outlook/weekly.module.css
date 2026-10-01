@@ -1,134 +1,113 @@
-/* Weekly Outlook only — shared bits live in ../shared.module.css.
-   Sizes are Bubble's real CSS px (measured in the live app). */
+/* Weekly Outlook only — shared bits live in ../shared.module.css; the planning
+   grid and day details are in components/WeekPlanner.module.css. */
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
-}
-
-
-
-@media (min-width: 1400px) {
-  .grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-  }
-}
-
-/* Below the 7-column desktop width, size columns by content instead of a
-   fixed count — a fixed 4-column step (the old rule here) left a real gap:
-   any width just above the "collapse to 2 columns" breakpoint but still far
-   short of comfortably fitting 4 stayed at 4 and overflowed (reported by the
-   owner around ~700-750px). Auto-fit has no such gap at any width. */
-@media (max-width: 1399px) {
-  .grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
-}
-
-/* Laptop-width windows (~1470px): keep 7 columns by tightening the gaps. */
-@media (max-width: 1700px) {
-  .grid {
-    gap: 16px;
-  }
-  .weatherIcon {
-    width: 30px;
-    height: 30px;
-  }
-  .weatherRow {
-    gap: 8px;
-  }
-}
-
-.day {
-  padding: 12px;
-  font-size: 14px;
-}
-
-.dow {
-  padding-top: 1px;
-  font-size: 16px;
-  line-height: 22px;
-  color: var(--color-gray-60);
-}
-
-.date {
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.scoreRow {
-  margin-top: 12px;
-  padding-bottom: 12px;
+.titleRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--color-borders);
-  font-weight: 600;
-  color: var(--color-text);
+  align-items: flex-start;
+  gap: 16px;
 }
 
-.weatherRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 0 12px;
-  border-bottom: 1px solid var(--color-borders);
-}
-
-.eventsRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 0 0 4px;
-}
-
-.weatherIcon {
-  width: 36px;
-  height: 36px;
+.exportBtn {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--duration-fast);
 }
 
-.eventsIcon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
+.exportBtn:hover {
+  background: var(--color-shift-cobalt);
+}
+
+/* Not on this plan: still visible, but plainly marked. */
+.exportLocked {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-50);
+}
+
+.exportLocked:hover {
+  background: var(--color-primary-10);
+}
+
+.paidTag {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-secondary-70);
+  background: var(--color-secondary-20);
+  border-radius: 999px;
+}
+
+.printHeader {
+  display: none;
+}
+
+.hoursPrompt {
+  margin-top: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--color-alert-80);
+  background: var(--color-alert-10);
+  border: 1px solid var(--color-alert-40);
+  border-radius: 10px;
+}
+
+.hoursPrompt a {
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+  text-decoration: underline;
+}
+
+.titleWithTip {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
+  gap: 6px;
 }
 
-.eventsIcon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.strong {
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--color-text);
-}
-
-.muted {
-  line-height: 20px;
-  color: var(--color-gray-70);
-}
+/* ---- Lower row: daily totals + drivers ---- */
 
 .lower {
-  margin-top: 24px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: minmax(0, 900fr) minmax(0, 613fr);
   gap: 20px;
   align-items: start;
 }
 
-.chartCard {
-  padding: 24px;
+.driverFilter {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.linkBtn {
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.linkBtn:hover,
+.linkBtn:focus-visible {
+  text-decoration: underline;
 }
 
 @media (max-width: 1100px) {
@@ -136,3 +115,29 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+@media (max-width: 700px) {
+  .titleRow {
+    flex-direction: column;
+  }
+  .exportBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ---- Print / Save as PDF ---- */
+
+@media print {
+  .noPrint,
+  .noPrintStrip {
+    display: none !important;
+  }
+
+  .printHeader {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #000;
+  }
+
