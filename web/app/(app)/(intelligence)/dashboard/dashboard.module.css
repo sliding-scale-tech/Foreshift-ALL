@@ -106,6 +106,12 @@
   white-space: nowrap;
 }
 
+.unavailable {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--color-gray-70);
+}
+
 .weather {
   display: flex;
   align-items: center;

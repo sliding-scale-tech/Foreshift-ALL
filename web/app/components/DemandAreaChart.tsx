@@ -30,7 +30,8 @@ export function DemandAreaChart({
   showLegend = true,
 }: {
   categories: string[];
-  values: number[];
+  /** null = no data: drawn as a gap, never as 0. */
+  values: (number | null)[];
   height?: number;
   /** Fixed y-axis max. Omit for 0..next multiple of 10 above the data. */
   yMax?: number;
@@ -39,7 +40,8 @@ export function DemandAreaChart({
   seriesName?: string;
   showLegend?: boolean;
 }) {
-  const max = yMax ?? Math.max(10, Math.ceil(Math.max(...values) / 10) * 10);
+  const known = values.filter((v): v is number => v !== null);
+  const max = yMax ?? Math.max(10, Math.ceil(Math.max(0, ...known) / 10) * 10);
 
   const options: ApexOptions = {
     chart: {
@@ -87,7 +89,7 @@ export function DemandAreaChart({
         style: { colors: AXIS_TEXT, fontSize: "11px" },
       },
     },
-    tooltip: { y: { formatter: (v: number) => v.toFixed(1) } },
+    tooltip: { y: { formatter: (v: number | null) => (v === null ? "No data" : v.toFixed(1)) } },
   };
 
   return (

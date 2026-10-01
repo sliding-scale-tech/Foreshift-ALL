@@ -14,7 +14,7 @@ export type DaypartWeather = Record<
 
 export type OutlookState<T> =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; retry: () => void }
   | { status: "ready"; date: string; result: T; weather: DaypartWeather | null };
 
 // The signed-in operator's outlook of `type` (optionally for one `date` this
@@ -27,6 +27,8 @@ export function useOutlook<T>(type: OutlookType, date?: string): OutlookState<T>
   const ensure = useAction(api.outlookApp.ensure);
   const inflight = useRef(false);
   const [error, setError] = useState<{ key: string; message: string } | null>(null);
+  // Bumped by retry() to run generation again after a failure.
+  const [attempt, setAttempt] = useState(0);
 
   const key = `${type}|${date ?? ""}`;
   const needsGeneration = row !== undefined && !row.fresh;
@@ -42,10 +44,17 @@ export function useOutlook<T>(type: OutlookType, date?: string): OutlookState<T>
         inflight.current = false;
       });
     // `row?.date` re-arms this after a date change or once a stale row is refreshed.
-  }, [needsGeneration, type, date, key, ensure, row?.date]);
+  }, [needsGeneration, type, date, key, ensure, row?.date, attempt]);
 
   if (error && error.key === key && (row?.result == null || !row?.fresh)) {
-    return { status: "error", message: error.message };
+    return {
+      status: "error",
+      message: error.message,
+      retry: () => {
+        setError(null);
+        setAttempt((a) => a + 1);
+      },
+    };
   }
   // Not ready until the result exists AND matches the current data: a stale
   // one (the numbers changed since it was generated) is being regenerated, and

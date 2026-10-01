@@ -46,11 +46,27 @@
   height: 24px;
 }
 
-.pct {
+.weatherIcon {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.pct,
+.pctNeutral {
   flex-shrink: 0;
+  min-width: 56px;
   font-size: 16px;
   line-height: 22px;
+}
+
+.pct {
   color: var(--color-success-60);
+}
+
+.pctNeutral {
+  font-size: 13px;
+  color: var(--color-gray-70);
 }
 
 .name {

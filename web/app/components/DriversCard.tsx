@@ -1,6 +1,6 @@
 import type { Driver } from "@/app/lib/drivers";
-import { trimNumber } from "@/app/lib/week";
 import { EventIcon } from "./EventIcon";
+import { WeatherIcon } from "./WeatherIcon";
 import styles from "./DriversCard.module.css";
 
 // "Top Demand Drivers" — shared by the Daily and Weekly Outlook.
@@ -16,12 +16,16 @@ export function DriversCard({ drivers, subtitle }: { drivers: Driver[]; subtitle
               {d.kind === "event" ? (
                 <EventIcon eventClass={d.eventClass ?? ""} size={24} />
               ) : (
-                <span role="img" aria-label="Weather" style={{ fontSize: 24, lineHeight: 1 }}>
-                  🌦️
+                <span className={styles.weatherIcon} role="img" aria-label={d.condition}>
+                  <WeatherIcon condition={d.condition ?? ""} />
                 </span>
               )}
             </div>
-            <span className={styles.pct}>+{trimNumber(d.liftPct, 1)}%</span>
+            {d.liftPct > 0 ? (
+              <span className={styles.pct}>+{d.liftPct}%</span>
+            ) : (
+              <span className={styles.pctNeutral}>No effect</span>
+            )}
             <div>
               <div className={styles.name}>{d.title}</div>
               {d.subtitle && <div className={styles.detail}>{d.subtitle}</div>}

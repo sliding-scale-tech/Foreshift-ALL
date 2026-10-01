@@ -82,8 +82,12 @@ function DaypartCard({ dp }: { dp: DaypartOutlook }) {
       </div>
 
       <div className={styles.dpMeta}>
-        <BandPill band={dp.band} />
-        <span className={styles.lift}>{formatPct(dp.liftPct)} vs. normal</span>
+        {dp.band ? <BandPill band={dp.band} /> : <span className={styles.unavailable}>No forecast</span>}
+        {dp.liftPct === null ? (
+          <span className={styles.unavailable}>Comparison not available</span>
+        ) : (
+          <span className={styles.lift}>{formatPct(dp.liftPct)} vs. normal</span>
+        )}
       </div>
 
       <div className={styles.weather}>

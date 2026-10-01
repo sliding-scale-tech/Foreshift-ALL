@@ -6,7 +6,7 @@ import { useOutlook } from "./useOutlook";
 
 type State =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; retry: () => void }
   | { status: "ready"; data: DailyOutlook; date: string };
 
 // The signed-in operator's Daily Outlook for `date` (default: today), mapped

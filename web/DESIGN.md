@@ -1,0 +1,285 @@
+# ForeShift web app — current design
+
+What the operator web app (`web/`) actually looks like in code, as of
+2026-10-01. Use it to keep new screens consistent and to see what changes when
+the design review is applied.
+
+- **This file** describes what is built. When code and this file disagree, the
+  code wins. Update this file in the same change.
+- [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) is the Bubble style snapshot
+  (2026-09-18) the app was originally matched against. Not everything in it is
+  used here.
+- Tokens live in [app/globals.css](app/globals.css). Every component has its own
+  CSS module; shared page styles live in
+  [app/(app)/shared.module.css](app/(app)/shared.module.css).
+
+Sizes were measured from Bubble at 100% zoom. The owner's screenshots are at
+80% zoom, so never take pixel sizes from them (see `CURSOR_HANDOFF.md` §8).
+
+---
+
+## 1. Foundations
+
+### Font
+Inter via `next/font` (`--font-inter` → `--font-sans`). One family everywhere.
+Body default is 14px in app screens and line-height 1.43 in `main`.
+
+### Color tokens in use
+
+| Role | Token | Value | Where |
+|---|---|---|---|
+| Brand navy | `--color-primary` | #011442 | Sidebar background, wordmark "Fore" |
+| Action blue | `--color-shift-electric-blue` | #027ffc | Primary buttons, active nav item, links, selected chips, wordmark "Shift" |
+| Action blue hover | `--color-shift-cobalt` | #0166f7 | Button hover |
+| Page canvas (signed in) | `--color-canvas` | #f0f4f9 | Behind cards in the app shell |
+| Page background (public) | `--color-gray-10` | #f7f7f7 | Auth, onboarding, legal pages |
+| Surface | `--color-surface` | #ffffff | Cards, inputs, modals |
+| Text | `--color-text` | #1a1a1a | Body and headings |
+| Secondary text | `--color-gray-70` | #525252 | Windows, captions, helper text |
+| Muted text | `--color-gray-60` / `--color-grey-text` | #8a8a8a / #464554 | Small captions, auth subtitles |
+| Border | `--color-borders` | #e2e8f0 | Card and default input borders |
+| Strong border | `--color-gray-50` | #a6a6a6 | Onboarding inputs, hours editor |
+| Error | `--color-destructive-70` | #b0200c | Field errors, warnings |
+| Focus ring | `--color-primary-50` | #1e6df6 | Input focus border |
+
+Navy surfaces that are **not** tokens (hard-coded):
+- Brief banner: `linear-gradient(90deg, #0b1d57, #172a63)`, border `#c7c4d7`.
+- Auth left panel: `linear-gradient(160deg, --color-dark-background, --color-primary)`.
+- Billing tier header: `linear-gradient(180deg, #011442, rgba(1,20,66,.8))`.
+
+Text on navy uses white at 0.88–0.95 opacity, and titles use `--color-primary-40` (#afcef8).
+
+### Demand band colors ([BandPill](app/components/BandPill.module.css))
+
+Each pill uses the scale's -20 background, -30/-40 border and -70/-80 text. The
+pill is 14px/400, padding 5px 6px, radius 6.
+
+| Band | Score | Scale |
+|---|---|---|
+| Minimal | 0–19 | gray |
+| Light | 20–39 | primary (text = electric blue) |
+| Moderate | 40–64 | alert (amber) |
+| High | 65–84 | destructive (red) |
+| Peak | 85–109 | success (green) |
+| Exceptional | 110–150 | secondary (purple) |
+
+Colour is always shown together with the band name, so meaning never depends on colour alone.
+
+### Daypart identity ([DaypartIcon](app/components/DaypartIcon.module.css))
+
+A 40px circle with a 20px icon.
+
+| Daypart | Label | Window shown | Icon | Circle / icon |
+|---|---|---|---|---|
+| morning | Morning | 7:00 AM – 10:00 AM | sun outline | #eaf3ff / primary-50 |
+| midday | Midday | 11:00 AM – 2:00 PM | sun filled | #fff3d6 / #f5a800 |
+| dinner | Dinner | 5:00 PM – 10:00 PM | utensils | #fdeceb / #e04b3a |
+| late | Late night | 10:00 PM – 12:00 AM | moon | #d7dbe6 / #0b1b47 |
+
+Labels and windows come from [lib/dayparts.ts](app/lib/dayparts.ts). The backend buckets events
+by different windows (6–11 / 11–4 / 4–9 / 9 PM–2 AM; `daypartFromLocalTime` in
+`my-app/convex/lib/vocab.ts`). See §7.
+
+### Typography as used
+
+| Use | Size / weight | Notes |
+|---|---|---|
+| Page title (`shared.title`) | 32 / 700 | Daily, Weekly, Events, Weather, Settings, FAQS |
+| Page subtitle (`shared.subtitle`) | 14 / 400 | Daily: "Name · Concept · Zone · Date"; Weekly/Events/Weather: "Date range - Name - Concept" |
+| Section title (`shared.sectionTitle`) | 20 / 700 | Margin 24 above, 12 below |
+| Card title (`shared.cardTitle`) | 20 / 700 | Drivers card uses 16 / 600 |
+| Banner title | 20 / 700, primary-40 | With 24px sparkle icon |
+| Banner text | 18 / 400 | White 0.95 |
+| Big number (score, temperature) | 28 / 600 | |
+| Body | 14 / 400 | |
+| Caption / helper | 12–13 / 400 | gray-70, or gray-60 |
+| Field label | 12 / 600, uppercase, 0.03em | gray-70 in onboarding; #90a1b9 in Settings |
+| Onboarding / auth step heading | 26–30 / 700 | |
+| Legal page H1 | 32 / 700 (26 on mobile) | |
+
+### Radius
+
+| Radius | Used for |
+|---|---|
+| 6 | Band pills, severity pills |
+| 8 | Sidebar nav items, small buttons |
+| 10 | Hours editor inputs and buttons, mobile menu button |
+| 12 (`--radius-control`) | Cards in the app shell, inputs, primary buttons |
+| 16 | Onboarding choice cards, shared-hours panel |
+| 20 | Onboarding card, Settings cards, modals, billing tiers |
+| 24 | Auth card |
+| 999 | Chips, "Not set" badge |
+
+### Shadows
+
+There is no shadow token. Values in use:
+- Navy banner: `0 6px 24px rgba(1,20,66,.18)`.
+- Raised panels: `0 8px 30px rgba(1,20,66,.06)` (onboarding card) and `0 12px 40px rgba(16,26,44,.08)` (upgrade gate).
+- Dropdowns (address suggestions, date picker): `0 8px 28px rgba(16,26,44,.16)`.
+- Auth card: `0 20px 60px rgba(1,20,66,.14)`.
+
+App-shell cards are flat: border only, no shadow.
+
+### Motion
+`--duration-fast: 200ms` for hover and border transitions. The spinner slows
+down under `prefers-reduced-motion`. FAQ accordion is the only animated reveal.
+
+---
+
+## 2. Layout
+
+### Signed-in shell ([app/(app)/layout.tsx](app/(app)/layout.tsx))
+
+```
+┌──────────────┬───────────────────────────────────────────────┐
+│ Sidebar 240  │ main: padding 32, canvas #f0f4f9              │
+│ navy, sticky │  Title 32 / subtitle 14                        │
+│              │  Navy banner (brief)                           │
+│ Intelligence │  Section title + card grid                    │
+│ Account      │  Lower row: chart card (900fr) | side (613fr) │
+│ user + logout│                                                │
+└──────────────┴───────────────────────────────────────────────┘
+```
+
+- **Sidebar** ([Sidebar.module.css](app/components/Sidebar.module.css)): padding 20, wordmark 36/700.
+  - Two labelled sections: Intelligence and Account Profile.
+  - Nav item: 34px tall, 14/500, radius 8. Active is electric blue; hover is white 7%.
+  - Footer: avatar, name, Logout.
+- **Below 900px:** the sidebar becomes an off-canvas drawer behind a 44px menu button (top-left). `main` padding becomes 76 / 16 / 24.
+- The four Intelligence pages are wrapped by the trial/subscription gate ([(intelligence)/layout.tsx](app/(app)/(intelligence)/layout.tsx)). When access has expired, a centered `UpgradeGate` card replaces the page.
+
+### Public pages
+- **Auth** ([AuthShell](app/components/AuthShell.tsx)): one card split in two.
+  - Left: navy gradient with logo, headline, blurb, optional check-list and the "System Status" box.
+  - Right: the form.
+- **Onboarding:** centered, max-width 760 card (radius 20, padding 40/48) on gray-10, with a stepper above it on the restaurant route only.
+- **Legal** ([LegalPage](app/components/LegalPage.tsx)): "F" logo and wordmark, then an 800px white article card.
+- **Sample outlook:** the app shell without the sidebar, plus a blue "Sample" bar.
+
+---
+
+## 3. Components
+
+| Component | File | What it is |
+|---|---|---|
+| Navy banner | `shared.banner`, `dashboard.brief` | AI brief. Daily adds a right-hand column with "Demand score", band, number and a 0–150 bar |
+| Card | `shared.card` | White, 1px border, radius 12, no shadow |
+| BandPill | `components/BandPill` | Demand band label (§1) |
+| DaypartIcon | `components/DaypartIcon` | Colored daypart circle (§1) |
+| WeatherIcon | `components/WeatherIcon` | Hand-drawn SVG for Clear/Sunny, Partly Cloudy, Cloudy, Rain, Snow, Fog, Thunder. Sized by its parent |
+| EventIcon | `components/EventIcon` | **Emoji** by event class (🏟️ 🎫 🎪 🎙️, fallback 📅) |
+| DriversCard | `components/DriversCard` | "Top Demand Drivers" list: icon, green "+x%" (whole percent) or gray "No effect", then name and detail. Weather rows use `WeatherIcon`. The same condition is merged into one row that lists its periods, and all no-effect weather shares one row at the bottom ([lib/drivers.ts](app/lib/drivers.ts)) |
+| DemandAreaChart | `components/DemandAreaChart` | ApexCharts smooth area (electric blue line, 25% fill, markers, y from 0). Used on Daily (4 points) and Weekly (7 points, y 0–150). `null` values are drawn as gaps, never as 0 |
+| PageLoading | `components/PageLoading` | Full-page spinner and label, shown until **all** of a page's data is ready |
+| LoadError | `components/LoadError` | Full-page "We couldn't load this forecast." with the message and a "Try again" button |
+| UpgradeGate | `components/UpgradeGate` | Trial-ended card with lock icon and "Upgrade now" |
+| AddressInput | `components/AddressInput` | Text field with Google Places suggestions (server-side) |
+| DetectedArea | `components/DetectedArea` | Line under the address: detected area, why there isn't one, "Try again", or manual area select |
+| HoursEditor | `components/HoursEditor` | Shared-hours panel (shortcuts, day chips, Opens/Closes, Apply / Mark closed), then the "Your week" list with Not set / times + Edit / Closed per day |
+| ZoneFinderModal | `components/ZoneFinderModal` | Explorer-only "find my zone" dialog |
+| DatePicker | `components/DatePicker` | Events date filter |
+| FeedbackModal | `components/FeedbackModal` | "How was your day?" dialog from the sidebar |
+| AuthShell / LegalPage | `components/…` | Page shells (§2) |
+
+### Buttons as implemented
+
+| Kind | Look | Where |
+|---|---|---|
+| Primary | Electric blue fill, white 14/600, radius 12, padding ~12–13 | Auth, onboarding, Settings, billing CTA |
+| Primary hover | Cobalt fill | Settings, billing, upgrade gate |
+| Disabled | gray-30 fill, gray-60 text | Auth, onboarding. Settings still uses opacity 0.55 |
+| Secondary | White fill, gray border, text colour | Onboarding Back, hours editor, Google sign-in |
+| Text / link | Electric blue 13–14/600, no box | "Add hours", "Edit", "Try again", auth links |
+| Shortcut | White, primary-40 border, electric-blue text, radius 8 | Hours editor |
+| Chip (toggle) | Pill. Off: white with gray border. On: electric blue with white text. Uses `aria-pressed` | Hours editor days |
+
+### Inputs as implemented
+
+There are three variants today:
+- **Onboarding:** padding 12/14, 1px gray-50 border, radius 12, white.
+- **Settings:** 44px tall, #f8f9ff fill, `--color-borders` border, radius 12.
+- **Hours editor / DetectedArea:** padding 10/12, gray-50 border, radius 10.
+
+In all three, focus turns the border `--color-primary-50` and invalid fields turn it `--color-destructive-60`.
+
+---
+
+## 4. Page patterns
+
+| Page | Structure |
+|---|---|
+| Daily Outlook | Title "Daily outlook" and subtitle → brief banner with score column → "Demand throughout the day" (4 daypart cards: icon + window, band pill + "±x% vs. normal", weather, "What's driving demand" note) → chart card + drivers card |
+| Weekly Outlook | Title and date range → "This week at a glance" banner → 7 day cards (band + peak score, weather, event count) → weekly curve + drivers |
+| Events Overview | Title → "Event impact at a glance" banner → 7 calendar cards (emoji, count, proximity badge) → filters (Date, Radius, Venues, Reset) → paged table + side cards ("Top events today", "How Events Shape Demand") |
+| Event Outlook | Back link → event card (date chip, emoji, impact band/percent, time, type) → 4 per-daypart impact cards |
+| Weather Outlook | Title → "Weather impact at a glance" banner with snapshot (temp, icon, band + peak) → 7 calendar cards → day panel + "Weather during service" cards (severity pill, ±%, condition, temp) |
+| Settings | Cards stacked (gap 32): Account, Reset Password, Restaurant (address + DetectedArea, concept), Operating Hours (HoursEditor). Each card saves on its own with an inline "Saved." message |
+| Billing | Status bar → 3 tier cards (navy header, price, features, CTA) |
+| FAQS | Accordion list |
+| Onboarding | Choice cards → Restaurant details → When are you open? → "You're all set!" |
+
+The 7-column day grids show 7 columns at ≥1400px, then switch to `auto-fit, minmax(160px, 1fr)`.
+
+---
+
+## 5. States
+
+- **Loading:** every page renders `PageLoading` until all its data is ready, and never shows a stale cached outlook. The Weather page only gates its first load; later day switches update in place.
+- **Loading label:** Daily says "Gathering demand insight…".
+- **Error:**
+  - Daily Outlook shows `LoadError` with a "Try again" button that re-runs generation (`retry` from `useOutlook`).
+  - Weekly, Events and Weather still show a plain red line (`shared.status statusError`) without a retry.
+- **Missing vs zero:** on Daily, a missing daypart shows "No forecast" and "Comparison not available" and leaves a gap in the chart. It never shows "0%" or a fake band.
+- **Empty:** inline text, e.g. "No events match these filters.", "No events today.", "No forecast".
+- **Validation:**
+  - Errors appear after the first submit attempt and update live from then on.
+  - They sit under the field in destructive-70 at 13px, and the field gets `aria-invalid`.
+  - The page focuses the first bad field.
+- **Success:** inline "Saved." in success-60 next to the button (Settings).
+
+---
+
+## 6. Responsive breakpoints in use
+
+| Width | Change |
+|---|---|
+| ≥1400 | Day grids show 7 columns |
+| ≤1250 | Daily daypart cards: 4 → 2 columns |
+| ≤1100 | Daily brief and lower row stack to one column |
+| ≤900 | Sidebar becomes a drawer; main padding shrinks |
+| ≤800 | Settings two-column fields stack |
+| ≤700 | Daily daypart cards: 1 column; legal/sample pages tighten |
+| ≤640 | Onboarding card padding shrinks; concepts 3 → 2 columns; choice cards stack |
+| ≤560 | Hours editor rows stack (day + Closed on top, times below) |
+
+Breakpoints are per-file. There is no shared set.
+
+---
+
+## 7. Known inconsistencies
+
+Most of these overlap with the open design-review items.
+
+1. **Three input styles and two label colours** (onboarding gray-70 vs Settings #90a1b9).
+2. **Hard-coded navy gradients and borders** instead of tokens.
+3. **No shadow, spacing or breakpoint tokens.** Values repeat by hand.
+4. **Daypart windows** shown on cards don't match the backend's event windows.
+5. **Event icons are emoji.** Weather drivers now use `WeatherIcon`.
+6. **Percentages and numbers:**
+   - Fixed on Daily: missing values no longer show as 0, and the drivers card shows 0% as gray "No effect".
+   - Still open: the Weather page turns missing values into 0%, and decimals mix (Daily rounds; Weekly chart shows 2 decimals).
+7. **Weather severity pills reuse band colours** (Low = the Light band's blue), so they can be mistaken for demand bands.
+8. **Raw proximity values (0.5 / 1)** appear as "Est. Impact" on Events.
+9. **No tooltips anywhere,** and no "last updated" time.
+10. **Disabled buttons:** Settings dims with opacity while other pages use the gray fill.
+11. **Subtitle separators differ:** Daily uses "·" while the other pages use "-" and leave out the zone.
+
+## 8. Rules for new UI
+
+- Use tokens from `globals.css`. If a new colour, shadow or size repeats, add a token rather than another literal.
+- Reuse the shared pieces: `shared.title`, `subtitle`, `sectionTitle`, `card` and `banner`, plus `BandPill`, `DaypartIcon`, `WeatherIcon` and `PageLoading`.
+- **Primary action:** an electric-blue button, with the gray-30 / gray-60 disabled style.
+- **Errors:** red text under the field, only after the first submit attempt.
+- **Colour plus text:** every coloured meaning (band, severity, positive/negative) also carries its label.
+- **Toggles and keyboard:** toggles use `aria-pressed`; controls work with Tab and Enter/Space.
+- **Mobile:** check every new layout at 375px with no horizontal scroll.

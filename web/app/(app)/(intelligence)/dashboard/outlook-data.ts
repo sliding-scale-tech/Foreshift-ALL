@@ -16,8 +16,8 @@ export type DaypartOutlook = {
   key: DaypartKey;
   label: string;
   window: string; // e.g. "7:00 AM – 10:00 AM"
-  band: Band;
-  liftPct: number; // vs. normal
+  band: Band | null; // null = no forecast for this daypart
+  liftPct: number | null; // vs. normal; null = not available (never shown as 0%)
   weather: { condition: string; tempF: number } | null;
   eventNote: string;
 };
@@ -27,7 +27,7 @@ export type DailyOutlook = {
   band: Band;
   score: number; // 0–150
   dayparts: DaypartOutlook[];
-  chart: { categories: string[]; values: number[] };
+  chart: { categories: string[]; values: (number | null)[] }; // null = no data (a gap, not 0)
   drivers: Driver[];
 };
 
@@ -42,12 +42,13 @@ export function toDailyOutlook(
   const dayparts: DaypartOutlook[] = DAYPARTS.map((meta) => {
     const dp = byKey.get(meta.key);
     const w = weather?.[meta.key];
+    const pct = dp ? parseFloat(dp.combined_percent) : NaN;
     return {
       key: meta.key,
       label: meta.label,
       window: meta.window,
-      band: (dp?.band ?? "Minimal") as Band,
-      liftPct: dp ? parseFloat(dp.combined_percent) || 0 : 0,
+      band: dp ? (dp.band as Band) : null,
+      liftPct: Number.isFinite(pct) ? pct : null,
       weather: w ? { condition: w.condition, tempF: w.tempF } : null,
       eventNote: dp?.event_note ?? "",
     };
@@ -62,7 +63,7 @@ export function toDailyOutlook(
     dayparts,
     chart: {
       categories: DAYPARTS.map((m) => m.chartLabel),
-      values: DAYPARTS.map((m) => byKey.get(m.key)?.score ?? 0),
+      values: DAYPARTS.map((m) => byKey.get(m.key)?.score ?? null),
     },
     drivers,
   };

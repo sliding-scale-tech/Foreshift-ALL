@@ -2,32 +2,65 @@
 // driver list mapped to what the card renders.
 
 import type { DemandDriver } from "my-app/convex/lib/outlook";
+import { DAYPARTS } from "./dayparts";
 import { formatEventTime } from "./week";
 
 export type Driver = {
   kind: "event" | "weather";
-  liftPct: number;
+  liftPct: number; // whole percent; 0 = no effect
   title: string;
   subtitle?: string;
   eventClass?: string; // events: picks the icon
   condition?: string; // weather: picks the icon
 };
 
-// Bubble hid drivers that pull demand down (lift_percent >= 0 only).
-export function toDrivers(list: DemandDriver[]): Driver[] {
-  return list
-    .filter((d) => d.lift_percent >= 0)
-    .map((d) =>
-      d.type === "event"
-        ? {
-            kind: "event",
-            liftPct: d.lift_percent,
-            title: d.name,
-            subtitle: [d.venue !== "N/A" ? d.venue : "", formatEventTime(d.time)]
-              .filter(Boolean)
-              .join(" - "),
-            eventClass: d.class,
-          }
-        : { kind: "weather", liftPct: d.lift_percent, title: d.condition, condition: d.condition },
-    );
+const PERIOD_LABEL: Record<string, string> = Object.fromEntries(DAYPARTS.map((d) => [d.key, d.label]));
+
+/**
+ * The backend sends one weather entry per daypart, so the same "Clear" could
+ * fill four of the five rows. Weather rows are merged: same condition and same
+ * effect -> one row naming the periods it covers; every no-effect reading ->
+ * a single neutral row, listed last. Drivers that pull demand down stay hidden
+ * (Bubble showed lift_percent >= 0 only). Weekly drivers carry a `day`, which
+ * prefixes the period ("Fri Dinner").
+ */
+export function toDrivers(list: (DemandDriver & { day?: string })[]): Driver[] {
+  const out: Driver[] = [];
+  const weather = new Map<string, { driver: Driver; conditions: string[]; periods: string[] }>();
+
+  for (const d of list) {
+    if (d.lift_percent < 0) continue;
+    const liftPct = Math.round(d.lift_percent);
+
+    if (d.type === "event") {
+      out.push({
+        kind: "event",
+        liftPct,
+        title: d.name,
+        subtitle: [d.venue !== "N/A" ? d.venue : "", formatEventTime(d.time)].filter(Boolean).join(" - "),
+        eventClass: d.class,
+      });
+      continue;
+    }
+
+    const key = liftPct === 0 ? "neutral" : `${d.condition}|${liftPct}`;
+    const period = [d.day, PERIOD_LABEL[d.daypart] ?? d.daypart].filter(Boolean).join(" ");
+    const group = weather.get(key);
+    if (group) {
+      if (!group.conditions.includes(d.condition)) group.conditions.push(d.condition);
+      group.periods.push(period);
+    } else {
+      const driver: Driver = { kind: "weather", liftPct, title: d.condition, condition: d.condition };
+      weather.set(key, { driver, conditions: [d.condition], periods: [period] });
+      out.push(driver);
+    }
+  }
+
+  for (const { driver, conditions, periods } of weather.values()) {
+    driver.title = conditions.join(" / ");
+    driver.subtitle = periods.join(", ");
+  }
+
+  // Keep the backend's strongest-first order; no-effect rows go last.
+  return out.sort((a, b) => Number(a.liftPct === 0) - Number(b.liftPct === 0));
 }

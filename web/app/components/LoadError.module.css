@@ -1,0 +1,41 @@
+.wrap {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  text-align: center;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.message {
+  max-width: 480px;
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.retry {
+  margin-top: 12px;
+  height: 44px;
+  padding: 0 20px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.retry:hover {
+  background: var(--color-shift-cobalt);
+}

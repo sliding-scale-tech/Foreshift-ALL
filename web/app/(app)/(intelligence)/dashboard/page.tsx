@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
 import { operatorLabel } from "@/app/lib/displayName";
 import { PageLoading } from "@/app/components/PageLoading";
+import { LoadError } from "@/app/components/LoadError";
 import { useDailyOutlook } from "@/app/hooks/useDailyOutlook";
 import shared from "../../shared.module.css";
 import { OutlookBody } from "@/app/components/DailyOutlookBody";
@@ -39,14 +40,8 @@ function DailyOutlook() {
   const name = operatorLabel(operator);
 
   // Nothing renders until the whole outlook is ready — no placeholders.
-  if (outlook.status === "loading") return <PageLoading label="Preparing today's forecast…" />;
-  if (outlook.status === "error") {
-    return (
-      <p className={`${shared.status} ${shared.statusError}`} role="alert">
-        {outlook.message}
-      </p>
-    );
-  }
+  if (outlook.status === "loading") return <PageLoading label="Gathering demand insight…" />;
+  if (outlook.status === "error") return <LoadError message={outlook.message} onRetry={outlook.retry} />;
 
   return (
     <>
