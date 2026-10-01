@@ -8,10 +8,11 @@ import { ZONES, DAYS, type Concept } from "my-app/convex/lib/vocab";
 import { RedirectToSignIn, Show } from "@clerk/nextjs";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
 import { AddressInput } from "@/app/components/AddressInput";
-import { useZoneAutofill, type ZoneNote } from "@/app/hooks/useZoneAutofill";
-import { SameTimingsModal } from "@/app/components/SameTimingsModal";
+import { DetectedArea } from "@/app/components/DetectedArea";
+import { HoursEditor } from "@/app/components/HoursEditor";
 import { ZoneFinderModal } from "@/app/components/ZoneFinderModal";
-import { TIME_SLOTS } from "@/app/lib/hours";
+import { addressError, useAreaDetection, type AreaDetection } from "@/app/hooks/useAreaDetection";
+import { emptySchedule, isScheduleComplete, toSavedHours, type DayHours } from "@/app/lib/hours";
 import {
   IconArrowRight,
   IconArrowLeft,
@@ -58,18 +59,13 @@ const CONCEPT_ICONS: Record<Concept, React.ComponentType> = {
   "Neighborhood / Casual Bar": IconCasualBar,
 };
 
-type DayHours = {
-  day: (typeof DAYS)[number];
-  openTime: string;
-  closeTime: string;
-};
-
 // Shown only on the restaurant route, after the choice screen. "I'm
 // exploring" skips venue details and operating hours (zone and concept are all
 // the demand math needs), so it has no stepper.
 const STEPS = ["Restaurant details", "Operating hours"] as const;
 
 type Mode = "restaurant" | "explorer";
+type ZoneNote = { kind: "ok" | "warn"; text: string } | null;
 
 export default function OnboardingPage() {
   return (
@@ -106,38 +102,33 @@ function OnboardingWizard() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [mode, setMode] = useState<Mode>("restaurant");
 
+  // Everything lives here, not in the steps, so Back/Continue keep it.
   const [restaurantName, setRestaurantName] = useState("");
   const [address, setAddress] = useState("");
-  const [zone, setZone] = useState("");
+  const area = useAreaDetection();
   const [conceptType, setConceptType] = useState("");
+  const [hours, setHours] = useState<DayHours[]>(() => emptySchedule(DAYS));
 
-  const [hours, setHours] = useState<DayHours[]>(
-    DAYS.map((day) => ({ day, openTime: "", closeTime: "" })),
-  );
-  const [sameModalOpen, setSameModalOpen] = useState(false);
+  // The explorer branch has no address: its zone is picked from the list.
+  const [exploreZone, setExploreZone] = useState("");
+  const [exploreNote, setExploreNote] = useState<ZoneNote>(null);
   const [zoneModalOpen, setZoneModalOpen] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const { zoneNote, onAddressPicked, onManualZone, onModalFound } = useZoneAutofill(setZone);
-
-  const step2Valid = restaurantName.trim() && address.trim() && zone && conceptType;
-
   async function handleFinish() {
+    // The steps already block this, but never save an incomplete profile.
+    if (!area.zone || !isScheduleComplete(hours)) return;
     setError("");
     setSubmitting(true);
     try {
       await createOperator({
         restaurantName: restaurantName.trim(),
         address: address.trim(),
-        zone,
+        zone: area.zone,
         conceptType,
-        operatingHours: hours.map((h) => ({
-          day: h.day,
-          isClosed: !h.openTime || !h.closeTime,
-          openTime: h.openTime || undefined,
-          closeTime: h.closeTime || undefined,
-        })),
+        operatingHours: toSavedHours(hours),
       });
       setStep(4);
     } catch (err) {
@@ -152,17 +143,13 @@ function OnboardingWizard() {
     setError("");
     setSubmitting(true);
     try {
-      await createOperator({ zone, conceptType });
+      await createOperator({ zone: exploreZone, conceptType });
       setStep(3);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function updateDay(day: string, patch: Partial<DayHours>) {
-    setHours((hs) => hs.map((h) => (h.day === day ? { ...h, ...patch } : h)));
   }
 
   return (
@@ -191,12 +178,15 @@ function OnboardingWizard() {
 
         {step === 2 && mode === "explorer" && (
           <StepExploreZone
-            zone={zone}
-            setZone={onManualZone}
-            zoneNote={zoneNote}
+            zone={exploreZone}
+            setZone={(z) => {
+              setExploreZone(z);
+              setExploreNote(null);
+            }}
+            zoneNote={exploreNote}
             conceptType={conceptType}
             setConceptType={setConceptType}
-            valid={Boolean(zone && conceptType)}
+            valid={Boolean(exploreZone && conceptType)}
             onOpenZoneFinder={() => setZoneModalOpen(true)}
             onContinue={handleFinishExploring}
             submitting={submitting}
@@ -214,14 +204,9 @@ function OnboardingWizard() {
             setRestaurantName={setRestaurantName}
             address={address}
             setAddress={setAddress}
-            zone={zone}
-            setZone={onManualZone}
-            zoneNote={zoneNote}
-            onAddressPicked={onAddressPicked}
+            area={area}
             conceptType={conceptType}
             setConceptType={setConceptType}
-            valid={Boolean(step2Valid)}
-            onOpenZoneFinder={() => setZoneModalOpen(true)}
             onContinue={() => setStep(3)}
           />
         )}
@@ -229,10 +214,9 @@ function OnboardingWizard() {
         {step === 3 && mode === "restaurant" && (
           <StepOperatingHours
             hours={hours}
-            updateDay={updateDay}
+            setHours={setHours}
             onBack={() => setStep(2)}
-            onOpenSameTimings={() => setSameModalOpen(true)}
-            onContinue={handleFinish}
+            onFinish={handleFinish}
             submitting={submitting}
             error={error}
           />
@@ -243,26 +227,12 @@ function OnboardingWizard() {
 
       {zoneModalOpen && (
         <ZoneFinderModal
-          initialAddress={address}
+          initialAddress=""
           onClose={() => setZoneModalOpen(false)}
-          onFound={(foundZone, typedAddress) => {
-            onModalFound(foundZone);
-            if (!address.trim()) setAddress(typedAddress);
+          onFound={(foundZone) => {
+            setExploreZone(foundZone);
+            setExploreNote({ kind: "ok", text: "Zone identified from your address." });
             setZoneModalOpen(false);
-          }}
-        />
-      )}
-
-      {sameModalOpen && (
-        <SameTimingsModal
-          onClose={() => setSameModalOpen(false)}
-          onApply={(from, to, days) => {
-            setHours((hs) =>
-              hs.map((h) =>
-                days.includes(h.day) ? { ...h, openTime: from, closeTime: to } : h,
-              ),
-            );
-            setSameModalOpen(false);
           }}
         />
       )}
@@ -347,8 +317,46 @@ function StepDone({ onViewDashboard }: { onViewDashboard: () => void }) {
   );
 }
 
-// The explorer branch's only step: the same zone and concept controls as the
-// restaurant form, without the venue details it doesn't collect.
+function ConceptGrid({
+  value,
+  onChange,
+  invalid,
+  errorId,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  invalid?: boolean;
+  errorId?: string;
+}) {
+  return (
+    <div
+      className={styles.conceptGrid}
+      role="group"
+      aria-label="Concept type"
+      aria-describedby={invalid ? errorId : undefined}
+    >
+      {CONCEPT_DISPLAY_ORDER.map((c) => {
+        const Icon = CONCEPT_ICONS[c];
+        const selected = value === c;
+        return (
+          <button
+            type="button"
+            key={c}
+            aria-pressed={selected}
+            className={`${styles.conceptCard} ${selected ? styles.selected : ""}`}
+            onClick={() => onChange(c)}
+          >
+            <Icon />
+            {c}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// The explorer branch's only step: zone and concept, without the venue
+// details it doesn't collect.
 function StepExploreZone(props: {
   zone: string;
   setZone: (v: string) => void;
@@ -405,23 +413,7 @@ function StepExploreZone(props: {
           </span>
         </div>
         <p className={styles.fieldHelp}>Choose the concept that best describes your business.</p>
-        <div className={styles.conceptGrid}>
-          {CONCEPT_DISPLAY_ORDER.map((c) => {
-            const Icon = CONCEPT_ICONS[c];
-            const selected = props.conceptType === c;
-            return (
-              <button
-                type="button"
-                key={c}
-                className={`${styles.conceptCard} ${selected ? styles.selected : ""}`}
-                onClick={() => props.setConceptType(c)}
-              >
-                <Icon />
-                {c}
-              </button>
-            );
-          })}
-        </div>
+        <ConceptGrid value={props.conceptType} onChange={props.setConceptType} />
       </div>
 
       <div className={styles.footerRow}>
@@ -446,78 +438,83 @@ function StepRestaurantInfo(props: {
   setRestaurantName: (v: string) => void;
   address: string;
   setAddress: (v: string) => void;
-  zone: string;
-  setZone: (v: string) => void;
-  zoneNote: ZoneNote;
-  onAddressPicked: (address: string) => void;
+  area: AreaDetection;
   conceptType: string;
   setConceptType: (v: string) => void;
-  valid: boolean;
-  onOpenZoneFinder: () => void;
   onContinue: () => void;
 }) {
+  // Errors appear once Continue is pressed, then update as fields are fixed.
+  const [attempted, setAttempted] = useState(false);
+
+  const nameError = props.restaurantName.trim() ? null : "Enter your restaurant's name.";
+  const addrError = addressError(props.area.status);
+  const conceptError = props.conceptType ? null : "Choose a concept type.";
+  const valid = !nameError && Boolean(props.area.zone) && !conceptError;
+
+  function handleContinue() {
+    if (valid) {
+      props.onContinue();
+      return;
+    }
+    setAttempted(true);
+    // Take the user to the first field that needs attention.
+    const first = nameError ? "restaurant-name" : !props.area.zone ? "restaurant-address" : null;
+    if (first) document.getElementById(first)?.focus();
+  }
+
   return (
     <>
       <div className={styles.cardHead}>
-        <h1>Restaurant Information</h1>
-        <p>Add details of your restaurant</p>
+        <h1>Restaurant details</h1>
+        <p>Tell us about your restaurant.</p>
       </div>
 
       <div className={styles.field}>
         <div className={styles.fieldRow}>
-          <span className={styles.label}>Restaurant Name</span>
+          <label className={styles.label} htmlFor="restaurant-name">
+            Restaurant Name<span className={styles.req}>*</span>
+          </label>
         </div>
         <input
+          id="restaurant-name"
           className={styles.input}
           value={props.restaurantName}
+          aria-invalid={(attempted && nameError !== null) || undefined}
+          aria-describedby={attempted && nameError ? "restaurant-name-error" : undefined}
           onChange={(e) => props.setRestaurantName(e.target.value)}
         />
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.fieldRow}>
-          <span className={styles.label}>
-            Address<span className={styles.req}>*</span>
-          </span>
-        </div>
-        <AddressInput
-          className={styles.input}
-          placeholder="Start typing..."
-          value={props.address}
-          onChange={props.setAddress}
-          onSelect={props.onAddressPicked}
-        />
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.fieldRow}>
-          <span className={styles.label}>
-            Zone<span className={styles.req}>*</span>
-          </span>
-          <button type="button" className={styles.hintBtn} onClick={props.onOpenZoneFinder}>
-            Need help identifying your zone?
-          </button>
-        </div>
-        <select
-          className={styles.select}
-          value={props.zone}
-          onChange={(e) => props.setZone(e.target.value)}
-        >
-          <option value="">Choose an option...</option>
-          {ZONES.map((z) => (
-            <option key={z} value={z}>
-              {z}
-            </option>
-          ))}
-        </select>
-        {props.zoneNote && (
-          <p
-            className={`${styles.zoneNote} ${props.zoneNote.kind === "warn" ? styles.zoneNoteWarn : ""}`}
-            role={props.zoneNote.kind === "warn" ? "alert" : "status"}
-          >
-            {props.zoneNote.text}
+        {attempted && nameError && (
+          <p id="restaurant-name-error" className={styles.fieldError}>
+            {nameError}
           </p>
         )}
+      </div>
+
+      <div className={styles.field}>
+        <div className={styles.fieldRow}>
+          <label className={styles.label} htmlFor="restaurant-address">
+            Address<span className={styles.req}>*</span>
+          </label>
+        </div>
+        <AddressInput
+          id="restaurant-address"
+          className={styles.input}
+          placeholder="Start typing your street address..."
+          value={props.address}
+          invalid={attempted && !props.area.zone}
+          describedBy={attempted && addrError ? "restaurant-address-error" : undefined}
+          onChange={(v) => {
+            props.setAddress(v);
+            props.area.onAddressChange(v);
+          }}
+          onSelect={props.area.onAddressPicked}
+        />
+        {attempted && addrError && (
+          <p id="restaurant-address-error" className={styles.fieldError}>
+            {addrError}
+          </p>
+        )}
+        <DetectedArea area={props.area} />
       </div>
 
       <div className={styles.field}>
@@ -527,32 +524,21 @@ function StepRestaurantInfo(props: {
           </span>
         </div>
         <p className={styles.fieldHelp}>Choose the concept that best describes your business.</p>
-        <div className={styles.conceptGrid}>
-          {CONCEPT_DISPLAY_ORDER.map((c) => {
-            const Icon = CONCEPT_ICONS[c];
-            const selected = props.conceptType === c;
-            return (
-              <button
-                type="button"
-                key={c}
-                className={`${styles.conceptCard} ${selected ? styles.selected : ""}`}
-                onClick={() => props.setConceptType(c)}
-              >
-                <Icon />
-                {c}
-              </button>
-            );
-          })}
-        </div>
+        <ConceptGrid
+          value={props.conceptType}
+          onChange={props.setConceptType}
+          invalid={attempted && conceptError !== null}
+          errorId="concept-error"
+        />
+        {attempted && conceptError && (
+          <p id="concept-error" className={styles.fieldError}>
+            {conceptError}
+          </p>
+        )}
       </div>
 
       <div className={styles.footerRow}>
-        <button
-          type="button"
-          className={styles.continueBtn}
-          disabled={!props.valid}
-          onClick={props.onContinue}
-        >
+        <button type="button" className={styles.continueBtn} onClick={handleContinue}>
           Continue to operating hours
           <IconArrowRight />
         </button>
@@ -563,58 +549,29 @@ function StepRestaurantInfo(props: {
 
 function StepOperatingHours(props: {
   hours: DayHours[];
-  updateDay: (day: string, patch: Partial<DayHours>) => void;
+  setHours: (h: DayHours[]) => void;
   onBack: () => void;
-  onOpenSameTimings: () => void;
-  onContinue: () => void;
+  onFinish: () => void;
   submitting: boolean;
   error: string;
 }) {
+  const [attempted, setAttempted] = useState(false);
+  const complete = isScheduleComplete(props.hours);
+
   return (
     <>
-      <div className={styles.hoursHead}>
-        <div className={styles.cardHead} style={{ marginBottom: 0 }}>
-          <h1 style={{ marginBottom: 4 }}>When are you open?</h1>
-          <p style={{ marginBottom: 0 }}>
-            Set your regular service hours. Adjustable by individual day.
-          </p>
-        </div>
-        <button type="button" className={styles.sameTimingsLink} onClick={props.onOpenSameTimings}>
-          Same timings?
-        </button>
+      <div className={styles.cardHead}>
+        <h1>When are you open?</h1>
+        <p>Set your regular service hours. Adjustable by individual day.</p>
       </div>
 
-      {props.hours.map((h) => (
-        <div className={styles.hourRow} key={h.day}>
-          <span className={styles.dayLabel}>{h.day}</span>
-          <select
-            className={styles.select}
-            value={h.openTime}
-            onChange={(e) => props.updateDay(h.day, { openTime: e.target.value })}
-          >
-            <option value="">Choose an option...</option>
-            {TIME_SLOTS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <span className={styles.toLabel}>to</span>
-          <select
-            className={styles.select}
-            value={h.closeTime}
-            onChange={(e) => props.updateDay(h.day, { closeTime: e.target.value })}
-          >
-            <option value="">Choose an option...</option>
-            {TIME_SLOTS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-      ))}
+      <HoursEditor value={props.hours} onChange={props.setHours} showMissing={attempted} />
 
+      {attempted && !complete && (
+        <p className={styles.error} role="alert">
+          Every day needs hours or to be marked closed before you can finish.
+        </p>
+      )}
       {props.error && <p className={styles.error}>{props.error}</p>}
 
       <div className={styles.footerRow}>
@@ -625,10 +582,13 @@ function StepOperatingHours(props: {
         <button
           type="button"
           className={styles.continueBtn}
-          onClick={props.onContinue}
           disabled={props.submitting}
+          onClick={() => {
+            if (complete) props.onFinish();
+            else setAttempted(true);
+          }}
         >
-          {props.submitting ? "Saving…" : "Continue"}
+          {props.submitting ? "Saving…" : "Finish setup"}
           <IconArrowRight />
         </button>
       </div>

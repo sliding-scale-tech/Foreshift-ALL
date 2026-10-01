@@ -4,14 +4,14 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "my-app/convex/_generated/api";
-import { CONCEPTS, DAYS, ZONES } from "my-app/convex/lib/vocab";
+import { CONCEPTS, DAYS } from "my-app/convex/lib/vocab";
 import { AddressInput } from "@/app/components/AddressInput";
+import { DetectedArea } from "@/app/components/DetectedArea";
+import { HoursEditor } from "@/app/components/HoursEditor";
 import { PageLoading } from "@/app/components/PageLoading";
-import { SameTimingsModal } from "@/app/components/SameTimingsModal";
-import { ZoneFinderModal } from "@/app/components/ZoneFinderModal";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
-import { useZoneAutofill } from "@/app/hooks/useZoneAutofill";
-import { TIME_SLOTS } from "@/app/lib/hours";
+import { addressError, useAreaDetection } from "@/app/hooks/useAreaDetection";
+import { fromSavedHours, isScheduleComplete, toSavedHours, type DayHours } from "@/app/lib/hours";
 import shared from "../shared.module.css";
 import styles from "./settings.module.css";
 
@@ -220,22 +220,27 @@ function RestaurantCard({ operator }: { operator: Operator }) {
   const updateProfile = useMutation(api.operators.updateProfile);
   const [name, setName] = useState(operator.restaurantName);
   const [address, setAddress] = useState(operator.address);
-  const [zone, setZone] = useState(operator.zone);
+  const area = useAreaDetection(operator.zone);
   const [concept, setConcept] = useState(operator.conceptType);
-  const [zoneModalOpen, setZoneModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
-  const { zoneNote, onAddressPicked, onManualZone, onModalFound } = useZoneAutofill(setZone);
 
   async function save() {
     setMsg(null);
-    if (!name.trim() || !zone || !concept) {
-      setMsg({ kind: "error", text: "Restaurant name, zone and concept type are required." });
+    if (!name.trim() || !concept) {
+      setMsg({ kind: "error", text: "Restaurant name and concept type are required." });
+      return;
+    }
+    if (!area.zone) {
+      setMsg({
+        kind: "error",
+        text: addressError(area.status) ?? "Restaurant is outside of supported coverage zones.",
+      });
       return;
     }
     setSaving(true);
     try {
-      await updateProfile({ restaurantName: name, address, zone, conceptType: concept });
+      await updateProfile({ restaurantName: name, address, zone: area.zone, conceptType: concept });
       setMsg({ kind: "ok", text: "Saved." });
     } catch (e) {
       setMsg({ kind: "error", text: errorText(e, "Couldn't save your changes.") });
@@ -253,45 +258,21 @@ function RestaurantCard({ operator }: { operator: Operator }) {
           <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <div className={styles.field}>
-          <span className={styles.label}>Address</span>
+          <label className={styles.label} htmlFor="settings-address">
+            Address
+          </label>
           <AddressInput
+            id="settings-address"
             className={styles.input}
-            placeholder="Start typing..."
+            placeholder="Start typing your street address..."
             value={address}
-            onChange={setAddress}
-            onSelect={onAddressPicked}
+            onChange={(v) => {
+              setAddress(v);
+              area.onAddressChange(v);
+            }}
+            onSelect={area.onAddressPicked}
           />
-        </div>
-        <div className={styles.field}>
-          <div className={styles.labelRow}>
-            <label className={styles.label} htmlFor="settings-zone">
-              Zone
-            </label>
-            <button type="button" className={styles.hint} onClick={() => setZoneModalOpen(true)}>
-              Need help identifying your zone?
-            </button>
-          </div>
-          <select
-            id="settings-zone"
-            className={styles.select}
-            value={zone}
-            onChange={(e) => onManualZone(e.target.value)}
-          >
-            <option value="">Choose an option...</option>
-            {ZONES.map((z) => (
-              <option key={z} value={z}>
-                {z}
-              </option>
-            ))}
-          </select>
-          {zoneNote && (
-            <p
-              className={`${styles.note} ${zoneNote.kind === "warn" ? styles.noteWarn : ""}`}
-              role={zoneNote.kind === "warn" ? "alert" : "status"}
-            >
-              {zoneNote.text}
-            </p>
-          )}
+          <DetectedArea area={area} />
         </div>
         <label className={styles.field}>
           <span className={styles.label}>Concept type</span>
@@ -311,51 +292,27 @@ function RestaurantCard({ operator }: { operator: Operator }) {
         </button>
         <Message msg={msg} />
       </div>
-
-      {zoneModalOpen && (
-        <ZoneFinderModal
-          initialAddress={address}
-          onClose={() => setZoneModalOpen(false)}
-          onFound={(foundZone, typedAddress) => {
-            onModalFound(foundZone);
-            if (!address.trim()) setAddress(typedAddress);
-            setZoneModalOpen(false);
-          }}
-        />
-      )}
     </section>
   );
 }
 
-type DayHours = { day: (typeof DAYS)[number]; openTime: string; closeTime: string };
-
 function HoursCard({ operator }: { operator: Operator }) {
   const updateHours = useMutation(api.operators.updateHours);
-  const [hours, setHours] = useState<DayHours[]>(() =>
-    DAYS.map((day) => {
-      const h = operator.operatingHours.find((x) => x.day === day);
-      return { day, openTime: h && !h.isClosed ? (h.openTime ?? "") : "", closeTime: h && !h.isClosed ? (h.closeTime ?? "") : "" };
-    }),
-  );
-  const [sameOpen, setSameOpen] = useState(false);
+  const [hours, setHours] = useState<DayHours[]>(() => fromSavedHours(operator.operatingHours, DAYS));
+  const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
 
-  const setDay = (day: string, patch: Partial<DayHours>) =>
-    setHours((hs) => hs.map((h) => (h.day === day ? { ...h, ...patch } : h)));
-
   async function save() {
-    setSaving(true);
     setMsg(null);
+    if (!isScheduleComplete(hours)) {
+      setAttempted(true);
+      setMsg({ kind: "error", text: "Every day needs hours or to be marked closed before saving." });
+      return;
+    }
+    setSaving(true);
     try {
-      await updateHours({
-        operatingHours: hours.map((h) => {
-          const closed = !h.openTime || !h.closeTime;
-          return closed
-            ? { day: h.day, isClosed: true }
-            : { day: h.day, isClosed: false, openTime: h.openTime, closeTime: h.closeTime };
-        }),
-      });
+      await updateHours({ operatingHours: toSavedHours(hours) });
       setMsg({ kind: "ok", text: "Saved." });
     } catch (e) {
       setMsg({ kind: "error", text: errorText(e, "Couldn't save your hours.") });
@@ -366,45 +323,10 @@ function HoursCard({ operator }: { operator: Operator }) {
 
   return (
     <section className={styles.card}>
-      <div className={styles.cardHead}>
-        <h2 className={styles.cardTitle}>Operating Hours</h2>
-        <button type="button" className={styles.linkBtn} onClick={() => setSameOpen(true)}>
-          Same timings?
-        </button>
-      </div>
+      <h2 className={styles.cardTitle}>Operating Hours</h2>
+      <p className={styles.cardSub}>Set your regular service hours. Adjustable by individual day.</p>
       <div className={styles.hours}>
-        {hours.map((h) => (
-          <div key={h.day} className={styles.hourRow}>
-            <span className={styles.day}>{h.day}</span>
-            <select
-              className={styles.select}
-              aria-label={`${h.day} opens`}
-              value={h.openTime}
-              onChange={(e) => setDay(h.day, { openTime: e.target.value })}
-            >
-              <option value="">Closed</option>
-              {TIME_SLOTS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <span className={styles.to}>to</span>
-            <select
-              className={styles.select}
-              aria-label={`${h.day} closes`}
-              value={h.closeTime}
-              onChange={(e) => setDay(h.day, { closeTime: e.target.value })}
-            >
-              <option value="">Closed</option>
-              {TIME_SLOTS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+        <HoursEditor value={hours} onChange={setHours} showMissing={attempted} />
       </div>
       <div className={styles.actions}>
         <button type="button" className={styles.btn} onClick={save} disabled={saving}>
@@ -412,16 +334,6 @@ function HoursCard({ operator }: { operator: Operator }) {
         </button>
         <Message msg={msg} />
       </div>
-
-      {sameOpen && (
-        <SameTimingsModal
-          onClose={() => setSameOpen(false)}
-          onApply={(from, to, days) => {
-            setHours((hs) => hs.map((h) => (days.includes(h.day) ? { ...h, openTime: from, closeTime: to } : h)));
-            setSameOpen(false);
-          }}
-        />
-      )}
     </section>
   );
 }

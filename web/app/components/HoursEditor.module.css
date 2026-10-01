@@ -1,0 +1,321 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Shared hours ---- */
+
+.shared {
+  padding: 20px;
+  border: 1px solid var(--color-primary-30);
+  border-radius: 16px;
+  background: var(--color-primary-10);
+}
+
+.sharedTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+
+.shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.shortcut {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-40);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.shortcut:hover {
+  background: var(--color-primary-20);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chip {
+  min-width: 52px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-50);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chipOn {
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border-color: var(--color-shift-electric-blue);
+}
+
+.sharedTimes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  gap: 12px;
+}
+
+.timeField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timeLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-gray-70);
+}
+
+.time {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-50);
+  border-radius: 10px;
+}
+
+.time:focus {
+  outline: none;
+  border-color: var(--color-primary-50);
+  box-shadow: 0 0 0 3px var(--color-primary-20);
+}
+
+.time[aria-invalid="true"] {
+  border-color: var(--color-destructive-60);
+}
+
+.sharedActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.applyBtn,
+.secondaryBtn {
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.applyBtn {
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border: 1px solid var(--color-shift-electric-blue);
+}
+
+.secondaryBtn {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-50);
+}
+
+.applyBtn:disabled,
+.secondaryBtn:disabled {
+  color: var(--color-gray-60);
+  background: var(--color-gray-20);
+  border-color: var(--color-gray-30);
+  cursor: not-allowed;
+}
+
+.notice {
+  min-height: 20px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+/* ---- Weekly schedule ---- */
+
+.weekTitle {
+  margin: 24px 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.week {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  grid-template-areas: "day main toggle";
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-gray-30);
+}
+
+.dayName {
+  grid-area: day;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rowMain {
+  grid-area: main;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+}
+
+.summary {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.nextDay {
+  color: var(--color-gray-70);
+}
+
+.closedText {
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.notSet,
+.notSetMissing {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.notSet {
+  color: var(--color-alert-80);
+  background: var(--color-alert-20);
+}
+
+.notSetMissing {
+  color: var(--color-destructive-70);
+  background: var(--color-destructive-20);
+}
+
+.linkBtn {
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.linkBtn:hover,
+.linkBtn:focus-visible {
+  text-decoration: underline;
+}
+
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editRow .time {
+  width: 132px;
+}
+
+.dash {
+  color: var(--color-gray-70);
+}
+
+.rowError,
+.error {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--color-destructive-70);
+}
+
+.error {
+  margin-top: 8px;
+}
+
+.closedToggle {
+  grid-area: toggle;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-gray-70);
+  cursor: pointer;
+}
+
+.closedToggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-shift-electric-blue);
+}
+
+.pending,
+.pendingMissing {
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pending {
+  color: var(--color-alert-80);
+}
+
+.pendingMissing {
+  color: var(--color-destructive-70);
+}
+
+@media (max-width: 560px) {
+  .shared {
+    padding: 16px;
+  }
+  .sharedTimes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "day toggle"
+      "main main";
+  }
+  .editRow {
+    flex-wrap: wrap;
+  }
+  .editRow .time {
+    width: calc(50% - 16px);
+  }
+}

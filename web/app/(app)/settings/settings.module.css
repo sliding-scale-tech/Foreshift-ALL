@@ -15,17 +15,17 @@
   border-radius: 20px;
 }
 
-.cardHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .cardTitle {
   font-size: 20px;
   font-weight: 700;
   line-height: 28px;
   color: var(--color-text);
+}
+
+.cardSub {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--color-gray-70);
 }
 
 .fields {
@@ -47,36 +47,12 @@
   gap: 4px;
 }
 
-.labelRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
 .label {
   font-size: 12px;
   font-weight: 600;
   line-height: 17px;
   text-transform: uppercase;
   color: #90a1b9;
-}
-
-.hint {
-  padding: 0;
-  font: inherit;
-  font-size: 12px;
-  line-height: 17px;
-  color: #90a1b9;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.hint:hover,
-.hint:focus-visible {
-  color: var(--color-shift-electric-blue);
-  text-decoration: underline;
-  outline: none;
 }
 
 .input,
@@ -177,18 +153,6 @@
   cursor: not-allowed;
 }
 
-.linkBtn {
-  padding: 0;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 32px;
-  color: var(--color-shift-electric-blue);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
 .msg {
   font-size: 14px;
   color: var(--color-success-60);
@@ -205,59 +169,16 @@
   color: var(--color-gray-60);
 }
 
-.noteWarn {
-  color: var(--color-destructive-70);
-}
-
 .hours {
-  margin-top: 46px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.hourRow {
-  display: grid;
-  grid-template-columns: 208px minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-}
-
-.day {
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 22px;
-  color: var(--color-text);
-}
-
-.to {
-  padding: 0 1px;
-  font-size: 12px;
-  color: var(--color-gray-60);
+  margin-top: 24px;
+  max-width: 760px;
 }
 
 @media (max-width: 800px) {
   .twoCol {
     grid-template-columns: minmax(0, 1fr);
   }
-  .hourRow {
-    grid-template-columns: 56px minmax(0, 1fr) auto minmax(0, 1fr);
-  }
   .card {
     padding: 20px;
-  }
-}
-
-/* Even the shrunk day-label column can't leave enough room for a full
-   "12:00 AM" select on a phone — stack the day above its [open - to - close]
-   row instead, same fix as onboarding's identical layout. */
-@media (max-width: 480px) {
-  .hourRow {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    row-gap: 6px;
-  }
-
-  .day {
-    grid-column: 1 / -1;
   }
 }

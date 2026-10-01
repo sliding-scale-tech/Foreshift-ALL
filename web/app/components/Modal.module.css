@@ -1,4 +1,4 @@
-/* Shared by the onboarding + settings modals (zone finder, same timings). */
+/* The zone finder modal (onboarding's "I'm exploring" step). */
 
 .label {
   font-size: 12px;
@@ -8,8 +8,7 @@
   color: var(--color-gray-60);
 }
 
-.input,
-.select {
+.input {
   width: 100%;
   padding: 12px 14px;
   border-radius: var(--radius-control);
@@ -20,19 +19,10 @@
   color: var(--color-text);
 }
 
-.input:focus,
-.select:focus {
+.input:focus {
   outline: none;
   border-color: var(--color-primary-50);
 }
-
-.toLabel {
-  font-size: 13px;
-  color: var(--color-grey-text);
-  text-align: center;
-}
-
-/* ---- Same-timings modal ---- */
 
 .modalBackdrop {
   position: fixed;
@@ -53,25 +43,6 @@
   padding: 28px;
 }
 
-.modalHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.modalHead h3 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: 4px;
-}
-
-.modalHead p {
-  font-size: 13px;
-  color: var(--color-grey-text);
-}
-
 .modalCloseBtn {
   background: none;
   border: none;
@@ -84,57 +55,6 @@
   width: 18px;
   height: 18px;
 }
-
-.timingsRow {
-  display: grid;
-  grid-template-columns: 1fr 24px 1fr;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.dayChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.dayChip {
-  border: 1px solid var(--color-borders);
-  background: var(--color-surface);
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.dayChip.selected {
-  background: var(--color-shift-electric-blue);
-  border-color: var(--color-shift-electric-blue);
-  color: #fff;
-}
-
-.modalSubmitBtn {
-  width: 100%;
-  background: var(--color-shift-electric-blue);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-control);
-  padding: 13px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.modalSubmitBtn:disabled {
-  background: var(--color-gray-30);
-  cursor: not-allowed;
-}
-
-/* ---- Zone finder modal ---- */
 
 .zoneModal {
   max-width: 480px;

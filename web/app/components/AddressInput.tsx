@@ -17,6 +17,9 @@ export function AddressInput({
   className,
   placeholder,
   autoFocus,
+  id,
+  invalid,
+  describedBy,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -25,6 +28,9 @@ export function AddressInput({
   className?: string;
   placeholder?: string;
   autoFocus?: boolean;
+  id?: string;
+  invalid?: boolean;
+  describedBy?: string;
 }) {
   const suggest = useAction(api.places.suggestAddress);
   const listId = useId();
@@ -70,7 +76,10 @@ export function AddressInput({
   return (
     <div className={styles.wrap}>
       <input
+        id={id}
         className={className}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         value={value}
         placeholder={placeholder}
         autoFocus={autoFocus}

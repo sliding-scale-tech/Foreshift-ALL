@@ -369,56 +369,14 @@
   color: var(--color-shift-electric-blue);
 }
 
-/* ---- Step 3: operating hours ---- */
-
-.hoursHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 24px;
+.input[aria-invalid="true"] {
+  border-color: var(--color-destructive-60);
 }
 
-.sameTimingsLink {
-  background: none;
-  border: none;
-  padding: 0;
+.fieldError {
+  margin-top: 6px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-shift-electric-blue);
-  cursor: pointer;
-}
-
-.hourRow {
-  display: grid;
-  grid-template-columns: 64px 1fr 24px 1fr;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-/* Four columns can't fit a "12:00 AM" select on a phone screen — stack the
-   day label above a [open - to - close] row instead of squeezing it in. */
-@media (max-width: 480px) {
-  .hourRow {
-    grid-template-columns: 1fr 24px 1fr;
-    row-gap: 6px;
-  }
-
-  .dayLabel {
-    grid-column: 1 / -1;
-  }
-}
-
-.dayLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.toLabel {
-  font-size: 13px;
-  color: var(--color-grey-text);
-  text-align: center;
+  color: var(--color-destructive-70);
 }
 
 /* ---- Footer buttons ---- */
