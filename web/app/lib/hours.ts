@@ -132,6 +132,40 @@ export function toSavedHours(days: DayHours[]): SavedHours[] {
   );
 }
 
+const WEEK: Day[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** "2026-10-01" -> "Thu" (calendar date, read at noon UTC so it can't shift). */
+export function dayOfDate(date: string): Day {
+  return WEEK[(new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7];
+}
+
+/**
+ * Is the restaurant open at any point in [start, end) (minutes since midnight)
+ * on `date`? Counts the previous night's after-midnight hours too (Fri 6 PM –
+ * 2 AM covers early Saturday). null = unknown: that day has no saved hours.
+ */
+export function openDuring(saved: SavedHours[], date: string, start: number, end: number): boolean | null {
+  const day = dayOfDate(date);
+  const today = saved.find((h) => h.day === day);
+  if (!today) return null;
+
+  const intervals: [number, number][] = [];
+  const times = (h: SavedHours | undefined) => {
+    if (!h || h.isClosed) return null;
+    const o = parseTime(h.openTime ?? "");
+    const c = parseTime(h.closeTime ?? "");
+    return o === null || c === null || o === c ? null : { o, c };
+  };
+
+  const t = times(today);
+  if (t) intervals.push([t.o, t.c > t.o ? t.c : 24 * 60]);
+  const prevDay = WEEK[(WEEK.indexOf(day) + 6) % 7];
+  const p = times(saved.find((h) => h.day === prevDay));
+  if (p && p.c < p.o && p.c > 0) intervals.push([0, p.c]);
+
+  return intervals.some(([a, b]) => a < end && b > start);
+}
+
 /** "Mon, Tue and Wed" */
 export function listDays(days: Day[]): string {
   if (days.length <= 1) return days.join("");

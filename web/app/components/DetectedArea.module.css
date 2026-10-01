@@ -55,18 +55,3 @@
   color: var(--color-gray-70);
 }
 
-.select {
-  width: 100%;
-  padding: 10px 12px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-gray-50);
-  border-radius: 10px;
-}
-
-.select:focus {
-  outline: none;
-  border-color: var(--color-primary-50);
-}

@@ -65,7 +65,7 @@ function Sample({ zone, concept }: { zone: string; concept: string }) {
           <p className={shared.subtitle}>
             {formatDate(outlook.date)} - {zone} - {concept}
           </p>
-          <OutlookBody data={outlook.data} />
+          <OutlookBody data={outlook.data} date={outlook.date} />
         </>
       )}
     </>

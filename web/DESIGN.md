@@ -169,7 +169,11 @@ down under `prefers-reduced-motion`. FAQ accordion is the only animated reveal.
 | WeatherIcon | `components/WeatherIcon` | Hand-drawn SVG for Clear/Sunny, Partly Cloudy, Cloudy, Rain, Snow, Fog, Thunder. Sized by its parent |
 | EventIcon | `components/EventIcon` | **Emoji** by event class (🏟️ 🎫 🎪 🎙️, fallback 📅) |
 | DriversCard | `components/DriversCard` | "Top Demand Drivers" list: icon, green "+x%" (whole percent) or gray "No effect", then name and detail. Weather rows use `WeatherIcon`. The same condition is merged into one row that lists its periods, and all no-effect weather shares one row at the bottom ([lib/drivers.ts](app/lib/drivers.ts)) |
-| DemandAreaChart | `components/DemandAreaChart` | ApexCharts smooth area (electric blue line, 25% fill, markers, y from 0). Used on Daily (4 points) and Weekly (7 points, y 0–150). `null` values are drawn as gaps, never as 0 |
+| DemandBarChart | `components/DemandBarChart` | Daily Outlook: one bar per daypart, coloured by band ([lib/bands.ts](app/lib/bands.ts)), value on top, fixed 0–150 axis titled "Demand score". A second label line says "Closed" or "No data". The tooltip gives period, score, band and vs. normal, and a screen-reader list repeats it |
+| DemandAreaChart | `components/DemandAreaChart` | ApexCharts smooth area. Now used on Weekly only (7 points, y 0–150). `null` values are drawn as gaps, never as 0 |
+| Select | `components/Select` | App-styled dropdown used everywhere instead of `<select>` (the browser draws a native list itself, which CSS can't restyle). Trigger variants: `default` (onboarding), `filled` (Settings), `filter` (Events filter bar). List: white card, radius 12, shadow, hovered row primary-10, chosen row blue with a check. Arrow keys, Home/End, Enter, Escape and type-ahead work; opens upward near the bottom of the screen |
+| TimeField | `components/TimeField` | Time input with the same list style: type "9:30 pm" or pick a 15-minute suggestion (filters as you type). Used in the hours editor |
+| InfoTip | `components/InfoTip` | ⓘ button with a short explanation. Opens on hover (real pointers only), keyboard focus or tap. Escape, tapping again or blurring closes it. `tone="dark"` for the navy banner; `align` picks start/center/end |
 | PageLoading | `components/PageLoading` | Full-page spinner and label, shown until **all** of a page's data is ready |
 | LoadError | `components/LoadError` | Full-page "We couldn't load this forecast." with the message and a "Try again" button |
 | UpgradeGate | `components/UpgradeGate` | Trial-ended card with lock icon and "Upgrade now" |
@@ -200,7 +204,7 @@ There are three variants today:
 - **Settings:** 44px tall, #f8f9ff fill, `--color-borders` border, radius 12.
 - **Hours editor / DetectedArea:** padding 10/12, gray-50 border, radius 10.
 
-In all three, focus turns the border `--color-primary-50` and invalid fields turn it `--color-destructive-60`.
+Dropdowns are `Select`, never a native `<select>`. In all three, focus turns the border `--color-primary-50` and invalid fields turn it `--color-destructive-60`.
 
 ---
 
@@ -208,7 +212,7 @@ In all three, focus turns the border `--color-primary-50` and invalid fields tur
 
 | Page | Structure |
 |---|---|
-| Daily Outlook | Title "Daily outlook" and subtitle → brief banner with score column → "Demand throughout the day" (4 daypart cards: icon + window, band pill + "±x% vs. normal", weather, "What's driving demand" note) → chart card + drivers card |
+| Daily Outlook | Title "Daily outlook" and subtitle → brief banner with score column ("Demand score ⓘ", band, score, 0–150 bar, "Busiest period: X ⓘ") → "Demand throughout the day ⓘ" (band ranges) → amber "Add your operating hours" prompt when the day has no hours → 4 daypart cards (icon + window + "Closed" badge outside the restaurant's hours; band pill + "±x% vs. normal ⓘ"; weather; "What's driving demand ⓘ" note) → "Demand score by period" bar chart + drivers card → collapsible "How this forecast works" (scope, how a score is built, daily score, vs. normal, band table, events and weather) |
 | Weekly Outlook | Title and date range → "This week at a glance" banner → 7 day cards (band + peak score, weather, event count) → weekly curve + drivers |
 | Events Overview | Title → "Event impact at a glance" banner → 7 calendar cards (emoji, count, proximity badge) → filters (Date, Radius, Venues, Reset) → paged table + side cards ("Top events today", "How Events Shape Demand") |
 | Event Outlook | Back link → event card (date chip, emoji, impact band/percent, time, type) → 4 per-daypart impact cards |
@@ -270,9 +274,10 @@ Most of these overlap with the open design-review items.
    - Still open: the Weather page turns missing values into 0%, and decimals mix (Daily rounds; Weekly chart shows 2 decimals).
 7. **Weather severity pills reuse band colours** (Low = the Light band's blue), so they can be mistaken for demand bands.
 8. **Raw proximity values (0.5 / 1)** appear as "Est. Impact" on Events.
-9. **No tooltips anywhere,** and no "last updated" time.
+9. **Tooltips exist on Daily Outlook and the drivers card only.** Weekly, Events and Weather have none, and there is no "last updated" time anywhere because the backend doesn't send it.
 10. **Disabled buttons:** Settings dims with opacity while other pages use the gray fill.
-11. **Subtitle separators differ:** Daily uses "·" while the other pages use "-" and leave out the zone.
+11. **Subtitle separators:** fixed. Every Intelligence page now uses `pageSubtitle()` ("Name · Concept · Zone · Date") with repeats removed.
+12. **Daypart windows vs operating hours:** "Closed" is worked out from the windows shown on the cards (7–10, 11–2, 5–10, 10–12), so hours in the 2–5 PM gap don't count toward any period.
 
 ## 8. Rules for new UI
 
@@ -280,6 +285,8 @@ Most of these overlap with the open design-review items.
 - Reuse the shared pieces: `shared.title`, `subtitle`, `sectionTitle`, `card` and `banner`, plus `BandPill`, `DaypartIcon`, `WeatherIcon` and `PageLoading`.
 - **Primary action:** an electric-blue button, with the gray-30 / gray-60 disabled style.
 - **Errors:** red text under the field, only after the first submit attempt.
+- **Explanations:** use `InfoTip` and keep it to one or two sentences. Anything longer goes in the "How this forecast works" section.
+- **Percentages:** whole numbers. No change shows as "0%", not "+0%".
 - **Colour plus text:** every coloured meaning (band, severity, positive/negative) also carries its label.
 - **Toggles and keyboard:** toggles use `aria-pressed`; controls work with Tab and Enter/Space.
 - **Mobile:** check every new layout at 375px with no horizontal scroll.

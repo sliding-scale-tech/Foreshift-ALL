@@ -7,16 +7,19 @@ import type { TodayOutlookResult } from "my-app/convex/lib/outlook";
 import { toDrivers, type Driver } from "@/app/lib/drivers";
 import type { DaypartWeather } from "@/app/hooks/useOutlook";
 import { DAYPARTS, type DaypartKey } from "@/app/lib/dayparts";
+import type { Band } from "@/app/lib/bands";
 
-export type Band = "Minimal" | "Light" | "Moderate" | "High" | "Peak" | "Exceptional";
-
-export type { DaypartKey };
+export type { Band, DaypartKey };
+export { MAX_SCORE } from "@/app/lib/bands";
 
 export type DaypartOutlook = {
   key: DaypartKey;
   label: string;
   window: string; // e.g. "7:00 AM – 10:00 AM"
-  band: Band | null; // null = no forecast for this daypart
+  start: number; // window in minutes since midnight
+  end: number;
+  score: number | null; // null = no forecast for this daypart
+  band: Band | null;
   liftPct: number | null; // vs. normal; null = not available (never shown as 0%)
   weather: { condition: string; tempF: number } | null;
   eventNote: string;
@@ -25,13 +28,11 @@ export type DaypartOutlook = {
 export type DailyOutlook = {
   brief: string;
   band: Band;
-  score: number; // 0–150
+  score: number; // 0–150: the busiest daypart's score
+  peakLabel: string; // that daypart, e.g. "Dinner"
   dayparts: DaypartOutlook[];
-  chart: { categories: string[]; values: (number | null)[] }; // null = no data (a gap, not 0)
   drivers: Driver[];
 };
-
-export const MAX_SCORE = 150;
 
 export function toDailyOutlook(
   result: TodayOutlookResult,
@@ -47,6 +48,9 @@ export function toDailyOutlook(
       key: meta.key,
       label: meta.label,
       window: meta.window,
+      start: meta.start,
+      end: meta.end,
+      score: dp ? dp.score : null,
       band: dp ? (dp.band as Band) : null,
       liftPct: Number.isFinite(pct) ? pct : null,
       weather: w ? { condition: w.condition, tempF: w.tempF } : null,
@@ -54,17 +58,12 @@ export function toDailyOutlook(
     };
   });
 
-  const drivers = toDrivers(result.drivers);
-
   return {
     brief: result.narration,
     band: result.peak.band as Band,
     score: result.peak.score,
+    peakLabel: DAYPARTS.find((m) => m.key === result.peak.daypart)?.label ?? result.peak.daypart,
     dayparts,
-    chart: {
-      categories: DAYPARTS.map((m) => m.chartLabel),
-      values: DAYPARTS.map((m) => byKey.get(m.key)?.score ?? null),
-    },
-    drivers,
+    drivers: toDrivers(result.drivers),
   };
 }

@@ -1,13 +1,12 @@
 "use client";
 
 import { useId, useState } from "react";
+import { TimeField } from "@/app/components/TimeField";
 import {
   FULL_DAY_NAME,
-  TIME_OPTIONS,
   closesNextDay,
   dayErrors,
   listDays,
-  normalizeTime,
   unsetDays,
   type Day,
   type DayHours,
@@ -35,7 +34,6 @@ export function HoursEditor({
   showMissing: boolean;
 }) {
   const id = useId();
-  const listId = `${id}-times`;
   const [selected, setSelected] = useState<Day[]>([]);
   const [sharedOpen, setSharedOpen] = useState("");
   const [sharedClose, setSharedClose] = useState("");
@@ -66,12 +64,6 @@ export function HoursEditor({
 
   return (
     <div className={styles.editor}>
-      <datalist id={listId}>
-        {TIME_OPTIONS.map((t) => (
-          <option key={t} value={t} />
-        ))}
-      </datalist>
-
       <section className={styles.shared} aria-labelledby={`${id}-shared`}>
         <h2 id={`${id}-shared`} className={styles.sharedTitle}>
           Set hours for several days
@@ -109,14 +101,18 @@ export function HoursEditor({
         </div>
 
         <div className={styles.sharedTimes}>
-          <label className={styles.timeField}>
-            <span className={styles.timeLabel}>Opens at</span>
-            <TimeInput value={sharedOpen} onChange={setSharedOpen} listId={listId} />
-          </label>
-          <label className={styles.timeField}>
-            <span className={styles.timeLabel}>Closes at</span>
-            <TimeInput value={sharedClose} onChange={setSharedClose} listId={listId} />
-          </label>
+          <div className={styles.timeField}>
+            <label className={styles.timeLabel} htmlFor={`${id}-opens`}>
+              Opens at
+            </label>
+            <TimeField id={`${id}-opens`} className={styles.time} value={sharedOpen} onChange={setSharedOpen} />
+          </div>
+          <div className={styles.timeField}>
+            <label className={styles.timeLabel} htmlFor={`${id}-closes`}>
+              Closes at
+            </label>
+            <TimeField id={`${id}-closes`} className={styles.time} value={sharedClose} onChange={setSharedClose} />
+          </div>
         </div>
         {sharedOpen && sharedClose && sharedOpen === sharedClose && (
           <p className={styles.error}>Opening and closing times can&apos;t be the same.</p>
@@ -204,10 +200,11 @@ export function HoursEditor({
 
                 {isEditing && (
                   <div className={styles.editRow}>
-                    <TimeInput
+                    <TimeField
+                      className={styles.time}
+                      wrapClassName={styles.rowTime}
                       value={d.open}
                       onChange={(v) => patchDay(d.day, { open: v })}
-                      listId={listId}
                       label={`${name} opens at`}
                       invalid={shownError !== null}
                       describedBy={shownError ? errorId : undefined}
@@ -215,10 +212,11 @@ export function HoursEditor({
                     <span className={styles.dash} aria-hidden="true">
                       –
                     </span>
-                    <TimeInput
+                    <TimeField
+                      className={styles.time}
+                      wrapClassName={styles.rowTime}
                       value={d.close}
                       onChange={(v) => patchDay(d.day, { close: v })}
-                      listId={listId}
                       label={`${name} closes at`}
                       invalid={shownError !== null}
                       describedBy={shownError ? errorId : undefined}
@@ -271,48 +269,5 @@ export function HoursEditor({
         </p>
       )}
     </div>
-  );
-}
-
-// A time field you can type into ("9:30 pm", "21:30") or pick from the
-// 15-minute suggestions. Typed text is shown as-is while focused; the value
-// reported up is always the canonical "9:30 PM", or "" while it isn't a time.
-function TimeInput({
-  value,
-  onChange,
-  listId,
-  label,
-  invalid,
-  describedBy,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  listId: string;
-  label?: string;
-  invalid?: boolean;
-  describedBy?: string;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  return (
-    <input
-      className={styles.time}
-      list={listId}
-      value={draft ?? value}
-      placeholder="e.g. 9:00 AM"
-      autoComplete="off"
-      aria-label={label}
-      aria-invalid={invalid || undefined}
-      aria-describedby={describedBy}
-      onFocus={() => setDraft(value)}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        onChange(normalizeTime(e.target.value));
-      }}
-      onBlur={() => {
-        // Valid (or empty): show the tidy version. Not a time: keep what was
-        // typed visible so it can be fixed — the row shows why.
-        if (draft === null || draft.trim() === "" || normalizeTime(draft)) setDraft(null);
-      }}
-    />
   );
 }

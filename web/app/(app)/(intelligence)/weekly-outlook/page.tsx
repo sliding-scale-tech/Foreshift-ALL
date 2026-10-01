@@ -2,7 +2,7 @@
 
 import type { WeeklyOutlookResult } from "my-app/convex/lib/outlook";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
-import { operatorLabel } from "@/app/lib/displayName";
+import { pageSubtitle } from "@/app/lib/displayName";
 import { useOutlook } from "@/app/hooks/useOutlook";
 import { useWeek, type WeekData, type WeekDay } from "@/app/hooks/useWeek";
 import { BandPill } from "@/app/components/BandPill";
@@ -37,9 +37,7 @@ export default function WeeklyOutlookPage() {
   return (
     <>
       <h1 className={shared.title}>Weekly outlook</h1>
-      <p className={shared.subtitle}>
-        {weekLabel(week.weekStart)} - {operatorLabel(operator)} - {operator?.conceptType}
-      </p>
+      <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
 
       <section className={shared.banner}>
         <div className={shared.bannerTitle}>

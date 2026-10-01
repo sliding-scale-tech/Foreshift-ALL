@@ -1,0 +1,110 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  margin: -4px 0;
+  color: var(--color-gray-70);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: help;
+}
+
+.btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  color: var(--color-shift-electric-blue);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary-30);
+}
+
+.onDark {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.onDark:hover,
+.onDark:focus-visible {
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.tip {
+  position: absolute;
+  z-index: 40;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(16, 26, 44, 0.16);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.start {
+  left: -8px;
+}
+
+.end {
+  right: -8px;
+}
+
+/* Keyboard focus uses :focus-visible, so a tap that closes the tip doesn't
+   leave it showing just because the button still has focus. */
+/* :where keeps this below .dismissed in specificity. */
+.wrap:where(:has(.btn:focus-visible)) .tip,
+.open .tip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Hover only where there's a real pointer — on touch screens :hover sticks
+   after a tap, which would stop a second tap from closing the tip. */
+@media (hover: hover) {
+  .wrap:hover .tip {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+/* Escape hides it even while the pointer is still over it. */
+.wrap.dismissed .tip {
+  visibility: hidden;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    transition: none;
+  }
+}

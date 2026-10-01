@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
-import { operatorLabel } from "@/app/lib/displayName";
+import { hasRestaurant, pageSubtitle } from "@/app/lib/displayName";
 import { PageLoading } from "@/app/components/PageLoading";
 import { LoadError } from "@/app/components/LoadError";
 import { useDailyOutlook } from "@/app/hooks/useDailyOutlook";
@@ -37,7 +37,6 @@ function DailyOutlook() {
   const { operator } = useMyOperator();
   const date = useSearchParams().get("date") ?? undefined;
   const outlook = useDailyOutlook(date);
-  const name = operatorLabel(operator);
 
   // Nothing renders until the whole outlook is ready — no placeholders.
   if (outlook.status === "loading") return <PageLoading label="Gathering demand insight…" />;
@@ -46,10 +45,12 @@ function DailyOutlook() {
   return (
     <>
       <h1 className={shared.title}>Daily outlook</h1>
-      <p className={shared.subtitle}>
-        {name} · {operator?.conceptType} · {operator?.zone} · {formatDate(outlook.date)}
-      </p>
-      <OutlookBody data={outlook.data} />
+      <p className={shared.subtitle}>{pageSubtitle(operator, formatDate(outlook.date))}</p>
+      <OutlookBody
+        data={outlook.data}
+        date={outlook.date}
+        hours={hasRestaurant(operator) ? operator?.operatingHours : undefined}
+      />
     </>
   );
 }

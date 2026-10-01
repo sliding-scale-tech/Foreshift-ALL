@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { IconSparkle, IconCalendarCheck } from "@/app/components/dashboard-icons";
 import { BandPill } from "@/app/components/BandPill";
 import { DaypartIcon } from "@/app/components/DaypartIcon";
-import { DemandAreaChart } from "@/app/components/DemandAreaChart";
+import { DemandBarChart } from "@/app/components/DemandBarChart";
 import { DriversCard } from "@/app/components/DriversCard";
+import { InfoTip } from "@/app/components/InfoTip";
 import { WeatherIcon } from "@/app/components/WeatherIcon";
 import shared from "@/app/(app)/shared.module.css";
 import {
@@ -10,15 +12,32 @@ import {
   type DailyOutlook as DailyOutlookData,
   type DaypartOutlook,
 } from "@/app/(app)/(intelligence)/dashboard/outlook-data";
+import { BANDS } from "@/app/lib/bands";
+import { openDuring, type SavedHours } from "@/app/lib/hours";
 import styles from "@/app/(app)/(intelligence)/dashboard/dashboard.module.css";
 
+// "+19%", "-9%", and plain "0%" (no change isn't a gain).
 function formatPct(n: number): string {
-  return `${n >= 0 ? "+" : ""}${Math.round(n)}%`;
+  const r = Math.round(n);
+  return `${r > 0 ? "+" : ""}${r === 0 ? 0 : r}%`;
 }
 
 // The Daily Outlook body (brief, daypart cards, chart, drivers) — shared by the
-// signed-in Daily Outlook page and the public sample outlook.
-export function OutlookBody({ data }: { data: DailyOutlookData }) {
+// signed-in Daily Outlook page and the public sample outlook. `hours` is the
+// operator's saved schedule; without it (the sample) nothing is marked closed.
+export function OutlookBody({
+  data,
+  date,
+  hours,
+}: {
+  data: DailyOutlookData;
+  date: string;
+  hours?: SavedHours[];
+}) {
+  // Per daypart: true open, false closed, null unknown (no hours for that day).
+  const open = data.dayparts.map((dp) => (hours ? openDuring(hours, date, dp.start, dp.end) : true));
+  const hoursMissing = hours !== undefined && open.some((o) => o === null);
+
   return (
     <>
       <section className={styles.brief}>
@@ -30,7 +49,13 @@ export function OutlookBody({ data }: { data: DailyOutlookData }) {
           <p className={shared.bannerText}>{data.brief}</p>
         </div>
         <div>
-          <div className={styles.scoreLabel}>Demand score</div>
+          <div className={styles.scoreLabel}>
+            Demand score
+            <InfoTip label="demand score" tone="dark" align="end">
+              How busy your area is likely to be for restaurants of your concept, on a 0–{MAX_SCORE} scale.
+              It describes the area, not your restaurant&apos;s own sales.
+            </InfoTip>
+          </div>
           <div className={styles.scoreHead}>
             <span>{data.band}</span>
             <span>{data.score.toFixed(1)}</span>
@@ -45,48 +70,88 @@ export function OutlookBody({ data }: { data: DailyOutlookData }) {
             <span>0</span>
             <span>{MAX_SCORE}</span>
           </div>
+          <div className={styles.peakNote}>
+            Busiest period: {data.peakLabel}
+            <InfoTip label="how the daily score is calculated" tone="dark" align="end">
+              Today&apos;s demand score is the score of the day&apos;s busiest period.
+            </InfoTip>
+          </div>
         </div>
       </section>
 
-      <h2 className={shared.sectionTitle}>Demand throughout the day</h2>
+      <h2 className={`${shared.sectionTitle} ${styles.titleWithTip}`}>
+        Demand throughout the day
+        <InfoTip label="demand levels" align="start">
+          <span className={styles.tipList}>
+            {BANDS.map((b) => (
+              <span key={b.name}>
+                <strong>{b.name}</strong> {b.min}–{b.max}: {b.meaning.toLowerCase()}
+              </span>
+            ))}
+          </span>
+        </InfoTip>
+      </h2>
+
+      {hoursMissing && (
+        <p className={styles.hoursPrompt}>
+          Add your operating hours to see which periods you&apos;re open.{" "}
+          <Link href="/settings">Add hours</Link>
+        </p>
+      )}
+
       <div className={styles.dayparts}>
-        {data.dayparts.map((dp) => (
-          <DaypartCard key={dp.key} dp={dp} />
+        {data.dayparts.map((dp, i) => (
+          <DaypartCard key={dp.key} dp={dp} closed={open[i] === false} />
         ))}
       </div>
 
       <div className={styles.lower}>
         <section className={`${shared.card} ${styles.chartCard}`}>
-          <h2 className={`${shared.cardTitle} ${shared.chartTitle}`}>Daypart Demand Chart</h2>
-          <DemandAreaChart categories={data.chart.categories} values={data.chart.values} />
+          <h2 className={`${shared.cardTitle} ${styles.chartTitle}`}>Demand score by period</h2>
+          <DemandBarChart
+            items={data.dayparts.map((dp, i) => ({
+              label: dp.label,
+              score: dp.score,
+              band: dp.band,
+              liftPct: dp.liftPct,
+              closed: open[i] === false,
+            }))}
+          />
         </section>
 
-        <DriversCard
-          drivers={data.drivers}
-          subtitle="Factors influencing today's forecast."
-        />
+        <DriversCard drivers={data.drivers} subtitle="Factors influencing today's forecast." />
       </div>
+
+      <HowItWorks />
     </>
   );
 }
 
-function DaypartCard({ dp }: { dp: DaypartOutlook }) {
+function DaypartCard({ dp, closed }: { dp: DaypartOutlook; closed: boolean }) {
   return (
     <div className={`${shared.card} ${styles.dpCard}`}>
       <div className={styles.dpHead}>
         <DaypartIcon daypart={dp.key} />
-        <div>
+        <div className={styles.dpHeadText}>
           <div className={styles.dpTitle}>{dp.label}</div>
           <div className={styles.dpWindow}>{dp.window}</div>
         </div>
+        {closed && <span className={styles.closedBadge}>Closed</span>}
       </div>
+      {closed && <p className={styles.closedNote}>Your restaurant is closed during this period.</p>}
 
       <div className={styles.dpMeta}>
         {dp.band ? <BandPill band={dp.band} /> : <span className={styles.unavailable}>No forecast</span>}
         {dp.liftPct === null ? (
           <span className={styles.unavailable}>Comparison not available</span>
         ) : (
-          <span className={styles.lift}>{formatPct(dp.liftPct)} vs. normal</span>
+          <span className={styles.lift}>
+            {formatPct(dp.liftPct)} vs. normal
+            <InfoTip label="vs. normal" align="end">
+              Compared with this period&apos;s usual demand for your area, concept and day of the week, before
+              events and weather. The change includes both.
+            </InfoTip>
+          </span>
         )}
       </div>
 
@@ -103,8 +168,75 @@ function DaypartCard({ dp }: { dp: DaypartOutlook }) {
       <div className={styles.eventHead}>
         <IconCalendarCheck />
         What&apos;s driving demand
+        <InfoTip label="event impact" align="end">
+          Nearby events in this period. An event&apos;s estimated impact is the extra demand it may add, counted
+          in the period it falls in.
+        </InfoTip>
       </div>
       <p className={styles.eventNote}>{dp.eventNote}</p>
     </div>
+  );
+}
+
+// Longer explanations the tooltips point to. Wording stays general on
+// purpose: the model's coefficients are not shown to operators.
+function HowItWorks() {
+  return (
+    <details className={styles.howItWorks}>
+      <summary>How this forecast works</summary>
+      <div className={styles.howBody}>
+        <h3>What it measures</h3>
+        <p>
+          ForeShift forecasts zone demand: how busy your area is likely to be for restaurants of your concept in
+          each part of the day. It&apos;s an estimate for the area. It doesn&apos;t know your own sales, bookings
+          or staffing.
+        </p>
+
+        <h3>How a score is built</h3>
+        <p>
+          Each period starts from a baseline for your zone, concept and day of the week. Nearby events can add
+          demand on top of that, and the weather can raise or lower it. Scores run from 0 to {MAX_SCORE}.
+        </p>
+
+        <h3>Today&apos;s demand score</h3>
+        <p>The score of the day&apos;s busiest period.</p>
+
+        <h3>&ldquo;vs. normal&rdquo;</h3>
+        <p>
+          The change from that period&apos;s baseline, with events and weather included. +50% means about one and
+          a half times the usual demand for that period.
+        </p>
+
+        <h3>Demand levels</h3>
+        <table className={styles.bandTable}>
+          <thead>
+            <tr>
+              <th scope="col">Level</th>
+              <th scope="col">Score</th>
+              <th scope="col">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            {BANDS.map((b) => (
+              <tr key={b.name}>
+                <td>
+                  <BandPill band={b.name} />
+                </td>
+                <td>
+                  {b.min}–{b.max}
+                </td>
+                <td>{b.meaning}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h3>Events and weather</h3>
+        <p>
+          Event impact and weather effects are estimates. An event counts toward the period it falls in.
+          &ldquo;No effect&rdquo; means no material change is expected.
+        </p>
+      </div>
+    </details>
   );
 }

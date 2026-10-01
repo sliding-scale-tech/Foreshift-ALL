@@ -1,5 +1,6 @@
 import type { Driver } from "@/app/lib/drivers";
 import { EventIcon } from "./EventIcon";
+import { InfoTip } from "./InfoTip";
 import { WeatherIcon } from "./WeatherIcon";
 import styles from "./DriversCard.module.css";
 
@@ -7,7 +8,13 @@ import styles from "./DriversCard.module.css";
 export function DriversCard({ drivers, subtitle }: { drivers: Driver[]; subtitle: string }) {
   return (
     <section className={styles.card}>
-      <h2 className={styles.title}>Top Demand Drivers</h2>
+      <h2 className={styles.title}>
+        Top Demand Drivers
+        <InfoTip label="driver percentages" align="end">
+          Estimated change in demand caused by each event or weather condition, compared with normal. &ldquo;No
+          effect&rdquo; means no material change.
+        </InfoTip>
+      </h2>
       <p className={styles.sub}>{subtitle}</p>
       <div className={styles.list}>
         {drivers.map((d, i) => (

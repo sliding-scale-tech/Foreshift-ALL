@@ -9,11 +9,14 @@ import { AddressInput } from "@/app/components/AddressInput";
 import { DetectedArea } from "@/app/components/DetectedArea";
 import { HoursEditor } from "@/app/components/HoursEditor";
 import { PageLoading } from "@/app/components/PageLoading";
+import { Select } from "@/app/components/Select";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
 import { addressError, useAreaDetection } from "@/app/hooks/useAreaDetection";
 import { fromSavedHours, isScheduleComplete, toSavedHours, type DayHours } from "@/app/lib/hours";
 import shared from "../shared.module.css";
 import styles from "./settings.module.css";
+
+const CONCEPT_CHOICES = [{ value: "", label: "Choose an option..." }, ...CONCEPTS.map((c) => ({ value: c, label: c }))];
 
 type Operator = NonNullable<ReturnType<typeof useMyOperator>["operator"]>;
 type Msg = { kind: "ok" | "error"; text: string } | null;
@@ -274,17 +277,18 @@ function RestaurantCard({ operator }: { operator: Operator }) {
           />
           <DetectedArea area={area} />
         </div>
-        <label className={styles.field}>
-          <span className={styles.label}>Concept type</span>
-          <select className={styles.select} value={concept} onChange={(e) => setConcept(e.target.value)}>
-            <option value="">Choose an option...</option>
-            {CONCEPTS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="settings-concept">
+            Concept type
+          </label>
+          <Select
+            id="settings-concept"
+            variant="filled"
+            value={concept}
+            onChange={setConcept}
+            options={CONCEPT_CHOICES}
+          />
+        </div>
       </div>
       <div className={styles.actions}>
         <button type="button" className={styles.btn} onClick={save} disabled={saving}>

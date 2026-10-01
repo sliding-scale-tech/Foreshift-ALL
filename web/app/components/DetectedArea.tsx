@@ -3,7 +3,10 @@
 import { useId } from "react";
 import { ZONES } from "my-app/convex/lib/vocab";
 import type { AreaDetection } from "@/app/hooks/useAreaDetection";
+import { Select } from "./Select";
 import styles from "./DetectedArea.module.css";
+
+const AREA_CHOICES = [{ value: "", label: "Choose an area…" }, ...ZONES.map((z) => ({ value: z, label: z }))];
 
 // The line under the address field: the detected area, or why there isn't
 // one — with a retry when the lookup failed and a manual choice when the
@@ -54,19 +57,12 @@ export function DetectedArea({ area }: { area: AreaDetection }) {
           <label htmlFor={selectId} className={styles.manualLabel}>
             {status.kind === "manual" ? "Change area" : "Or choose your area manually"}
           </label>
-          <select
+          <Select
             id={selectId}
-            className={styles.select}
             value={status.kind === "manual" ? status.zone : ""}
-            onChange={(e) => area.chooseManually(e.target.value)}
-          >
-            <option value="">Choose an area…</option>
-            {ZONES.map((z) => (
-              <option key={z} value={z}>
-                {z}
-              </option>
-            ))}
-          </select>
+            onChange={area.chooseManually}
+            options={AREA_CHOICES}
+          />
         </div>
       )}
     </div>

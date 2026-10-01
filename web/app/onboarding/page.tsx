@@ -10,6 +10,7 @@ import { useMyOperator } from "@/app/hooks/useMyOperator";
 import { AddressInput } from "@/app/components/AddressInput";
 import { DetectedArea } from "@/app/components/DetectedArea";
 import { HoursEditor } from "@/app/components/HoursEditor";
+import { Select } from "@/app/components/Select";
 import { ZoneFinderModal } from "@/app/components/ZoneFinderModal";
 import { addressError, useAreaDetection, type AreaDetection } from "@/app/hooks/useAreaDetection";
 import { emptySchedule, isScheduleComplete, toSavedHours, type DayHours } from "@/app/lib/hours";
@@ -63,6 +64,8 @@ const CONCEPT_ICONS: Record<Concept, React.ComponentType> = {
 // exploring" skips venue details and operating hours (zone and concept are all
 // the demand math needs), so it has no stepper.
 const STEPS = ["Restaurant details", "Operating hours"] as const;
+
+const ZONE_CHOICES = [{ value: "", label: "Choose an option..." }, ...ZONES.map((z) => ({ value: z, label: z }))];
 
 type Mode = "restaurant" | "explorer";
 type ZoneNote = { kind: "ok" | "warn"; text: string } | null;
@@ -384,18 +387,7 @@ function StepExploreZone(props: {
             Need help identifying your zone?
           </button>
         </div>
-        <select
-          className={styles.select}
-          value={props.zone}
-          onChange={(e) => props.setZone(e.target.value)}
-        >
-          <option value="">Choose an option...</option>
-          {ZONES.map((z) => (
-            <option key={z} value={z}>
-              {z}
-            </option>
-          ))}
-        </select>
+        <Select value={props.zone} onChange={props.setZone} options={ZONE_CHOICES} ariaLabel="Zone" />
         {props.zoneNote && (
           <p
             className={`${styles.zoneNote} ${props.zoneNote.kind === "warn" ? styles.zoneNoteWarn : ""}`}

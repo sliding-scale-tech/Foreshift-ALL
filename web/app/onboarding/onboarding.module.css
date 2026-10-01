@@ -306,8 +306,7 @@
   color: var(--color-destructive-70);
 }
 
-.input,
-.select {
+.input {
   width: 100%;
   padding: 12px 14px;
   border-radius: var(--radius-control);
@@ -318,8 +317,7 @@
   color: var(--color-text);
 }
 
-.input:focus,
-.select:focus {
+.input:focus {
   outline: none;
   border-color: var(--color-primary-50);
 }

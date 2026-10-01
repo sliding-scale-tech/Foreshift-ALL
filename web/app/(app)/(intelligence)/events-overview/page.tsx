@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { EventOutlookResult } from "my-app/convex/lib/outlook";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
-import { operatorLabel } from "@/app/lib/displayName";
+import { pageSubtitle } from "@/app/lib/displayName";
 import { useOutlook } from "@/app/hooks/useOutlook";
 import { useWeek, type WeekData, type WeekEvent } from "@/app/hooks/useWeek";
 import { EVENT_CLASS_ORDER, EventIcon } from "@/app/components/EventIcon";
 import { DatePicker } from "@/app/components/DatePicker";
+import { Select } from "@/app/components/Select";
 import { PageLoading } from "@/app/components/PageLoading";
 import { IconSparkle } from "@/app/components/dashboard-icons";
 import { FULL_DAY, shortDate, trimNumber, weekLabel } from "@/app/lib/week";
@@ -38,6 +39,10 @@ const VENUES = [
   "Ford Field",
   "Huntington Place",
 ];
+
+const NONE = { value: "", label: "Choose an option..." };
+const RADIUS_CHOICES = [NONE, ...RADIUS_OPTIONS.map((o) => ({ value: String(o), label: String(o) }))];
+const VENUE_CHOICES = [NONE, ...VENUES.map((v) => ({ value: v, label: v }))];
 
 // Events Overview — the week's events near the operator: a per-day calendar,
 // filters, a paged table, and today's headline event. The AI brief comes from
@@ -103,9 +108,7 @@ export default function EventsOverviewPage() {
   return (
     <>
       <h1 className={shared.title}>Events Overview</h1>
-      <p className={shared.subtitle}>
-        {weekLabel(week.weekStart)} - {operatorLabel(operator)} - {operator?.conceptType}
-      </p>
+      <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
 
       <section className={shared.banner}>
         <div className={shared.bannerTitle}>
@@ -131,36 +134,30 @@ export default function EventsOverviewPage() {
             onChange={(d) => setFilter(() => setDate(d))}
           />
         </div>
-        <label className={styles.field}>
-          <span className={styles.label}>Radius</span>
-          <select
-            className={styles.control}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="events-radius">
+            Radius
+          </label>
+          <Select
+            id="events-radius"
+            variant="filter"
             value={radius}
-            onChange={(e) => setFilter(() => setRadius(e.target.value))}
-          >
-            <option value="">Choose an option...</option>
-            {RADIUS_OPTIONS.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>Venues</span>
-          <select
-            className={styles.control}
+            onChange={(v) => setFilter(() => setRadius(v))}
+            options={RADIUS_CHOICES}
+          />
+        </div>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="events-venue">
+            Venues
+          </label>
+          <Select
+            id="events-venue"
+            variant="filter"
             value={type}
-            onChange={(e) => setFilter(() => setType(e.target.value))}
-          >
-            <option value="">Choose an option...</option>
-            {VENUES.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={(v) => setFilter(() => setType(v))}
+            options={VENUE_CHOICES}
+          />
+        </div>
         <button type="button" className={styles.reset} onClick={reset}>
           <ResetIcon />
           Reset Filters

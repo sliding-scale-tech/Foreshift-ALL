@@ -1,0 +1,407 @@
+# Customer Dashboard Design Review — checklist
+
+Tracks every item in *Customer Dashboard Design Review & Feedback* against the
+web app (`web/`). Status as of 2026-10-01, branch `ui-changes-web`.
+
+**How to read it**
+- `[x]` means done in code.
+- `[ ]` means not done yet.
+- Notes say why an item is open:
+  - **partial**: some of the item is done.
+  - **needs backend**: needs a Convex change.
+  - **needs owner**: a product decision is required first.
+  - **verify**: the code looks right, but it hasn't been checked against live data.
+
+Login, Signup, Onboarding, Settings and the Daily Outlook were checked with
+`tsc`, `eslint` and unit tests. The Daily Outlook body was also checked in a
+browser through the public `/sample-outlook` page. Signed-in pages still need a
+click-through with a real login.
+
+---
+
+## 1. Login page
+
+- [x] Headline: "Know demand before you open."
+- [x] Supporting sentence: "Demand intelligence for smarter operations."
+- [x] Lighter supporting text on the navy panel; darker subtitle under "Welcome back"
+- [x] "Welcome Back" → "Welcome back"
+- [x] "Login" → "Sign in"
+- [x] "Google" → "Continue with Google"
+- [x] "Signup" → "Sign up"
+- [x] Brand-blue "Sign in" button with a clearly distinct disabled state
+- [x] Smaller gap between "Forgot password?" and "Sign in"
+- [x] System status: "All systems operational."
+- [x] Keep the split layout, navy panel, branding and "Sign in to your ForeShift account." subtitle
+
+## 2. Signup page
+
+- [x] Headline: "Know demand before you open."
+- [x] Supporting sentence: "Demand intelligence for smarter operations."
+- [x] Benefit bullets: 14-day trial / few simple steps / AI-powered insights from day one
+  - Note: the copy says 14 days, but the backend trial is 7 days (`lib/access.ts`) — **needs owner**.
+- [x] Heading "Create your account"
+- [x] Subtitle "Start your 14-day free trial."
+- [x] Button "Create account"
+- [x] Button "Continue with Google"
+- [x] Bottom text "Already have an account? Sign in"
+- [x] Password requirements shown below the field
+- [x] Lighter text and bullets on navy; darker subtitle above the form
+- [x] Brand-blue button with a distinct disabled state
+- [x] Terms and Privacy links near the button (pages at `/terms-and-conditions`, `/privacy-policy`)
+- [x] System status: "All systems operational."
+
+## 3. Onboarding: first setup page (choice)
+
+- [x] Heading "How will you use ForeShift?"
+- [x] Supporting text "Set up your restaurant or explore demand by concept and location."
+- [x] Restaurant card: "I run a restaurant" / "Understand upcoming demand to plan daily operations." / "Set up my restaurant"
+- [x] Explorer card: "I'm exploring opportunities" / "Explore demand for your restaurant concept across different locations." / "Explore demand"
+- [x] No progress indicator on the choice screen
+  - Steps appear only after a path is picked; restaurant info and hours are on the restaurant route only.
+- [x] "Signup Choice" label removed
+- [x] Darker gray text under both card titles
+- [ ] Subtle blue demand shading on the explorer map illustration
+
+## 4. Onboarding: restaurant information
+
+- [x] Ask for the address once; picking it runs the zone lookup and shows the detected area underneath
+- [x] Separate zone-help popup removed (restaurant route); retry or manual area choice on the same page when detection fails
+  - The "I'm exploring" route still has its zone dropdown and finder popup, since it has no address.
+- [x] Detected area updates when the address changes
+- [x] Clear message when the address is outside coverage: "Restaurant is outside of supported coverage zones"
+- [x] Address required (marked `*`, error message, can't continue without a detected area)
+- [x] Nine concepts in three columns on desktop, with "Choose the concept that best describes your business."
+- [x] Validation errors shown beside the relevant fields (no "Title" prefix)
+
+## 5. Onboarding: operating hours
+
+- [x] "Same timings?" replaced by a visible shared-hours section: select days → Opens at / Closes at once → "Apply to selected days"
+- [x] Shortcuts: Every day, Mon–Fri, Sat–Sun
+- [x] Compact weekly schedule; review all seven days and edit single days
+- [x] Clear "Closed" option per day; "–" option removed; empty days show "Not set" (never saved as closed)
+- [x] Type times or pick 15-minute increments
+- [ ] Match the referenced PDF
+  - The PDF wasn't available; the layout is our own design.
+- [x] Flag missing times and overlapping periods beside the affected day
+  - Overlap means one day's after-midnight hours running into the next day. The backend stores one period per day, so split shifts aren't supported (**needs backend** if wanted).
+
+**General layout and navigation**
+- [x] Two setup steps: Restaurant details → Operating hours
+- [x] Darker labels and helper text; more visible input borders
+- [x] Entries kept when going back and forward
+- [x] First step's button: "Continue to operating hours"
+- [x] Hours heading "When are you open?" with "Set your regular service hours. Adjustable by individual day."
+- [x] Main priority met: address entered once; same hours applied to several days in one action
+- Also done, though not in the review: Settings uses the same address/area and hours editor.
+
+## 6. "You're all set!" page
+
+- [x] Heading "You're all set!"
+- [x] Text "Explore today's demand outlook and what's driving it."
+- [x] Button "View today's outlook"
+- [x] Completed progress indicator removed
+- [x] Illustration smaller
+- [x] Shown only when setup is valid (every day has hours or is marked closed; no "Set up later")
+
+## 7. Daily Outlook
+
+**1. Header**
+- [x] Heading "Daily outlook"
+- [x] Restaurant name, concept and demand area underneath
+- [x] Forecast date shown
+- [ ] Last updated time — **needs backend** (`getMine` doesn't return `generatedAt`)
+- [x] Smaller heading; restaurant name not repeated
+- [ ] Match the referenced PDF (not available)
+
+**2. Main summary**
+- [x] Number labelled "Demand score"
+- [x] "Today's Operations Brief" → "Today's demand brief"
+- [ ] Score visually separated from the AI narration — **partial**: own column and label, layout otherwise unchanged
+- [ ] Brief kept to 2–3 sentences (peak, quiet periods, drivers) — **needs backend** (Gemini prompt)
+- [x] Better text contrast on the navy background
+
+**3. Forecast consistency**
+- [x] AI brief, score, cards and chart all come from the same forecast result
+- [x] They refresh together (one cached result; a stale result is never shown)
+- [ ] Fix "brief says dinner is minimal while the chart shows it strongest" — **needs backend** investigation
+- [ ] Factual fallback when AI narration is unavailable or outdated — **needs backend**
+  - Seen during testing: Gemini returned 503 "high demand", and the sample page showed an error.
+
+**4. Metric definitions**
+- [x] 0–150 scale and category thresholds explained (tooltips and "How this forecast works")
+- [x] How the daily score is calculated (busiest period)
+- [x] Clear that it's area/concept demand, not restaurant sales
+- [x] Baseline behind "vs. normal" defined
+- [x] Overall change and event impact explained separately
+- [x] Percentages rounded; no change shows as "0%"
+
+**5. Time-of-day cards**
+- [x] "Daypart" → "Demand throughout the day"
+- [x] Same labels everywhere: Morning, Midday, Dinner, Late night
+- [x] Same order in each card: period, demand level, comparison, weather, explanation
+- [x] "Event Lift" → "What's driving demand"
+- [ ] Standardized spacing, icons, card heights and colours — **partial**
+- [x] Responsive columns: 4 / 2 / 1
+
+**6. Chart**
+- [x] Bar chart instead of the smoothed area chart
+- [x] Vertical axis "Demand score"
+- [x] Same period names, thresholds (band colours) and fixed 0–150 scale
+- [x] Values shown on the bars, accessible tooltips and a screen-reader summary
+- [x] Zero, missing ("No data") and closed ("Closed") distinguished
+
+**7. Operating hours**
+- [x] Periods outside operating hours marked "Closed"
+- [x] Prompt to add hours when they're missing
+- [ ] Gaps between periods (e.g. 2–5 PM) — **needs owner**
+  - The card windows (7–10, 11–2, 5–10, 10–12) differ from the backend's event windows.
+- [x] Overnight hours handled (the previous night's after-midnight hours count)
+
+**8. Demand drivers**
+- [x] Repeated weather entries removed
+- [x] Identical conditions combined, with the affected periods labelled
+- [x] Ordered by estimated impact; no-effect rows last
+- [x] Neutral weather shown once; 0% shown as gray "No effect", not positive
+- [ ] Consistent icons — **partial**: weather uses the app's weather icons, events are still emoji
+- [ ] Verify event times, time zones and affected periods (the 10:00 AM event with a dinner uplift) — **needs backend** investigation
+
+**9. Tooltips**
+- [x] Demand score ⓘ
+- [x] Daily score calculation ⓘ
+- [x] Demand category (band ranges, via the section-title ⓘ and the table)
+- [x] "vs. normal" ⓘ
+- [x] Chart bars
+- [x] Event impact ⓘ (and driver percentages)
+- [ ] Last updated — **needs backend**
+- [x] Works on hover, keyboard focus and mobile tap; Escape closes it
+- [x] Short text, with longer explanations under "How this forecast works"
+- [x] Essential information stays visible without hovering
+
+**10. Layout and readability**
+- [ ] Less vertical spacing
+- [ ] Score, brief and start of the forecast near the top
+- [ ] Better contrast for small and gray text — **partial**
+- [ ] Consistent borders, corners and subtle shadows
+- [x] Sidebar collapses on smaller screens (drawer below 900px)
+- [x] Demand colours always paired with text labels
+
+**11. Loading and missing data**
+- [x] "Gathering demand insight" while loading
+- [x] Unavailable data never shown as 0%
+- [ ] Stale or unavailable forecasts clearly identified — **partial**: stale results are never shown and missing periods say "No forecast"; there's no freshness label (**needs backend**)
+- [x] Retry option when loading fails
+
+## 8. Weekly Outlook
+
+**1. Date mismatch**
+- [ ] Brief and cards cover the same dates — **verify** (web dates come from Detroit's calendar; the mismatch was seen in Bubble)
+- [ ] Sep 23, 2026 shown under Wednesday — **verify**
+- [ ] Weekday labels, dates, chart, events and narration all from the same restaurant-local dates — **verify**
+- [ ] Daily and Weekly show matching forecasts for the same date — **verify**
+
+**2. Week selector**
+- [x] Heading "Weekly outlook"
+- [x] "September 21–27, 2026" style date range
+- [ ] Previous/next week and "This week" controls — **needs backend** (current week only)
+- [ ] Only future dates within the forecast range enabled
+- [ ] Today highlighted; elapsed days distinguished; historical forecasts labelled
+
+**3. Planning grid (heatmap)**
+- [ ] Columns Mon–Sun with dates; rows Morning / Midday / Dinner / Late night
+- [ ] Each cell shows the demand category; score on hover/tap
+- [ ] Consistent colours plus text
+- [ ] Closed / Unavailable / low demand distinguished
+- [ ] Uses period-level forecasts (data already available in `getWeek`)
+
+**4. Selected-day detail panel**
+- [ ] Score and category
+- [ ] Comparison with normal
+- [ ] Weather and events
+- [ ] Short explanation
+- [ ] "View daily outlook" for that date
+- [ ] Defaults to today
+
+**5. Weekly chart**
+- [ ] Moved to a secondary "Daily totals" view
+- [ ] Seven bars instead of a curve
+- [ ] "Demand score" axis and explanation
+- [ ] Consistent scale, at most one decimal (currently two)
+- [ ] Chart, grid and detail panel selection kept in sync
+
+**6. Weekly brief**
+- [x] Renamed "This week at a glance"
+- [ ] Three short points: busiest period, quietest upcoming period, main drivers
+- [ ] Generated from the same data as the grid; no guaranteed-crowd wording — **needs backend** for the AI text
+
+**7. Weekly drivers**
+- [x] "Factors influencing this week's forecast."
+- [ ] Date, local start time and affected period on every event (weather rows now show "Fri Dinner")
+- [ ] Investigate why every event shows 10:00 AM — **needs backend**
+- [ ] Filter to the selected day, with "Show full week"
+- [ ] Ranked by impact with the percentage explained — **partial** (ⓘ on the drivers card)
+- [ ] Event counts clickable
+
+**8. Tooltips and freshness**
+- [ ] Score and thresholds, daily score, baseline, event impact, grid cells and chart bars
+- [ ] Hover, keyboard and tap support on this page
+- [ ] "Last updated" — **needs backend**
+- [ ] Missing data distinguished from zero impact
+
+**9. Hierarchy and responsiveness**
+- [x] Smaller heading (32px)
+- [x] Better contrast for the blue heading on the navy card
+- [ ] Less vertical spacing
+- [ ] Week selector, brief and grid near the top
+- [ ] Consistent icons, colours, borders and number formatting
+- [ ] Mobile: horizontal day selector with selected-day details
+
+**10. Sharing**
+- [ ] "Export weekly outlook" PDF (date range, restaurant, grid, drivers, timestamp), paid plans only
+
+## 9. Events page
+
+**1. Dates and summary**
+- [ ] Weekday/date mismatch — **verify**
+- [ ] Calendar, list, "today" section and summary from the same dates
+- [ ] Summary and "Top events today" reference the same day — **needs backend** (the summary is weekly)
+- [ ] Active date range explicit; filtering matches it
+
+**2. Impact numbers**
+- [ ] Stop showing raw 0.5 / 1 values
+- [ ] Low / Moderate / High estimated influence
+- [ ] Tooltip explaining the metric, scope and uncertainty
+- [ ] Event influence distinguished from overall demand
+
+**3. Date selector**
+- [ ] Seven same-size day buttons (weekday, date, event count)
+- [ ] Today and selected day highlighted
+- [ ] Selecting a day updates the summary and list together
+- [ ] "Today", "Next 7 days" and date navigation
+- [ ] Emoji clusters and number badges removed
+- [ ] Horizontal scrolling on mobile
+
+**4. Filters**
+- [x] "Venue Types" → "Venues"
+- [ ] Separate Event type filter
+- [ ] Distance labelled with units ("Within 1 mile")
+- [ ] Practical distance choices instead of 0.1 steps
+- [ ] Event/venue search
+- [ ] Active filters, result count and "Clear filters"
+
+**5. Event list**
+- [ ] Four columns: event and venue / local date and time / distance / estimated influence
+- [ ] Title, category and venue in one cell
+- [ ] Readable times ("7:00 PM"), time zone stated once
+- [ ] Units on every distance (desktop table has none)
+- [ ] Better contrast; more room for names
+- [ ] Sort by start time, distance and influence
+- [ ] Previous/Next with result count instead of "1 of 4 / Go"
+- [ ] Stacked cards on mobile — **partial** (a mobile card layout exists)
+
+**6. Event detail panel**
+- [ ] Venue address and map link
+- [ ] Verified local start time (end time if available)
+- [ ] Source link and last updated
+- [ ] Affected service periods — **partial** (shown on the event page)
+- [ ] Why it's relevant to this location and concept
+- [ ] "View demand outlook for this date"
+- [ ] "Report incorrect event"
+- [ ] Estimated timing/impact labelled
+
+**7. Duplicates**
+- [ ] Group duplicate listings and packages (only exact duplicates are merged today) — **needs backend**
+- [ ] Duplicates don't inflate counts or impact — **needs backend**
+- [ ] Canceled, postponed and rescheduled events handled consistently — **needs backend**
+
+**8. Geographic relevance**
+- [ ] Explain straight-line vs travel distance
+- [ ] Don't treat nearby venues as equal
+- [ ] Cross-border venues (Caesars Windsor) handled — **needs backend**
+
+**9. Supporting sections**
+- [x] "Top Event Today" → "Top events today"
+- [ ] Highlight key events in the main list instead of a separate section
+- [ ] "How Events Shape Demand" made expandable
+- [ ] Duplicated concert/nightlife sentence removed
+- [ ] Effects phrased as possibilities
+
+**10. Summary and visual design**
+- [x] Top card renamed "Event impact at a glance"
+- [ ] Two or three sentences naming the affected period and events — **needs backend**
+- [ ] "May increase demand" wording — **needs backend**
+- [x] Smaller header
+- [ ] Less vertical spacing
+- [x] Better contrast on the navy card
+- [ ] Consistent icons, borders and spacing
+- [ ] Hover/keyboard/tap explanations for impact and distance
+- [ ] "No matching events" vs "Event data unavailable"
+
+## 10. Weather page
+
+**1. Consistency**
+- [ ] Summary, icons, conditions and impact from the same data — **needs backend**
+- [ ] Show rain probability when it drives impact under a sunny label (`precipChance` is available)
+
+**2. Dates**
+- [ ] Sep 23, 2026 under the right weekday — **verify**
+- [ ] Same restaurant-local dates across calendar, panel, summary and periods — **verify**
+- [x] "Week 4 of September '26" → explicit date range
+
+**3. Weather impact vs overall demand**
+- [ ] Remove "Peak · 98.4" or label it "Overall demand" with a Daily Outlook link
+- [ ] "Estimated weather effect on demand" as the main metric
+- [ ] Explain the daily % and how it relates to the period values
+
+**4. Date selector**
+- [ ] Weekday, date, icon, high/low and impact per day (high/low **needs backend**)
+- [ ] Seven same-size days; today and selected highlighted; no wrapping or overflow
+
+**5. One summary panel**
+- [x] Heading "Weather impact at a glance"
+- [ ] Top card and standalone panel merged (date, location, overview, labelled temperature, effect, most affected period)
+
+**6. Period comparison**
+- [x] "Impact by Daypart" → "Weather during service"
+- [ ] Table on desktop / rows on mobile: period, conditions, temperature, rain chance, effect
+- [ ] Selecting a row shows details
+
+**7. Weather factors**
+- [ ] Rain probability and timing
+- [ ] Rain amount, wind, gusts, feels-like — **needs backend**
+- [ ] Optional outdoor-seating setting — **needs backend**
+
+**8. Severity labels**
+- [ ] "No material weather effect expected" instead of "Low severity" at 0%
+- [ ] Labelled as demand impact, not weather warnings
+- [ ] Real alerts shown separately with their source — **needs backend**
+
+**9. Explanations and freshness**
+- [ ] Tooltips: impact %, daily aggregation, rain probability, temperature
+- [ ] Source, last updated and time zone — **needs backend** for last updated
+- [ ] Unavailable data distinguished from no impact (missing values still become 0%)
+
+**10. Design and navigation**
+- [x] Smaller heading
+- [ ] Smaller icons and less empty space
+- [x] Better contrast for the blue heading on navy
+- [ ] Consistent weather icons
+- [ ] Restrained colours for negative/neutral/positive, with text labels
+- [ ] "View demand outlook for this date"
+- [ ] Closed periods marked without implying zero demand
+
+---
+
+## Summary
+
+| Section | Done | Total |
+|---|---|---|
+| Login | 11 | 11 |
+| Signup | 13 | 13 |
+| Onboarding (choice, info, hours, success) | 32 | 34 |
+| Daily Outlook | 46 | 62 |
+| Weekly Outlook | 6 | 45 |
+| Events | 5 | 56 |
+| Weather | 5 | 31 |
+| **Total** | **118** | **212** |
+
+Next up: Weekly Outlook (planning grid and selected-day panel; no backend needed), then the Events and Weather quick fixes.

@@ -28,6 +28,9 @@
 }
 
 .scoreLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 4px;
   font-size: 13px;
   font-weight: 600;
@@ -51,11 +54,70 @@
 }
 
 .scoreScale {
-  margin-top: 24px;
+  margin-top: 8px;
   display: flex;
   justify-content: space-between;
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.peakNote {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* ---- Tooltip helpers ---- */
+
+.titleWithTip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tipList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---- Operating hours ---- */
+
+.hoursPrompt {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--color-alert-80);
+  background: var(--color-alert-10);
+  border: 1px solid var(--color-alert-40);
+  border-radius: 10px;
+}
+
+.hoursPrompt a {
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+  text-decoration: underline;
+}
+
+.closedBadge {
+  margin-left: auto;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border: 1px solid var(--color-gray-40);
+  border-radius: 999px;
+}
+
+.closedNote {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-gray-70);
 }
 
 /* ---- Daypart cards ---- */
@@ -75,6 +137,10 @@
   display: flex;
   align-items: center;
   gap: 9px;
+}
+
+.dpHeadText {
+  min-width: 0;
 }
 
 .dpTitle {
@@ -100,6 +166,9 @@
 }
 
 .lift {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 16px;
   line-height: 22px;
   color: var(--color-text);
@@ -175,6 +244,70 @@
 
 .chartCard {
   padding: 24px;
+}
+
+.chartTitle {
+  margin-bottom: 16px;
+}
+
+/* ---- How this forecast works ---- */
+
+.howItWorks {
+  margin-top: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 12px;
+}
+
+.howItWorks summary {
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.howItWorks summary:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.howBody {
+  max-width: 760px;
+  padding: 0 20px 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+
+.howBody h3 {
+  margin: 16px 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.howBody h3:first-child {
+  margin-top: 0;
+}
+
+.bandTable {
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.bandTable th,
+.bandTable td {
+  padding: 6px 16px 6px 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.bandTable th {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-gray-70);
 }
 
 /* ---- Responsive ---- */
