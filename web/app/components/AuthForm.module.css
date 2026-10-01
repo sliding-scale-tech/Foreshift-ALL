@@ -173,6 +173,19 @@
   margin-left: 4px;
 }
 
+.legal {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-grey-text);
+}
+
+.legal a {
+  color: var(--color-shift-electric-blue);
+  font-weight: 500;
+}
+
 .hints {
   list-style: none;
   margin: 8px 0 0;
