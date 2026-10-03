@@ -20,8 +20,9 @@ export function DriversCard({
       <h2 className={styles.title}>
         Top Demand Drivers
         <InfoTip label="driver percentages" align="end">
-          Estimated change in demand caused by each event or weather condition, compared with normal. &ldquo;No
-          effect&rdquo; means no material change.
+          Estimated change in demand caused by each event or weather condition, compared with normal. Each
+          event is counted in the period named under it (&ldquo;All day&rdquo; = no start time listed).
+          &ldquo;No effect&rdquo; means no material change.
         </InfoTip>
       </h2>
       <p className={styles.sub}>{subtitle}</p>

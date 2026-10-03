@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { TIME_OPTIONS, normalizeTime } from "@/app/lib/hours";
+import { IconChevronDown } from "@/app/components/icons";
 import list from "./Select.module.css";
 
 const compact = (s: string) => s.toLowerCase().replace(/[\s.]/g, "");
@@ -20,6 +21,7 @@ export function TimeField({
   label,
   invalid,
   describedBy,
+  chevron,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -30,6 +32,8 @@ export function TimeField({
   label?: string;
   invalid?: boolean;
   describedBy?: string;
+  /** Show a dropdown arrow in the box (the input needs right padding for it). */
+  chevron?: boolean;
 }) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -110,6 +114,11 @@ export function TimeField({
           }
         }}
       />
+      {chevron && (
+        <span className={list.timeChevron} aria-hidden="true">
+          <IconChevronDown />
+        </span>
+      )}
       {open && options.length > 0 && (
         <ul
           id={listId}

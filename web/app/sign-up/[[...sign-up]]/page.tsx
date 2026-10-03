@@ -8,6 +8,7 @@ import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { AuthShell } from "@/app/components/AuthShell";
 import { IconMail, IconEye, IconArrowRight, IconGoogle } from "@/app/components/icons";
 import formStyles from "@/app/components/AuthForm.module.css";
+import { TERMS_URL, PRIVACY_URL } from "@/app/lib/legalLinks";
 
 const FEATURES = [
   "14-day free trial. No credit card required.",
@@ -247,13 +248,13 @@ export default function SignUpPage() {
       {/* New tab, so following a link doesn't wipe what's typed in the form. */}
       <p className={formStyles.legal}>
         By creating an account, you agree to our{" "}
-        <Link href="/terms-and-conditions" target="_blank" rel="noopener noreferrer">
+        <a href={TERMS_URL} target="_blank" rel="noopener noreferrer">
           Terms and Conditions
-        </Link>{" "}
+        </a>{" "}
         and{" "}
-        <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">
+        <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
           Privacy Policy
-        </Link>
+        </a>
         .
       </p>
 

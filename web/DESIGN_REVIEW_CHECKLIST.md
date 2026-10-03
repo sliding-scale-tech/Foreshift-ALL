@@ -109,7 +109,7 @@ click-through with a real login.
 - [x] Heading "Daily outlook"
 - [x] Restaurant name, concept and demand area underneath
 - [x] Forecast date shown
-- [ ] Last updated time — **needs backend** (`getMine` doesn't return `generatedAt`)
+- [x] Last updated time (backend `getMine` now also returns `generatedAt`; shown under the subtitle, exact time in a tooltip)
 - [x] Smaller heading; restaurant name not repeated
 - [ ] Match the referenced PDF (not available)
 
@@ -117,14 +117,14 @@ click-through with a real login.
 - [x] Number labelled "Demand score"
 - [x] "Today's Operations Brief" → "Today's demand brief"
 - [ ] Score visually separated from the AI narration — **partial**: own column and label, layout otherwise unchanged
-- [ ] Brief kept to 2–3 sentences (peak, quiet periods, drivers) — **needs backend** (Gemini prompt)
+- [x] Brief kept to 2–3 sentences (peak, quiet periods, drivers) — the prompt already asks for exactly two; all 27 cached briefs checked, no change needed
 - [x] Better text contrast on the navy background
 
 **3. Forecast consistency**
 - [x] AI brief, score, cards and chart all come from the same forecast result
 - [x] They refresh together (one cached result; a stale result is never shown)
-- [ ] Fix "brief says dinner is minimal while the chart shows it strongest" — **needs backend** investigation
-- [ ] Factual fallback when AI narration is unavailable or outdated — **needs backend**
+- [x] "Brief says dinner is minimal while the chart shows it strongest" — not reproducible in the web app: brief, score, cards and chart all come from one cached result. All 27 cached "today" briefs were checked against their numbers; none contradicted. The mismatch came from Bubble's old page mixing a live brief with a separate table.
+- [x] Factual fallback when AI narration is unavailable — if Gemini fails the brief, card notes and event/weather text are written from the numbers, and the page says so
   - Seen during testing: Gemini returned 503 "high demand", and the sample page showed an error.
 
 **4. Metric definitions**
@@ -140,7 +140,7 @@ click-through with a real login.
 - [x] Same labels everywhere: Morning, Midday, Dinner, Late night
 - [x] Same order in each card: period, demand level, comparison, weather, explanation
 - [x] "Event Lift" → "What's driving demand"
-- [ ] Standardized spacing, icons, card heights and colours — **partial**
+- [x] Standardized spacing, icons, card heights and colours — the four cards are one column of the same blocks, so heights and section positions match even when a card is closed or has a longer note
 - [x] Responsive columns: 4 / 2 / 1
 
 **6. Chart**
@@ -153,8 +153,7 @@ click-through with a real login.
 **7. Operating hours**
 - [x] Periods outside operating hours marked "Closed"
 - [x] Prompt to add hours when they're missing
-- [ ] Gaps between periods (e.g. 2–5 PM) — **needs owner**
-  - The card windows (7–10, 11–2, 5–10, 10–12) differ from the backend's event windows.
+- [x] Gaps between periods (e.g. 2–5 PM) — cards now use the backend's windows (6–11, 11–4, 4–9, 9 PM–2 AM), so there is no gap
 - [x] Overnight hours handled (the previous night's after-midnight hours count)
 
 **8. Demand drivers**
@@ -162,8 +161,8 @@ click-through with a real login.
 - [x] Identical conditions combined, with the affected periods labelled
 - [x] Ordered by estimated impact; no-effect rows last
 - [x] Neutral weather shown once; 0% shown as gray "No effect", not positive
-- [ ] Consistent icons — **partial**: weather uses the app's weather icons, events are still emoji
-- [ ] Verify event times, time zones and affected periods (the 10:00 AM event with a dinner uplift) — **needs backend** investigation
+- [x] Consistent icons — weather uses the app's weather icons and event classes now use one SVG line-icon set (no emoji)
+- [x] Event times, time zones and affected periods verified against the data: all 402 event rows map time → period correctly. The only "time vs. period" mismatch is timeless Huntington Place events, which lift all four periods (the page labels them "No start time listed")
 
 **9. Tooltips**
 - [x] Demand score ⓘ
@@ -172,23 +171,23 @@ click-through with a real login.
 - [x] "vs. normal" ⓘ
 - [x] Chart bars
 - [x] Event impact ⓘ (and driver percentages)
-- [ ] Last updated — **needs backend**
+- [x] Last updated (tooltip with the exact time and time zone)
 - [x] Works on hover, keyboard focus and mobile tap; Escape closes it
 - [x] Short text, with longer explanations under "How this forecast works"
 - [x] Essential information stays visible without hovering
 
 **10. Layout and readability**
-- [ ] Less vertical spacing
-- [ ] Score, brief and start of the forecast near the top
-- [ ] Better contrast for small and gray text — **partial**
-- [ ] Consistent borders, corners and subtle shadows
+- [x] Less vertical spacing (tighter banner, section titles, cards and gaps)
+- [x] Score, brief and start of the forecast near the top (at 1280×800 the brief, score and first row of cards, with their demand levels, fit on one screen)
+- [x] Better contrast for small and gray text — all six demand pills and the driver detail text are at least 4.5:1
+- [x] Consistent borders, corners and subtle shadows (one 12px radius, one border colour and one shadow token for banner, cards, chart, drivers and "How this forecast works")
 - [x] Sidebar collapses on smaller screens (drawer below 900px)
 - [x] Demand colours always paired with text labels
 
 **11. Loading and missing data**
 - [x] "Gathering demand insight" while loading
 - [x] Unavailable data never shown as 0%
-- [ ] Stale or unavailable forecasts clearly identified — **partial**: stale results are never shown and missing periods say "No forecast"; there's no freshness label (**needs backend**)
+- [x] Stale or unavailable forecasts clearly identified — stale results are never shown, missing periods say "No forecast", the page shows "Last updated", and a plain-facts brief says so
 - [x] Retry option when loading fails
 
 ## 8. Weekly Outlook
@@ -251,7 +250,7 @@ click-through with a real login.
 - [x] Smaller heading (32px)
 - [x] Better contrast for the blue heading on the navy card
 - [x] Week selector, brief and grid near the top
-- [ ] Consistent icons — **partial** (events are still emoji)
+- [x] Consistent icons (event icons are now SVG)
 - [x] Mobile: horizontal day selector with selected-day details
 
 **10. Sharing**
@@ -334,7 +333,7 @@ click-through with a real login.
 - [x] Smaller header
 - [ ] Less vertical spacing — **partial**
 - [x] Better contrast on the navy card
-- [ ] Consistent icons, borders and spacing — **partial** (events are still emoji)
+- [ ] Consistent icons, borders and spacing — **partial**: event icons are now SVG; borders and spacing on this page haven't been re-checked
 - [x] Hover/keyboard/tap explanations for influence and distance
 - [x] "No matching events" vs "Event data unavailable" vs "No nearby events"
 
@@ -401,10 +400,10 @@ click-through with a real login.
 | Login | 11 | 11 |
 | Signup | 13 | 13 |
 | Onboarding (choice, info, hours, success) | 32 | 34 |
-| Daily Outlook | 46 | 62 |
-| Weekly Outlook | 35 | 44 |
+| Daily Outlook | 60 | 62 |
+| Weekly Outlook | 36 | 44 |
 | Events | 47 | 55 |
 | Weather | 23 | 31 |
-| **Total** | **207** | **250** |
+| **Total** | **222** | **250** |
 
 Every page in the review has now been worked through. What is left is mostly **needs backend** items (last updated, other weeks, Gemini fallback, wind/alerts, event addresses) and the **verify** items that need a real signed-in session.

@@ -71,14 +71,15 @@ A 40px circle with a 20px icon.
 
 | Daypart | Label | Window shown | Icon | Circle / icon |
 |---|---|---|---|---|
-| morning | Morning | 7:00 AM – 10:00 AM | sun outline | #eaf3ff / primary-50 |
-| midday | Midday | 11:00 AM – 2:00 PM | sun filled | #fff3d6 / #f5a800 |
-| dinner | Dinner | 5:00 PM – 10:00 PM | utensils | #fdeceb / #e04b3a |
-| late | Late night | 10:00 PM – 12:00 AM | moon | #d7dbe6 / #0b1b47 |
+| morning | Morning | 6:00 AM – 11:00 AM | sun outline | #eaf3ff / primary-50 |
+| midday | Midday | 11:00 AM – 4:00 PM | sun filled | #fff3d6 / #f5a800 |
+| dinner | Dinner | 4:00 PM – 9:00 PM | utensils | #fdeceb / #e04b3a |
+| late | Late night | 9:00 PM – 2:00 AM | moon | #d7dbe6 / #0b1b47 |
 
-Labels and windows come from [lib/dayparts.ts](app/lib/dayparts.ts). The backend buckets events
-by different windows (6–11 / 11–4 / 4–9 / 9 PM–2 AM; `daypartFromLocalTime` in
-`my-app/convex/lib/vocab.ts`). See §7.
+Labels and windows come from [lib/dayparts.ts](app/lib/dayparts.ts). The windows are the ones the
+backend scores and buckets events by (`DAYPART_WINDOWS` / `daypartFromLocalTime` in
+`my-app/convex/lib/vocab.ts`), so the four periods leave no gap in the day. "Late night" runs to
+2 AM; for the open-hours check it stops at midnight. See §7.
 
 ### Typography as used
 
@@ -218,7 +219,7 @@ Dropdowns are `Select`, never a native `<select>`. In all three, focus turns the
 
 | Page | Structure |
 |---|---|
-| Daily Outlook | Title "Daily outlook" and subtitle → brief banner with score column ("Demand score ⓘ", band, score, 0–150 bar, "Busiest period: X ⓘ") → "Demand throughout the day ⓘ" (band ranges) → amber "Add your operating hours" prompt when the day has no hours → 4 daypart cards (icon + window + "Closed" badge outside the restaurant's hours; band pill + "±x% vs. normal ⓘ"; weather; "What's driving demand ⓘ" note) → "Demand score by period" bar chart + drivers card → collapsible "How this forecast works" (scope, how a score is built, daily score, vs. normal, band table, events and weather) |
+| Daily Outlook | Title "Daily outlook", subtitle, "Last updated ⓘ" and a **Refresh** button on the right (rebuilds the forecast; the server ignores it within 60 s of the last build) → brief banner with score column ("Demand score ⓘ", band, score, 0 / 75 / 150 bar, "Busiest period: X", "Daily score calculation ⓘ") → "Demand throughout the day ⓘ" (band ranges) → amber "Add your operating hours" prompt when the day has no hours → 4 daypart cards (the busiest one gets a blue border and a "Busiest period" tag; icon + window + "Closed" badge outside the restaurant's hours; band pill + "±x% vs. normal ⓘ"; weather; "What's driving demand ⓘ" note) → "Demand score by period" bar chart + drivers card → collapsible "How this forecast works" (scope, how a score is built, daily score, vs. normal, band table, events and weather) |
 | Weekly Outlook | Title and date range, with "Export weekly outlook" (paid plans; others see a "Paid plans" link to Billing) → `WeekGlance` banner → "Plan your week ⓘ" grid → selected-day details → `DailyTotals` + drivers card (with "Show only {day}" / "Show full week") |
 | Events Overview | Title → "Event impact at a glance" banner (2–3 sentences built from the same list, hedged with "may") → "Choose a day ⓘ" `EventDaySelector` → "Showing events for …" → filters (search, Event type, Venues, Distance) with removable chips, result count and Clear filters → `EventsList` → collapsible "How events shape demand". The summary, day counts and list all come from one selected day (or the rest of the week) |
 | Event Outlook | Back link → `EventBody`: event card (date chip, estimated effect with ⓘ, local start time, service period, type, distance ⓘ, estimated influence ⓘ, why it matters, actions) + four "Impact by service period" cards (a period with no effect says "No effect", not "+0%") |
@@ -274,17 +275,17 @@ Most of these overlap with the open design-review items.
 1. **Three input styles and two label colours** (onboarding gray-70 vs Settings #90a1b9).
 2. **Hard-coded navy gradients and borders** instead of tokens.
 3. **No shadow, spacing or breakpoint tokens.** Values repeat by hand.
-4. **Daypart windows** shown on cards don't match the backend's event windows.
-5. **Event icons are emoji** (the Events list and event page still use them). Weather drivers now use `WeatherIcon`.
+4. ~~Daypart windows shown on cards don't match the backend's event windows.~~ Fixed: the cards now show the backend's windows.
+5. ~~Event icons are emoji.~~ Fixed: `EventIcon` draws one SVG line icon per event class, used on the Events list, event page, Weekly and Daily drivers. Weather drivers use `WeatherIcon`.
 6. **Percentages and numbers:**
    - Fixed on Daily: missing values no longer show as 0, and the drivers card shows 0% as gray "No effect".
    - Weather: fixed. A missing forecast reads "Unavailable", never 0%. Percentages there keep one decimal on purpose (−8.8%) so period and day figures can be compared.
 7. **Weather severity pills:** fixed. The pills are gone; the effect is a signed percentage in red or green with a text label ("Moderate demand impact"), and zero is plain gray text.
 8. **Events influence:** fixed. Raw 0.5 / 1 values are gone; the list shows "Estimated influence" (High / Moderate / Low) with a tooltip. It reflects distance only (the backend's proximity tiers), not event size.
-9. **Tooltips exist on every Intelligence page.** There is still no "last updated" time anywhere because the backend doesn't send it.
+9. **Tooltips exist on every Intelligence page.** Daily Outlook shows "Last updated" (from `generatedAt`, with the exact time in a tooltip). Weekly, Events and Weather don't show it yet.
 10. **Disabled buttons:** Settings dims with opacity while other pages use the gray fill.
 11. **Subtitle separators:** fixed. Every Intelligence page now uses `pageSubtitle()` ("Name · Concept · Zone · Date") with repeats removed.
-12. **Daypart windows vs operating hours:** "Closed" is worked out from the windows shown on the cards (7–10, 11–2, 5–10, 10–12), so hours in the 2–5 PM gap don't count toward any period.
+12. **Daypart windows vs operating hours:** "Closed" is worked out from the backend's windows (6–11, 11–4, 4–9, 9 PM–midnight), so there is no gap in the day.
 
 ## 8. Rules for new UI
 

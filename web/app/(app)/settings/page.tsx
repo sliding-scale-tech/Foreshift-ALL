@@ -328,7 +328,7 @@ function HoursCard({ operator }: { operator: Operator }) {
   return (
     <section className={styles.card}>
       <h2 className={styles.cardTitle}>Operating Hours</h2>
-      <p className={styles.cardSub}>Set your regular service hours. Adjustable by individual day.</p>
+      <p className={styles.cardSub}>Set your regular service hours. You can adjust individual days.</p>
       <div className={styles.hours}>
         <HoursEditor value={hours} onChange={setHours} showMissing={attempted} />
       </div>

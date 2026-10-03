@@ -37,6 +37,9 @@ export function OutlookBody({
   // Per daypart: true open, false closed, null unknown (no hours for that day).
   const open = data.dayparts.map((dp) => (hours ? openDuring(hours, date, dp.start, dp.end) : true));
   const hoursMissing = hours !== undefined && open.some((o) => o === null);
+  // The strongest period gets a tag and a blue border (the first one if tied; none when every score is 0).
+  const top = Math.max(...data.dayparts.map((dp) => dp.score ?? 0));
+  const busiestKey = top > 0 ? data.dayparts.find((dp) => dp.score === top)?.key : undefined;
 
   return (
     <>
@@ -47,6 +50,11 @@ export function OutlookBody({
             Today&apos;s demand brief
           </div>
           <p className={shared.bannerText}>{data.brief}</p>
+          {data.briefIsFactual && (
+            <p className={styles.factualNote}>
+              The AI summary is unavailable right now, so this brief is written straight from the numbers below.
+            </p>
+          )}
         </div>
         <div>
           <div className={styles.scoreLabel}>
@@ -57,7 +65,10 @@ export function OutlookBody({
             </InfoTip>
           </div>
           <div className={styles.scoreHead}>
-            <span>{data.band}</span>
+            <span className={styles.bandName}>
+              {data.band}
+              <BandTip band={data.band} tone="dark" align="start" />
+            </span>
             <span>{data.score.toFixed(1)}</span>
           </div>
           <div className={styles.scoreTrack}>
@@ -68,13 +79,18 @@ export function OutlookBody({
           </div>
           <div className={styles.scoreScale}>
             <span>0</span>
+            <span>{MAX_SCORE / 2}</span>
             <span>{MAX_SCORE}</span>
           </div>
           <div className={styles.peakNote}>
-            Busiest period: {data.peakLabel}
-            <InfoTip label="how the daily score is calculated" tone="dark" align="end">
-              Today&apos;s demand score is the score of the day&apos;s busiest period.
-            </InfoTip>
+            <span>Busiest period: {data.peakLabel}</span>
+            <span className={styles.peakCalc}>
+              Daily score calculation
+              <InfoTip label="how the daily score is calculated" tone="dark" align="end">
+                The daily score is the score of your busiest period, on the same 0&ndash;{MAX_SCORE} scale. It
+                isn&apos;t an average of the four periods.
+              </InfoTip>
+            </span>
           </div>
         </div>
       </section>
@@ -99,9 +115,15 @@ export function OutlookBody({
         </p>
       )}
 
+      {data.dayparts.every((dp) => dp.score === null) && (
+        <p className={styles.hoursPrompt} role="status">
+          No forecast is available for this day yet.
+        </p>
+      )}
+
       <div className={styles.dayparts}>
         {data.dayparts.map((dp, i) => (
-          <DaypartCard key={dp.key} dp={dp} closed={open[i] === false} />
+          <DaypartCard key={dp.key} dp={dp} closed={open[i] === false} busiest={dp.key === busiestKey} />
         ))}
       </div>
 
@@ -109,6 +131,7 @@ export function OutlookBody({
         <section className={`${shared.card} ${styles.chartCard}`}>
           <h2 className={`${shared.cardTitle} ${styles.chartTitle}`}>Demand score by period</h2>
           <DemandBarChart
+            emphasizePeak
             items={data.dayparts.map((dp, i) => ({
               label: dp.label,
               score: dp.score,
@@ -127,9 +150,29 @@ export function OutlookBody({
   );
 }
 
-function DaypartCard({ dp, closed }: { dp: DaypartOutlook; closed: boolean }) {
+// What a demand level means and the score range behind it.
+function BandTip({
+  band,
+  tone,
+  align,
+}: {
+  band: string;
+  tone?: "light" | "dark";
+  align?: "center" | "start" | "end";
+}) {
+  const b = BANDS.find((x) => x.name === band);
+  if (!b) return null;
   return (
-    <div className={`${shared.card} ${styles.dpCard}`}>
+    <InfoTip label={`${b.name} demand level`} tone={tone} align={align}>
+      <strong>{b.name}</strong> ({b.min}&ndash;{b.max}): {b.meaning.toLowerCase()}.
+    </InfoTip>
+  );
+}
+
+function DaypartCard({ dp, closed, busiest }: { dp: DaypartOutlook; closed: boolean; busiest: boolean }) {
+  return (
+    <div className={`${shared.card} ${styles.dpCard} ${busiest ? styles.dpBusiest : ""}`}>
+      {busiest && <span className={styles.busiestTag}>Busiest period</span>}
       <div className={styles.dpHead}>
         <DaypartIcon daypart={dp.key} />
         <div className={styles.dpHeadText}>
@@ -138,10 +181,16 @@ function DaypartCard({ dp, closed }: { dp: DaypartOutlook; closed: boolean }) {
         </div>
         {closed && <span className={styles.closedBadge}>Closed</span>}
       </div>
-      {closed && <p className={styles.closedNote}>Your restaurant is closed during this period.</p>}
 
       <div className={styles.dpMeta}>
-        {dp.band ? <BandPill band={dp.band} /> : <span className={styles.unavailable}>No forecast</span>}
+        {dp.band ? (
+          <span className={styles.bandCell}>
+            <BandPill band={dp.band} />
+            <BandTip band={dp.band} align="start" />
+          </span>
+        ) : (
+          <span className={styles.unavailable}>No forecast</span>
+        )}
         {dp.liftPct === null ? (
           <span className={styles.unavailable}>Comparison not available</span>
         ) : (
@@ -170,10 +219,11 @@ function DaypartCard({ dp, closed }: { dp: DaypartOutlook; closed: boolean }) {
         What&apos;s driving demand
         <InfoTip label="event impact" align="end">
           Nearby events in this period. An event&apos;s estimated impact is the extra demand it may add, counted
-          in the period it falls in.
+          in the period it falls in (events with no start time count across the whole day).
         </InfoTip>
       </div>
       <p className={styles.eventNote}>{dp.eventNote}</p>
+      {closed && <p className={styles.closedNote}>Your restaurant is closed during this period.</p>}
     </div>
   );
 }

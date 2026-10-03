@@ -45,13 +45,18 @@ export function DemandBarChart({
   height = 340,
   selected = null,
   onSelect,
+  emphasizePeak = false,
 }: {
   items: BarItem[];
   height?: number;
+  /** Fade every bar except the highest one (when nothing is selected). The band stays in the label. */
+  emphasizePeak?: boolean;
   /** Highlights one bar and fades the rest (kept in sync with a grid elsewhere on the page). */
   selected?: number | null;
   onSelect?: (index: number) => void;
 }) {
+  const peakScore = Math.max(...items.map((i) => i.score ?? 0));
+  const peakIndex = emphasizePeak && peakScore > 0 ? items.findIndex((i) => i.score === peakScore) : -1;
   const options: ApexOptions = {
     chart: {
       type: "bar",
@@ -71,7 +76,10 @@ export function DemandBarChart({
         },
       }),
     },
-    colors: items.map((i, n) => withAlpha(bandColor(i.band), selected === null || selected === n ? 1 : 0.35)),
+    colors: items.map((i, n) => {
+      const lit = selected !== null ? selected === n : peakIndex < 0 || peakIndex === n;
+      return withAlpha(bandColor(i.band), lit ? 1 : selected !== null ? 0.35 : 0.5);
+    }),
     plotOptions: {
       bar: {
         distributed: true,
@@ -98,8 +106,14 @@ export function DemandBarChart({
     xaxis: {
       // Second line under the period name: why a bar looks the way it does.
       // Every label is an array (Apex wants one shape for all of them).
-      categories: items.map((i) =>
-        i.score === null ? [i.label, "No data"] : i.closed ? [i.label, "Closed"] : [i.label],
+      categories: items.map((i, n) =>
+        i.score === null
+          ? [i.label, "No data"]
+          : i.closed
+            ? [i.label, "Closed"]
+            : n === peakIndex
+              ? [i.label, "Busiest"]
+              : [i.label],
       ),
       labels: { style: { colors: AXIS_TEXT, fontSize: "13px" } },
       axisBorder: { show: false },

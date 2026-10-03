@@ -36,11 +36,13 @@ export function toDrivers(list: (DemandDriver & { day?: string; date?: string })
     if (d.type === "event") {
       // Weekly drivers say which day and period the event falls in.
       const when = [d.day, formatEventTime(d.time)].filter(Boolean).join(" ");
+      // The period its lift lands in. No start time = counted across the whole day.
+      const affects = d.time ? (PERIOD_LABEL[d.daypart] ?? d.daypart) : "All day";
       out.push({
         kind: "event",
         liftPct,
         title: d.name,
-        subtitle: [d.venue !== "N/A" ? d.venue : "", when, d.day ? PERIOD_LABEL[d.daypart] : ""]
+        subtitle: [d.venue !== "N/A" ? d.venue : "", when, affects]
           .filter(Boolean)
           .join(" - "),
         eventClass: d.class,

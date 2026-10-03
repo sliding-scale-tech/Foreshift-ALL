@@ -9,6 +9,9 @@ import { LoadError } from "@/app/components/LoadError";
 import { useDailyOutlook } from "@/app/hooks/useDailyOutlook";
 import shared from "../../shared.module.css";
 import { OutlookBody } from "@/app/components/DailyOutlookBody";
+import { LastUpdated } from "@/app/components/LastUpdated";
+import { StaleNotice } from "@/app/components/StaleNotice";
+import { RefreshButton } from "@/app/components/RefreshButton";
 
 // Detroit is where every zone lives, so "today" is Detroit's date. `date`
 // ("YYYY-MM-DD") is the day being viewed when it isn't today.
@@ -44,8 +47,15 @@ function DailyOutlook() {
 
   return (
     <>
-      <h1 className={shared.title}>Daily outlook</h1>
-      <p className={shared.subtitle}>{pageSubtitle(operator, formatDate(outlook.date))}</p>
+      <div className={shared.headRow}>
+        <div>
+          <h1 className={shared.title}>Daily outlook</h1>
+          <p className={shared.subtitle}>{pageSubtitle(operator, formatDate(outlook.date))}</p>
+          <LastUpdated generatedAt={outlook.generatedAt} />
+        </div>
+        <RefreshButton onRefresh={outlook.refresh} refreshing={outlook.refreshing} error={outlook.refreshError} />
+      </div>
+      {outlook.stale && <StaleNotice onRetry={outlook.retry} />}
       <OutlookBody
         data={outlook.data}
         date={outlook.date}

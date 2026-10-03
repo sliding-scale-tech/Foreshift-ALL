@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "my-app/convex/_generated/api";
@@ -14,23 +15,7 @@ import { Select } from "@/app/components/Select";
 import { ZoneFinderModal } from "@/app/components/ZoneFinderModal";
 import { addressError, useAreaDetection, type AreaDetection } from "@/app/hooks/useAreaDetection";
 import { emptySchedule, isScheduleComplete, toSavedHours, type DayHours } from "@/app/lib/hours";
-import {
-  IconArrowRight,
-  IconArrowLeft,
-  IconCheck,
-  IllustrationRestaurant,
-  IllustrationExplore,
-  IllustrationSuccess,
-  IconFineDining,
-  IconUpscaleCasual,
-  IconCasualDining,
-  IconFastCasual,
-  IconCoffeeShop,
-  IconBrunchCafe,
-  IconSportsBar,
-  IconCocktailLounge,
-  IconCasualBar,
-} from "@/app/components/icons";
+import { IconArrowRight, IconArrowLeft, IconCheck } from "@/app/components/icons";
 import styles from "./onboarding.module.css";
 
 // Display order matching the ForeShift mockup — CONCEPTS itself (imported
@@ -48,17 +33,26 @@ const CONCEPT_DISPLAY_ORDER: Concept[] = [
   "Neighborhood / Casual Bar",
 ];
 
-const CONCEPT_ICONS: Record<Concept, React.ComponentType> = {
-  "Fine Dining": IconFineDining,
-  "Upscale Casual": IconUpscaleCasual,
-  "Casual Dining": IconCasualDining,
-  "Fast Casual": IconFastCasual,
-  "Coffee Shop": IconCoffeeShop,
-  "Breakfast / Brunch Cafe": IconBrunchCafe,
-  "Sports Bar": IconSportsBar,
-  "Cocktail Lounge": IconCocktailLounge,
-  "Neighborhood / Casual Bar": IconCasualBar,
+// Icons exported from the Figma onboarding frame (public/onboarding/concepts).
+// Figma uses one martini glass for both bar concepts.
+const CONCEPT_ICONS: Record<Concept, string> = {
+  "Fine Dining": "fine-dining",
+  "Upscale Casual": "upscale-casual",
+  "Casual Dining": "casual-dining",
+  "Fast Casual": "fast-casual",
+  "Coffee Shop": "coffee-shop",
+  "Breakfast / Brunch Cafe": "brunch-cafe",
+  "Sports Bar": "sports-bar",
+  "Cocktail Lounge": "cocktail",
+  "Neighborhood / Casual Bar": "cocktail",
 };
+
+// The PNGs are used as a mask so the colour follows the card state (grey,
+// blue when selected) instead of whatever colour each source file has.
+function ConceptIcon({ name }: { name: string }) {
+  const url = `url(/onboarding/concepts/${name}.png)`;
+  return <span className={styles.conceptIcon} style={{ maskImage: url, WebkitMaskImage: url }} aria-hidden="true" />;
+}
 
 // Shown only on the restaurant route, after the choice screen. "I'm
 // exploring" skips venue details and operating hours (zone and concept are all
@@ -87,16 +81,20 @@ export default function OnboardingPage() {
 function OnboardingGate() {
   const { hasOnboarded, isLoading } = useMyOperator();
   const router = useRouter();
+  // Saving creates the operator, which flips hasOnboarded to true while the
+  // "You're all set!" screen is still on the way. Without this the gate would
+  // send the user to the dashboard first and they would never see it.
+  const [finishing, setFinishing] = useState(false);
 
   if (isLoading) return null;
-  if (hasOnboarded) {
+  if (hasOnboarded && !finishing) {
     router.replace("/dashboard");
     return null;
   }
-  return <OnboardingWizard />;
+  return <OnboardingWizard onFinishing={setFinishing} />;
 }
 
-function OnboardingWizard() {
+function OnboardingWizard({ onFinishing }: { onFinishing: (finishing: boolean) => void }) {
   const router = useRouter();
   const createOperator = useMutation(api.operators.create);
 
@@ -125,6 +123,7 @@ function OnboardingWizard() {
     if (!area.zone || !isScheduleComplete(hours)) return;
     setError("");
     setSubmitting(true);
+    onFinishing(true);
     try {
       await createOperator({
         restaurantName: restaurantName.trim(),
@@ -135,6 +134,7 @@ function OnboardingWizard() {
       });
       setStep(4);
     } catch (err) {
+      onFinishing(false);
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
@@ -145,10 +145,12 @@ function OnboardingWizard() {
   async function handleFinishExploring() {
     setError("");
     setSubmitting(true);
+    onFinishing(true);
     try {
       await createOperator({ zone: exploreZone, conceptType });
       setStep(3);
     } catch (err) {
+      onFinishing(false);
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
@@ -279,7 +281,7 @@ function StepChoice({
       <div className={styles.choiceGrid}>
         <div className={styles.choiceCard}>
           <div className={styles.choiceIllustration}>
-            <IllustrationRestaurant />
+            <Image src="/onboarding/choice-restaurant.png" alt="" width={384} height={256} unoptimized priority />
           </div>
           <h2>I run a restaurant</h2>
           <p>Understand upcoming demand to plan daily operations.</p>
@@ -290,7 +292,7 @@ function StepChoice({
 
         <div className={styles.choiceCard}>
           <div className={styles.choiceIllustration}>
-            <IllustrationExplore />
+            <Image src="/onboarding/choice-explore.png" alt="" width={417} height={236} unoptimized priority />
           </div>
           <h2>I&apos;m exploring opportunities</h2>
           <p>Explore demand for your restaurant concept across different locations.</p>
@@ -307,7 +309,7 @@ function StepDone({ onViewDashboard }: { onViewDashboard: () => void }) {
   return (
     <div className={styles.doneWrap}>
       <div className={styles.doneIllustration}>
-        <IllustrationSuccess />
+        <Image src="/onboarding/all-set.png" alt="" width={604} height={306} unoptimized priority />
       </div>
       <h1 className={styles.doneTitle}>You&apos;re all set!</h1>
       <p className={styles.doneSubtitle}>
@@ -339,7 +341,6 @@ function ConceptGrid({
       aria-describedby={invalid ? errorId : undefined}
     >
       {CONCEPT_DISPLAY_ORDER.map((c) => {
-        const Icon = CONCEPT_ICONS[c];
         const selected = value === c;
         return (
           <button
@@ -349,7 +350,7 @@ function ConceptGrid({
             className={`${styles.conceptCard} ${selected ? styles.selected : ""}`}
             onClick={() => onChange(c)}
           >
-            <Icon />
+            <ConceptIcon name={CONCEPT_ICONS[c]} />
             {c}
           </button>
         );
@@ -554,7 +555,7 @@ function StepOperatingHours(props: {
     <>
       <div className={styles.cardHead}>
         <h1>When are you open?</h1>
-        <p>Set your regular service hours. Adjustable by individual day.</p>
+        <p>Set your regular service hours. You can adjust individual days.</p>
       </div>
 
       <HoursEditor value={props.hours} onChange={props.setHours} showMissing={attempted} />

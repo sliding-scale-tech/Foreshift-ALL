@@ -17,12 +17,12 @@
 .Light {
   background: var(--color-primary-20);
   border-color: var(--color-primary-30);
-  color: var(--color-shift-electric-blue);
+  color: var(--color-primary-60);
 }
 .Moderate {
   background: var(--color-alert-20);
   border-color: var(--color-alert-40);
-  color: var(--color-alert-80);
+  color: var(--color-alert-90);
 }
 .High {
   background: var(--color-destructive-20);

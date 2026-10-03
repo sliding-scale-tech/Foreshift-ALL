@@ -89,10 +89,26 @@
   margin: -8px 0 12px;
 }
 
-.forgotRow span {
+/* A button that reads as a link (Forgot password?, Back to sign in). */
+.linkBtn {
+  padding: 0;
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-shift-electric-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  text-decoration: underline;
+}
+
+.linkBtn:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .error {

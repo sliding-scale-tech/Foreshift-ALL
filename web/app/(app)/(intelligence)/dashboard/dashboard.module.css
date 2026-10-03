@@ -4,14 +4,14 @@
 /* ---- Operations brief (two columns: text + score) ---- */
 
 .brief {
-  margin-top: 23px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 506px);
-  gap: 32px;
+  gap: 28px;
   align-items: start;
-  padding: 24px;
+  padding: 20px 24px;
   border: 1px solid #c7c4d7;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   background: linear-gradient(90deg, #0b1d57 0%, #172a63 100%);
   color: #fff;
   box-shadow: 0 6px 24px rgba(1, 20, 66, 0.18);
@@ -63,12 +63,28 @@
 }
 
 .peakNote {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 4px 16px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.95);
+}
+
+.peakCalc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.bandName,
+.bandCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ---- Tooltip helpers ---- */
@@ -88,7 +104,7 @@
 /* ---- Operating hours ---- */
 
 .hoursPrompt {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   padding: 10px 14px;
   font-size: 14px;
   color: var(--color-alert-80);
@@ -103,8 +119,11 @@
   text-decoration: underline;
 }
 
+/* Pinned to the corner so a closed card keeps the same header height as the others. */
 .closedBadge {
-  margin-left: auto;
+  position: absolute;
+  top: 16px;
+  right: 16px;
   padding: 3px 8px;
   font-size: 12px;
   font-weight: 600;
@@ -115,8 +134,10 @@
 }
 
 .closedNote {
-  margin-top: 8px;
+  margin-top: auto;
+  padding-top: 10px;
   font-size: 13px;
+  line-height: 18px;
   color: var(--color-gray-70);
 }
 
@@ -125,12 +146,38 @@
 .dayparts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
+  gap: 16px;
 }
 
+/* Every card is a column of the same five blocks, so a card that is closed or
+   has a longer note doesn't push its neighbours' sections out of line. */
 .dayparts .dpCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   padding: 16px;
-  border-color: var(--color-gray-40);
+}
+
+/* The strongest period: blue border plus a text tag (never colour alone). */
+.dayparts .dpBusiest {
+  border-color: var(--color-shift-electric-blue);
+  box-shadow: 0 0 0 1px var(--color-shift-electric-blue), var(--shadow-card);
+}
+
+.busiestTag {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border-radius: 4px;
 }
 
 .dpHead {
@@ -157,11 +204,14 @@
 }
 
 .dpMeta {
-  margin-top: 15px;
-  padding-bottom: 14px;
+  margin-top: 12px;
+  padding-bottom: 12px;
+  min-height: 76px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
   border-bottom: 1px solid var(--color-borders);
 }
 
@@ -169,7 +219,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 22px;
   color: var(--color-text);
   white-space: nowrap;
@@ -184,8 +234,9 @@
 .weather {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px 0 16px;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 0;
   border-bottom: 1px solid var(--color-borders);
 }
 
@@ -209,10 +260,10 @@
 }
 
 .eventHead {
-  margin-top: 16px;
+  margin-top: 12px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   padding-left: 1px;
   font-size: 14px;
   font-weight: 600;
@@ -226,7 +277,8 @@
 }
 
 .eventNote {
-  margin-top: 5px;
+  margin-top: 4px;
+  flex: 1;
   font-size: 14px;
   line-height: 20px;
   color: var(--color-gray-70);
@@ -235,7 +287,7 @@
 /* ---- Chart + drivers ---- */
 
 .lower {
-  margin-top: 24px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: minmax(0, 900fr) minmax(0, 613fr);
   gap: 20px;
@@ -243,20 +295,21 @@
 }
 
 .chartCard {
-  padding: 24px;
+  padding: 20px;
 }
 
 .chartTitle {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 /* ---- How this forecast works ---- */
 
 .howItWorks {
-  margin-top: 24px;
+  margin-top: 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-borders);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .howItWorks summary {
@@ -270,7 +323,7 @@
 .howItWorks summary:focus-visible {
   outline: 2px solid var(--color-primary-50);
   outline-offset: 2px;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
 }
 
 .howBody {
@@ -331,4 +384,12 @@
   .dayparts {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* Shown under the brief when Gemini was down and the text came from the numbers. */
+.factualNote {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
 }

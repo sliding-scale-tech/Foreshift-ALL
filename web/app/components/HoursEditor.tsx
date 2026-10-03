@@ -2,15 +2,7 @@
 
 import { useId, useState } from "react";
 import { TimeField } from "@/app/components/TimeField";
-import {
-  FULL_DAY_NAME,
-  closesNextDay,
-  dayErrors,
-  listDays,
-  unsetDays,
-  type Day,
-  type DayHours,
-} from "@/app/lib/hours";
+import { FULL_DAY_NAME, dayErrors, listDays, unsetDays, type Day, type DayHours } from "@/app/lib/hours";
 import styles from "./HoursEditor.module.css";
 
 const SHORTCUTS: { label: string; days: Day[] }[] = [
@@ -19,10 +11,13 @@ const SHORTCUTS: { label: string; days: Day[] }[] = [
   { label: "Sat–Sun", days: ["Sat", "Sun"] },
 ];
 
-// Operating hours editor (onboarding + Settings): set one pair of times for
-// several days at once, then review and adjust single days in the weekly list
-// below. A day is "Not set" until it gets times or is marked Closed — blank is
-// never silently saved as closed.
+// Every screen in the app, and the forecast behind it, runs on Detroit time.
+const TIME_ZONE = "America/Detroit";
+
+// Operating hours editor (onboarding + Settings): pick days and apply one pair
+// of times to them, then review the week one row per day and adjust any single
+// day in place. A day is "Not set" until it gets times or is marked Closed —
+// blank is never silently saved as closed.
 export function HoursEditor({
   value,
   onChange,
@@ -37,7 +32,6 @@ export function HoursEditor({
   const [selected, setSelected] = useState<Day[]>([]);
   const [sharedOpen, setSharedOpen] = useState("");
   const [sharedClose, setSharedClose] = useState("");
-  const [editing, setEditing] = useState<Day[]>([]);
   const [notice, setNotice] = useState("");
 
   const errors = dayErrors(value);
@@ -55,10 +49,9 @@ export function HoursEditor({
     setSelected((s) => (s.includes(day) ? s.filter((d) => d !== day) : [...s, day]));
   }
 
-  function applyToSelected(patch: Partial<DayHours>, message: string) {
-    onChange(value.map((d) => (selected.includes(d.day) ? { ...d, ...patch } : d)));
-    setEditing((e) => e.filter((d) => !selected.includes(d)));
-    setNotice(message);
+  function applyShared() {
+    onChange(value.map((d) => (selected.includes(d.day) ? { ...d, state: "open", open: sharedOpen, close: sharedClose } : d)));
+    setNotice(`Set ${sharedOpen} – ${sharedClose} for ${listDays(selectedInOrder)}.`);
     setSelected([]);
   }
 
@@ -66,38 +59,41 @@ export function HoursEditor({
     <div className={styles.editor}>
       <section className={styles.shared} aria-labelledby={`${id}-shared`}>
         <h2 id={`${id}-shared`} className={styles.sharedTitle}>
-          Set hours for several days
+          Apply shared hours
         </h2>
 
-        <div className={styles.shortcuts}>
-          {SHORTCUTS.map((s) => (
-            <button
-              key={s.label}
-              type="button"
-              className={styles.shortcut}
-              onClick={() => {
-                setNotice("");
-                setSelected(s.days);
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <div className={styles.chipRow}>
+          <div className={styles.chips} role="group" aria-label="Days to set">
+            {value.map((d) => (
+              <button
+                key={d.day}
+                type="button"
+                data-chip
+                className={`${styles.chip} ${selected.includes(d.day) ? styles.chipOn : ""}`}
+                aria-pressed={selected.includes(d.day)}
+                aria-label={FULL_DAY_NAME[d.day]}
+                onClick={() => toggleDay(d.day)}
+              >
+                {d.day}
+              </button>
+            ))}
+          </div>
 
-        <div className={styles.chips} role="group" aria-label="Days to set">
-          {value.map((d) => (
-            <button
-              key={d.day}
-              type="button"
-              className={`${styles.chip} ${selected.includes(d.day) ? styles.chipOn : ""}`}
-              aria-pressed={selected.includes(d.day)}
-              aria-label={FULL_DAY_NAME[d.day]}
-              onClick={() => toggleDay(d.day)}
-            >
-              {d.day}
-            </button>
-          ))}
+          <div className={styles.shortcuts}>
+            {SHORTCUTS.map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className={styles.shortcut}
+                onClick={() => {
+                  setNotice("");
+                  setSelected(s.days);
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles.sharedTimes}>
@@ -113,138 +109,71 @@ export function HoursEditor({
             </label>
             <TimeField id={`${id}-closes`} className={styles.time} value={sharedClose} onChange={setSharedClose} />
           </div>
+          <button type="button" className={styles.applyBtn} disabled={selected.length === 0 || !sharedValid} onClick={applyShared}>
+            Apply to selected days
+          </button>
         </div>
         {sharedOpen && sharedClose && sharedOpen === sharedClose && (
           <p className={styles.error}>Opening and closing times can&apos;t be the same.</p>
         )}
-
-        <div className={styles.sharedActions}>
-          <button
-            type="button"
-            className={styles.applyBtn}
-            disabled={selected.length === 0 || !sharedValid}
-            onClick={() =>
-              applyToSelected(
-                { state: "open", open: sharedOpen, close: sharedClose },
-                `Set ${sharedOpen} – ${sharedClose} for ${listDays(selectedInOrder)}.`,
-              )
-            }
-          >
-            Apply to selected days
-          </button>
-          <button
-            type="button"
-            className={styles.secondaryBtn}
-            disabled={selected.length === 0}
-            onClick={() => applyToSelected({ state: "closed" }, `Marked ${listDays(selectedInOrder)} as closed.`)}
-          >
-            Mark selected as closed
-          </button>
-        </div>
         <p className={styles.notice} role="status">
           {notice || (selected.length === 0 ? "Select one or more days above." : "")}
         </p>
       </section>
 
-      <h2 className={styles.weekTitle}>Your week</h2>
+      <h2 className={styles.weekTitle}>Your weekly schedule</h2>
       <ul className={styles.week}>
         {value.map((d) => {
           const name = FULL_DAY_NAME[d.day];
           const error = errors[d.day];
-          // A day just opened for editing isn't wrong yet — only flag missing
-          // times once something was typed or the user tried to continue.
+          // A day just given one time isn't wrong yet — only flag the missing
+          // one once something was typed or the user tried to continue.
           const shownError = error && (showMissing || d.open || d.close) ? error : null;
           const missing = d.state === "unset" && showMissing;
           const errorId = `${id}-${d.day}-error`;
-          const isEditing = d.state === "open" && (editing.includes(d.day) || error !== null);
+          const closed = d.state === "closed";
 
           return (
             <li key={d.day} className={styles.row}>
-              <span className={styles.dayName}>{name}</span>
+              <span className={styles.dayName}>
+                {name}
+                {d.state === "unset" && <span className={missing ? styles.notSetMissing : styles.notSet}>Not set</span>}
+              </span>
 
-              <div className={styles.rowMain}>
-                {d.state === "closed" && <span className={styles.closedText}>Closed</span>}
-
-                {d.state === "unset" && (
-                  <>
-                    <span className={missing ? styles.notSetMissing : styles.notSet}>Not set</span>
-                    <button
-                      type="button"
-                      className={styles.linkBtn}
-                      onClick={() => {
-                        patchDay(d.day, { state: "open" });
-                        setEditing((e) => [...e, d.day]);
-                      }}
-                    >
-                      Add hours
-                    </button>
-                  </>
-                )}
-
-                {d.state === "open" && !isEditing && (
-                  <>
-                    <span className={styles.summary}>
-                      {d.open} – {d.close}
-                      {closesNextDay(d) && <span className={styles.nextDay}> (next day)</span>}
-                    </span>
-                    <button
-                      type="button"
-                      className={styles.linkBtn}
-                      aria-label={`Edit ${name} hours`}
-                      onClick={() => setEditing((e) => [...e, d.day])}
-                    >
-                      Edit
-                    </button>
-                  </>
-                )}
-
-                {isEditing && (
-                  <div className={styles.editRow}>
-                    <TimeField
-                      className={styles.time}
-                      wrapClassName={styles.rowTime}
-                      value={d.open}
-                      onChange={(v) => patchDay(d.day, { open: v })}
-                      label={`${name} opens at`}
-                      invalid={shownError !== null}
-                      describedBy={shownError ? errorId : undefined}
-                    />
-                    <span className={styles.dash} aria-hidden="true">
-                      –
-                    </span>
-                    <TimeField
-                      className={styles.time}
-                      wrapClassName={styles.rowTime}
-                      value={d.close}
-                      onChange={(v) => patchDay(d.day, { close: v })}
-                      label={`${name} closes at`}
-                      invalid={shownError !== null}
-                      describedBy={shownError ? errorId : undefined}
-                    />
-                    {error === null && (
-                      <button
-                        type="button"
-                        className={styles.linkBtn}
-                        onClick={() => setEditing((e) => e.filter((x) => x !== d.day))}
-                      >
-                        Done
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {shownError && (
-                  <p id={errorId} className={styles.rowError}>
-                    {shownError}
-                  </p>
-                )}
-                {missing && <p className={styles.rowError}>Add hours or mark this day as closed.</p>}
-              </div>
+              {closed ? (
+                <span className={styles.closedText}>Closed</span>
+              ) : (
+                <div className={styles.times}>
+                  <TimeField
+                    className={styles.rowInput}
+                    wrapClassName={styles.rowTime}
+                    chevron
+                    value={d.open}
+                    onChange={(v) => patchDay(d.day, { state: "open", open: v })}
+                    label={`${name} opens at`}
+                    invalid={shownError !== null}
+                    describedBy={shownError ? errorId : undefined}
+                  />
+                  <span className={styles.to} aria-hidden="true">
+                    to
+                  </span>
+                  <TimeField
+                    className={styles.rowInput}
+                    wrapClassName={styles.rowTime}
+                    chevron
+                    value={d.close}
+                    onChange={(v) => patchDay(d.day, { state: "open", close: v })}
+                    label={`${name} closes at`}
+                    invalid={shownError !== null}
+                    describedBy={shownError ? errorId : undefined}
+                  />
+                </div>
+              )}
 
               <label className={styles.closedToggle}>
                 <input
                   type="checkbox"
-                  checked={d.state === "closed"}
+                  checked={closed}
                   onChange={(e) => {
                     if (e.target.checked) {
                       patchDay(d.day, { state: "closed" });
@@ -257,13 +186,22 @@ export function HoursEditor({
                 />
                 Closed
               </label>
+
+              {shownError && (
+                <p id={errorId} className={styles.rowError}>
+                  {shownError}
+                </p>
+              )}
+              {missing && !shownError && <p className={styles.rowError}>Add hours or mark this day as closed.</p>}
             </li>
           );
         })}
       </ul>
 
-      {unset.length > 0 && (
-        <p className={showMissing ? styles.pendingMissing : styles.pending}>
+      <p className={styles.zone}>Time zone: {TIME_ZONE}</p>
+
+      {unset.length > 0 && showMissing && (
+        <p className={styles.pendingMissing}>
           {unset.length === 1 ? "1 day still needs hours" : `${unset.length} days still need hours`}:{" "}
           {listDays(unset)}.
         </p>

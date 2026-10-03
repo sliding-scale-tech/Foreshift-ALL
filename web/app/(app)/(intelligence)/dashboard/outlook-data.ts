@@ -27,6 +27,7 @@ export type DaypartOutlook = {
 
 export type DailyOutlook = {
   brief: string;
+  briefIsFactual: boolean; // true = Gemini was unavailable; the brief is written from the numbers
   band: Band;
   score: number; // 0–150: the busiest daypart's score
   peakLabel: string; // that daypart, e.g. "Dinner"
@@ -60,6 +61,7 @@ export function toDailyOutlook(
 
   return {
     brief: result.narration,
+    briefIsFactual: (result as { narration_source?: string }).narration_source === "facts",
     band: result.peak.band as Band,
     score: result.peak.score,
     peakLabel: DAYPARTS.find((m) => m.key === result.peak.daypart)?.label ?? result.peak.daypart,

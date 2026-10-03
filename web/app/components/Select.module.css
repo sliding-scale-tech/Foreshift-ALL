@@ -74,6 +74,23 @@
   transition: transform var(--duration-fast);
 }
 
+/* Arrow drawn over the right edge of a time input (TimeField chevron). */
+.timeChevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: flex;
+  width: 12px;
+  color: var(--color-gray-70);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.timeChevron svg {
+  width: 100%;
+  height: auto;
+}
+
 .open .chevron {
   transform: rotate(180deg);
 }
