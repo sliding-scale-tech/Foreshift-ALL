@@ -53,6 +53,18 @@ export interface OutlookInputs {
   weather: WeatherSignalRead[];
 }
 
+// Optional replacements for the Gemini calls. Left unset (as /demand/outlook
+// does) every compute* function calls the real narrators exactly as before; the
+// web app passes ones that fall back to plain facts when Gemini is down — see
+// lib/outlookFacts.ts.
+export interface Narrators {
+  today?: typeof narrateTodayOutlook;
+  weekly?: typeof narrateWeeklyOutlook;
+  event?: typeof narrateEventImpact;
+  weather?: typeof narrateWeatherImpact;
+  daypartNotes?: typeof narrateDaypartEventNotes;
+}
+
 export interface DaypartOutlook {
   daypart: Daypart;
   window: string;
@@ -521,6 +533,7 @@ export async function computeTodayOutlook(args: {
   coeffs: CoefficientBundle;
   now?: Date;
   inputs?: OutlookInputs;
+  narrators?: Narrators;
 }): Promise<TodayOutlookResult> {
   const outlook = await resolveTodayDay(args);
 
@@ -535,7 +548,7 @@ export async function computeTodayOutlook(args: {
   }));
 
   const [narration, notesResult] = await Promise.all([
-    narrateTodayOutlook({
+    (args.narrators?.today ?? narrateTodayOutlook)({
       zone: args.zone,
       concept: args.concept,
       day: outlook.day,
@@ -546,7 +559,7 @@ export async function computeTodayOutlook(args: {
       // per-daypart list (they describe one tile each).
       drivers: dedupeDayDrivers(outlook.drivers),
     }),
-    narrateDaypartEventNotes({
+    (args.narrators?.daypartNotes ?? narrateDaypartEventNotes)({
       zone: args.zone,
       day: outlook.day,
       date: outlook.date,
@@ -599,6 +612,7 @@ export async function computeEventOutlook(args: {
   coeffs: CoefficientBundle;
   now?: Date;
   inputs?: OutlookInputs;
+  narrators?: Narrators;
 }): Promise<EventOutlookResult> {
   const outlook = await resolveTodayDay(args);
 
@@ -607,7 +621,7 @@ export async function computeEventOutlook(args: {
   // would otherwise be listed several times.
   const events = collapseEventDrivers(outlook.drivers.events);
 
-  const { text, usage } = await narrateEventImpact({
+  const { text, usage } = await (args.narrators?.event ?? narrateEventImpact)({
     zone: args.zone,
     concept: args.concept,
     day: outlook.day,
@@ -649,10 +663,11 @@ export async function computeWeatherOutlook(args: {
   coeffs: CoefficientBundle;
   now?: Date;
   inputs?: OutlookInputs;
+  narrators?: Narrators;
 }): Promise<WeatherOutlookResult> {
   const outlook = await resolveTodayDay(args);
 
-  const { text, usage } = await narrateWeatherImpact({
+  const { text, usage } = await (args.narrators?.weather ?? narrateWeatherImpact)({
     zone: args.zone,
     concept: args.concept,
     day: outlook.day,
@@ -719,6 +734,7 @@ export async function computeWeeklyOutlook(args: {
   coeffs: CoefficientBundle;
   now?: Date;
   inputs?: OutlookInputs;
+  narrators?: Narrators;
 }): Promise<WeeklyOutlookResult> {
   const now = args.now ?? new Date();
   const weekStart = mondayOfWeek(now);
@@ -757,7 +773,7 @@ export async function computeWeeklyOutlook(args: {
     d.peak.score > best.peak.score ? d : best,
   );
 
-  const { text, usage } = await narrateWeeklyOutlook({
+  const { text, usage } = await (args.narrators?.weekly ?? narrateWeeklyOutlook)({
     zone: args.zone,
     concept: args.concept,
     weekStart,

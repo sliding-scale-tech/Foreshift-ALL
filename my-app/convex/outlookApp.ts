@@ -32,6 +32,7 @@ import {
   computeWeatherOutlook,
   type OutlookInputs,
 } from "./lib/outlook";
+import { withFactsFallback } from "./lib/outlookFacts";
 import {
   type DemandRecord,
   type EventSignalRead,
@@ -200,6 +201,8 @@ async function readOutlook(
   return {
     date,
     result: cached ? (cached.result as unknown) : null,
+    // When the cached result was generated (ms since epoch); null before the first one.
+    generatedAt: cached ? cached.generatedAt : null,
     fresh: cached !== null && cached.fingerprint === current,
     weather: w
       ? {
@@ -285,6 +288,10 @@ export const getWeek = query({
         time: e.eventTime ? e.eventTime.slice(0, 5) : null,
         distanceMiles: e.distanceMiles ?? null,
         proximity: e.proximity,
+        // The period the event's lift lands in, from its start time. A timeless
+        // event (every Huntington Place event) has none and lifts all four.
+        daypart: e.daypart ?? null,
+        allDayparts: e.allDayparts,
       }))
       .sort(
         (a, b) =>
@@ -516,6 +523,7 @@ async function statusOf(
     key: cacheKey(zone, concept, type, date),
     fingerprint: await fingerprint(ctx, zone, concept, daysFor(type, date)),
     cachedFingerprint: cached?.fingerprint ?? null,
+    cachedAt: cached?.generatedAt ?? null,
   };
 }
 
@@ -552,14 +560,25 @@ type OutlookStatus = {
   key: string;
   fingerprint: string;
   cachedFingerprint: string | null;
+  cachedAt: number | null;
 };
+
+// A forced refresh (the Refresh button) is ignored if the cached result is newer
+// than this, so repeated clicks can't hammer Gemini.
+const FORCE_COOLDOWN_MS = 60_000;
 
 async function generateIfStale(
   ctx: ActionCtx,
   s: OutlookStatus,
   type: OutlookType,
+  force = false,
 ): Promise<{ generated: boolean }> {
-  if (s.cachedFingerprint === s.fingerprint) return { generated: false };
+  if (force) {
+    // Rebuild even though nothing changed, unless it was only just built.
+    if (s.cachedAt !== null && Date.now() - s.cachedAt < FORCE_COOLDOWN_MS) return { generated: false };
+  } else if (s.cachedFingerprint === s.fingerprint) {
+    return { generated: false };
+  }
 
   const [zone] = keepKnown([s.zone], ZONES);
   const [concept] = keepKnown([s.concept], CONCEPTS);
@@ -573,7 +592,13 @@ async function generateIfStale(
 
   // Anchor at noon UTC so the chosen calendar date survives any timezone.
   const now = new Date(`${s.date}T12:00:00Z`);
-  const common = { zone, concept, coeffs, inputs };
+  // If Gemini is down the numbers still come through; the sentences are then
+  // written from those numbers and the result is marked so the page can say so.
+  let usedFacts = false;
+  const narrators = withFactsFallback(() => {
+    usedFacts = true;
+  });
+  const common = { zone, concept, coeffs, inputs, narrators };
   const result =
     type === "weekly"
       ? await computeWeeklyOutlook({ ...common, now })
@@ -586,7 +611,8 @@ async function generateIfStale(
   await ctx.runMutation(internal.outlookApp.store, {
     key: s.key,
     fingerprint: s.fingerprint,
-    result,
+    // "facts" = the text is plain numbers-only, not Gemini's.
+    result: usedFacts ? { ...result, narration_source: "facts" } : result,
   });
   return { generated: true };
 }
@@ -595,12 +621,13 @@ async function generateIfStale(
  * actually generated (false = cache was already fresh). The result itself is
  * read back through getMine, which updates reactively. */
 export const ensure = action({
-  args: { type: outlookType, date: v.optional(v.string()) },
+  // `force` regenerates even when the cache is fresh (the Refresh button).
+  args: { type: outlookType, date: v.optional(v.string()), force: v.optional(v.boolean()) },
   handler: async (ctx, args): Promise<{ generated: boolean }> => {
     // `status` reads the operator from the caller's identity — the identity
     // carries through ctx.runQuery from an authenticated action.
-    const s = await ctx.runQuery(internal.outlookApp.status, args);
-    return generateIfStale(ctx, s, args.type);
+    const s = await ctx.runQuery(internal.outlookApp.status, { type: args.type, date: args.date });
+    return generateIfStale(ctx, s, args.type, args.force === true);
   },
 });
 

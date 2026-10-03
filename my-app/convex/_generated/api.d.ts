@@ -27,6 +27,7 @@ import type * as lib_geocode from "../lib/geocode.js";
 import type * as lib_huntingtonPlace from "../lib/huntingtonPlace.js";
 import type * as lib_orchestrator from "../lib/orchestrator.js";
 import type * as lib_outlook from "../lib/outlook.js";
+import type * as lib_outlookFacts from "../lib/outlookFacts.js";
 import type * as lib_pointInPolygon from "../lib/pointInPolygon.js";
 import type * as lib_providers from "../lib/providers.js";
 import type * as lib_resolve from "../lib/resolve.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   "lib/huntingtonPlace": typeof lib_huntingtonPlace;
   "lib/orchestrator": typeof lib_orchestrator;
   "lib/outlook": typeof lib_outlook;
+  "lib/outlookFacts": typeof lib_outlookFacts;
   "lib/pointInPolygon": typeof lib_pointInPolygon;
   "lib/providers": typeof lib_providers;
   "lib/resolve": typeof lib_resolve;
