@@ -13,9 +13,19 @@
   line-height: 1.43;
 }
 
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   .main {
     padding: 76px 16px 24px;
   }
 }
 
+/* Printing / Save as PDF: no grey canvas, no screen padding. */
+@media print {
+  .shell {
+    min-height: 0;
+    background: #fff;
+  }
+  .main {
+    padding: 0;
+  }
+}

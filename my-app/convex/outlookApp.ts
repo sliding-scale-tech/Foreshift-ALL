@@ -258,6 +258,23 @@ export const getWeek = query({
       .query("resolvedDemand")
       .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept))
       .collect();
+    // How much each event may add: magnitude (per class) x the concept's affinity x
+    // proximity — the same inputs getEventImpact uses. Only the resulting percent
+    // is returned, never the raw coefficients.
+    const magnitudeRows = await ctx.db.query("eventMagnitude").collect();
+    const affinityRow = await ctx.db
+      .query("eventAffinity")
+      .withIndex("by_concept", (q) => q.eq("concept", concept))
+      .unique();
+    // When the forecast numbers were last recomputed: the latest successful sync run.
+    const syncRuns = await ctx.db.query("bubbleSyncLog").order("desc").take(10);
+    const syncedAt = syncRuns.find((r) => r.status === "success")?.finishedAt ?? null;
+    // The fixed per-period baseline ("normal") the comparison percentages are
+    // measured against.
+    const baseRows = await ctx.db
+      .query("demandScores")
+      .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept))
+      .collect();
     const weatherRows = await ctx.db
       .query("weatherSignals")
       .withIndex("by_zone_day", (q) => q.eq("zone", zone))
@@ -283,6 +300,20 @@ export const getWeek = query({
         name: e.name,
         venue: e.venueName ?? "",
         eventClass: e.eventClass,
+        // Estimated extra demand in its headline period, as a percent of that
+        // period's normal; null when there is no baseline to measure against.
+        liftPercent: (() => {
+          const base = baseRows.find((r) => r.day === e.day);
+          if (!base) return null;
+          const lift =
+            (magnitudeRows.find((m) => m.eventClass === e.eventClass)?.magnitude ?? 0) *
+            (affinityRow?.affinity ?? 0) *
+            e.proximity;
+          const baseOf = (dp: (typeof DAYPARTS)[number]) => base[`${dp}BaseScore`];
+          const busiest = [...DAYPARTS].sort((a, b) => baseOf(b) - baseOf(a))[0];
+          const headline = e.allDayparts ? busiest : (DAYPARTS.find((d) => d === e.daypart) ?? busiest);
+          return baseOf(headline) > 0 ? Math.round((lift / baseOf(headline)) * 1000) / 10 : null;
+        })(),
         date: e.date,
         // "18:40:00" -> "18:40"; null when Ticketmaster gave no time.
         time: e.eventTime ? e.eventTime.slice(0, 5) : null,
@@ -304,9 +335,19 @@ export const getWeek = query({
       const date = dates[day];
       const demand = demandRows.find((r) => r.day === day);
       const weather = weatherRows.find((w) => w.date === date);
+      const base = baseRows.find((r) => r.day === day);
       return {
         day,
         date,
+        // Normal demand per period for this day of the week (null if unseeded).
+        base: base
+          ? {
+              morning: base.morningBaseScore,
+              midday: base.middayBaseScore,
+              dinner: base.dinnerBaseScore,
+              late: base.lateBaseScore,
+            }
+          : null,
         demand: demand
           ? {
               peakScore: demand.peakScore,
@@ -329,7 +370,7 @@ export const getWeek = query({
       };
     });
 
-    return { zone, concept, weekStart: dates.Mon, weekEnd: dates.Sun, today: detroitDate(), days, events };
+    return { zone, concept, weekStart: dates.Mon, weekEnd: dates.Sun, today: detroitDate(), syncedAt, days, events };
   },
 });
 

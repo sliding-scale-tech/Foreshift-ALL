@@ -11,11 +11,12 @@ import { useWeek } from "@/app/hooks/useWeek";
 import { DailyTotals } from "@/app/components/DailyTotals";
 import { DriversCard } from "@/app/components/DriversCard";
 import { InfoTip } from "@/app/components/InfoTip";
+import { LastUpdated } from "@/app/components/LastUpdated";
 import { LoadError } from "@/app/components/LoadError";
 import { PageLoading } from "@/app/components/PageLoading";
 import { DayDetail, DayStrip, WeekGrid } from "@/app/components/WeekPlanner";
 import { WeekGlance } from "@/app/components/WeekGlance";
-import { toDrivers } from "@/app/lib/drivers";
+import { dayDrivers, toDrivers } from "@/app/lib/drivers";
 import { FULL_DAY, weekLabel, type DayKey } from "@/app/lib/week";
 import { buildPlan, glance } from "@/app/lib/weekPlan";
 import shared from "../../shared.module.css";
@@ -50,12 +51,25 @@ export default function WeeklyOutlookPage() {
 
   const { busiest, quietest } = glance(plan);
   const allDrivers = toDrivers(outlook.result.drivers);
-  const drivers = onlyDay ? allDrivers.filter((d) => d.date === selected) : allDrivers;
+  // "Show only <day>": all of that day's events (with their estimated effect) and its weather,
+  // not just the ones that made the week's top few.
+  const drivers = onlyDay
+    ? dayDrivers(
+        week.events.filter((e) => e.date === selected),
+        allDrivers.filter((d) => d.kind === "weather" && d.date === selected),
+      )
+    : allDrivers;
   const topDrivers = allDrivers.filter((d) => d.liftPct > 0).slice(0, 3);
   const hoursMissing = restaurant && plan.some((d) => d.hoursUnknown);
 
+
   function exportPdf() {
     // Stamp the printout with the moment it was generated, then open the print dialog (Save as PDF).
+    // Landscape, so all seven day columns fit; the rule is removed once the dialog closes.
+    const page = document.createElement("style");
+    page.textContent = "@page { size: landscape; margin: 10mm; }";
+    document.head.appendChild(page);
+    window.addEventListener("afterprint", () => page.remove(), { once: true });
     if (stamp.current) {
       stamp.current.textContent = new Intl.DateTimeFormat("en-US", {
         dateStyle: "long",
@@ -72,6 +86,7 @@ export default function WeeklyOutlookPage() {
         <div>
           <h1 className={shared.title}>Weekly outlook</h1>
           <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
+          <LastUpdated generatedAt={week.syncedAt ?? outlook.generatedAt} />
         </div>
 
         {/* Paid plans only; everyone else is pointed at Billing. */}
@@ -89,9 +104,7 @@ export default function WeeklyOutlookPage() {
 
       {/* Only appears on the printed / saved-as-PDF copy. */}
       <div className={styles.printHeader}>
-        <strong>ForeShift weekly outlook</strong> · {operatorLabel(operator)} · {weekLabel(week.weekStart)}
-        <br />
-        Generated <span ref={stamp} /> (Detroit time)
+        <strong>ForeShift</strong> · {operatorLabel(operator)} · Generated <span ref={stamp} /> (Detroit time)
       </div>
 
       <WeekGlance busiest={busiest} quietest={quietest} drivers={topDrivers} />
@@ -114,7 +127,20 @@ export default function WeeklyOutlookPage() {
       <div className={styles.noPrintStrip}>
         <DayStrip plan={plan} selected={selected} onSelect={setPicked} />
       </div>
-      <WeekGrid plan={plan} eventCounts={eventCounts} selected={selected} onSelect={setPicked} />
+      <WeekGrid
+        plan={plan}
+        eventCounts={eventCounts}
+        weather={Object.fromEntries(week.days.map((d) => [d.date, d.weather]))}
+        selected={selected}
+        onSelect={setPicked}
+        onShowEvents={() =>
+          requestAnimationFrame(() => {
+            const el = document.getElementById("day-events");
+            el?.scrollIntoView({ behavior: "smooth", block: "start" });
+            el?.focus({ preventScroll: true });
+          })
+        }
+      />
       <DayDetail plan={selectedPlan} weekDay={week.days[selectedIdx]} events={week.events.filter((e) => e.date === selected)} />
 
       <div className={styles.lower}>
@@ -142,10 +168,10 @@ export default function WeeklyOutlookPage() {
             drivers={drivers}
             subtitle={
               onlyDay
-                ? `Top drivers for ${FULL_DAY[selectedPlan.day as DayKey]}.`
+                ? `Events and weather on ${FULL_DAY[selectedPlan.day as DayKey]}.`
                 : "Factors influencing this week's forecast."
             }
-            empty={onlyDay ? `No major drivers on ${FULL_DAY[selectedPlan.day as DayKey]}.` : undefined}
+            empty={onlyDay ? `No events or weather effects on ${FULL_DAY[selectedPlan.day as DayKey]}.` : undefined}
           />
         </div>
       </div>

@@ -203,7 +203,7 @@ click-through with a real login.
 - [x] "September 21–27, 2026" style date range
 - [ ] Previous/next week and "This week" controls — **needs backend** (current week only)
 - [ ] Only future dates within the forecast range enabled — **needs backend**
-- [x] Today highlighted; elapsed days distinguished and labelled "Earlier"
+- [x] Today highlighted; elapsed days distinguished and labelled "Earlier"; the busiest day still to come carries a "Peak day" tag and an outline
 
 **3. Planning grid (heatmap)**
 - [x] Columns Mon–Sun with dates; rows Morning / Midday / Dinner / Late night
@@ -214,15 +214,15 @@ click-through with a real login.
 
 **4. Selected-day detail panel**
 - [x] Score and category
-- [ ] Comparison with the defined normal baseline — **needs backend** (the week query has no baseline scores); the panel links to the daily outlook for it
-- [x] Weather (with rain chance) and events (time and service period)
+- [x] Comparison with the defined normal baseline — the week query now also returns each period's baseline; the panel shows "+x% vs. normal" for the day and each period, with the definition in a tooltip
+- [x] Weather (with rain chance) and events (time and service period); the grid also has a whole-day weather row (icon, temperature, condition)
 - [x] Short explanation
 - [x] "View daily outlook" for that date
 - [x] Defaults to today
 
 **5. Weekly chart**
 - [x] Moved to a secondary, collapsible "Daily totals" view
-- [x] Seven bars instead of a curve
+- [x] Seven bars instead of a curve, each with its demand level written under the day
 - [x] "Demand score" axis; calculation explained in a tooltip
 - [x] Consistent 0–150 scale, one decimal
 - [x] Chart, grid and detail panel selection kept in sync (click a bar or a day)
@@ -235,15 +235,15 @@ click-through with a real login.
 **7. Weekly drivers**
 - [x] "Factors influencing this week's forecast."
 - [x] Date, local start time and affected period on every event (drivers list and day details)
-- [ ] Investigate why every event shows 10:00 AM — **needs backend**
-- [x] Filter to the selected day, with "Show full week" (the list is the week's top 5 drivers; the day details list all of its events)
+- [x] Investigated why every event showed 10:00 AM — in the live data no event starts at 10:xx; timeless events (Huntington Place) have no time and are now labelled "All day" / "Time not listed" (the 10:00 AM was Bubble's default)
+- [x] Filter to the selected day, with "Show full week": lists every event that day (each with its estimated effect and the period it counts toward) plus that day's weather, not only the week's top 5
 - [x] Percentages explained in a tooltip
 - [x] Event counts shown on each day; selecting a day lists its events
 
 **8. Tooltips and freshness**
 - [x] Score and thresholds, daily score, events, grid cells, daily totals
 - [x] Hover, keyboard and tap support
-- [ ] "Last updated" — **needs backend**
+- [x] "Last updated" under the subtitle (exact time and time zone in a tooltip) — the time the forecast numbers were last recomputed (latest successful sync), not the drivers cache
 - [x] Missing data ("Unavailable") distinguished from zero impact
 
 **9. Hierarchy and responsiveness**
@@ -256,6 +256,7 @@ click-through with a real login.
 **10. Sharing**
 - [x] "Export weekly outlook" as a printable PDF (restaurant, date range, grid, drivers, generation timestamp), paid plans only
   - Uses the browser's Save as PDF. Not yet tried in a real signed-in session.
+  - Print layout fixed: landscape, all seven day columns (the phone layout no longer applies on paper), glance tiles + full grid on page 1 and drivers on page 2, nothing split, no sidebar or grey background. The one-day details panel and the chart are left out.
 
 ## 9. Events page
 
@@ -401,9 +402,9 @@ click-through with a real login.
 | Signup | 13 | 13 |
 | Onboarding (choice, info, hours, success) | 32 | 34 |
 | Daily Outlook | 60 | 62 |
-| Weekly Outlook | 36 | 44 |
+| Weekly Outlook | 39 | 44 |
 | Events | 47 | 55 |
 | Weather | 23 | 31 |
-| **Total** | **222** | **250** |
+| **Total** | **225** | **250** |
 
 Every page in the review has now been worked through. What is left is mostly **needs backend** items (last updated, other weeks, Gemini fallback, wind/alerts, event addresses) and the **verify** items that need a real signed-in session.

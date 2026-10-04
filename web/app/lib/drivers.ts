@@ -3,7 +3,8 @@
 
 import type { DemandDriver } from "my-app/convex/lib/outlook";
 import { DAYPARTS } from "./dayparts";
-import { formatEventTime } from "./week";
+import { formatClock, formatEventTime } from "./week";
+import { eventPeriod } from "./weekPlan";
 
 export type Driver = {
   kind: "event" | "weather";
@@ -13,6 +14,8 @@ export type Driver = {
   eventClass?: string; // events: picks the icon
   condition?: string; // weather: picks the icon
   date?: string; // weekly drivers: the day it falls on ("2026-10-01")
+  /** The effect couldn't be estimated (no baseline): show "—", never 0%. */
+  liftUnknown?: boolean;
 };
 
 const PERIOD_LABEL: Record<string, string> = Object.fromEntries(DAYPARTS.map((d) => [d.key, d.label]));
@@ -72,4 +75,35 @@ export function toDrivers(list: (DemandDriver & { day?: string; date?: string })
 
   // Keep the backend's strongest-first order; no-effect rows go last.
   return out.sort((a, b) => Number(a.liftPct === 0) - Number(b.liftPct === 0));
+}
+
+type DayEvent = {
+  name: string;
+  venue: string;
+  eventClass: string;
+  date: string;
+  time: string | null;
+  liftPercent: number | null;
+};
+
+/**
+ * Every driver on one day, for "Show only <day>": all of that day's events (not
+ * just the ones that made the week's top few), each with its estimated effect
+ * and the period it counts toward, then the day's weather rows. Strongest
+ * first; no-effect and unknown rows last.
+ */
+export function dayDrivers(events: DayEvent[], weather: Driver[]): Driver[] {
+  const fromEvents: Driver[] = events.map((e) => ({
+    kind: "event",
+    liftPct: e.liftPercent === null ? 0 : Math.round(e.liftPercent),
+    liftUnknown: e.liftPercent === null,
+    title: e.name,
+    subtitle: [e.venue, e.time ? formatClock(e.time) : "No start time", eventPeriod(e.time) ?? ""]
+      .filter(Boolean)
+      .join(" - "),
+    eventClass: e.eventClass,
+    date: e.date,
+  }));
+  const rank = (d: Driver) => (d.liftUnknown ? -1 : d.liftPct === 0 ? 0 : d.liftPct);
+  return [...fromEvents, ...weather].sort((a, b) => rank(b) - rank(a));
 }

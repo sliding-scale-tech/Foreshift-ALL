@@ -16,6 +16,8 @@ export type PlanCell = {
   band: Band | null;
   /** Outside the restaurant's hours. The area's demand is still shown. */
   closed: boolean;
+  /** This period's normal (baseline) score, for "vs. normal". null = unknown. */
+  base: number | null;
 };
 
 export type PlanDay = {
@@ -36,8 +38,16 @@ type WeekLike = {
     day: string;
     date: string;
     demand: { morningScore: number; middayScore: number; dinnerScore: number; lateScore: number } | null;
+    /** Optional so the page still works if the server doesn't send baselines. */
+    base?: { morning: number; midday: number; dinner: number; late: number } | null;
   }[];
 };
+
+/** How far a score is above or below its normal, in percent; null when either is unknown or normal is 0. */
+export function vsNormal(score: number | null, base: number | null): number | null {
+  if (score === null || base === null || base <= 0) return null;
+  return ((score - base) / base) * 100;
+}
 
 const SCORE_KEY = {
   morning: "morningScore",
@@ -59,6 +69,7 @@ export function buildPlan(week: WeekLike, hours?: SavedHours[]): PlanDay[] {
         score,
         band: score === null ? null : bandOf(score),
         closed: open[i] === false,
+        base: d.base ? d.base[dp.key] : null,
       };
     });
     const scored = cells.filter((c) => c.score !== null);

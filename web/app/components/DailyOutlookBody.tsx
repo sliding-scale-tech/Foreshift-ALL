@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { IconSparkle, IconCalendarCheck } from "@/app/components/dashboard-icons";
 import { BandPill } from "@/app/components/BandPill";
+import { BandTip } from "@/app/components/BandTip";
 import { DaypartIcon } from "@/app/components/DaypartIcon";
 import { DemandBarChart } from "@/app/components/DemandBarChart";
 import { DriversCard } from "@/app/components/DriversCard";
@@ -147,25 +148,6 @@ export function OutlookBody({
 
       <HowItWorks />
     </>
-  );
-}
-
-// What a demand level means and the score range behind it.
-function BandTip({
-  band,
-  tone,
-  align,
-}: {
-  band: string;
-  tone?: "light" | "dark";
-  align?: "center" | "start" | "end";
-}) {
-  const b = BANDS.find((x) => x.name === band);
-  if (!b) return null;
-  return (
-    <InfoTip label={`${b.name} demand level`} tone={tone} align={align}>
-      <strong>{b.name}</strong> ({b.min}&ndash;{b.max}): {b.meaning.toLowerCase()}.
-    </InfoTip>
   );
 }
 

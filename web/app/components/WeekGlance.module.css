@@ -1,9 +1,9 @@
 /* "This week at a glance": three equal tiles on the navy banner. */
 
 .glanceBanner {
-  margin-top: 23px;
-  padding: 24px;
-  border-radius: 12px;
+  margin-top: 16px;
+  padding: 20px 24px;
+  border-radius: var(--radius-card);
   border: 1px solid #c7c4d7;
   background: linear-gradient(90deg, #0b1d57 0%, #172a63 100%);
   color: #fff;
@@ -115,6 +115,8 @@
   /* Browsers drop backgrounds when printing, which would leave white text on
      white — make the banner a plain outlined box. */
   .glanceBanner {
+    margin-top: 8px;
+    padding: 12px 16px;
     background: #fff !important;
     color: #000;
     border: 1px solid #999;

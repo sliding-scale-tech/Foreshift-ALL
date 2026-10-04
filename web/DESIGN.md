@@ -282,7 +282,7 @@ Most of these overlap with the open design-review items.
    - Weather: fixed. A missing forecast reads "Unavailable", never 0%. Percentages there keep one decimal on purpose (−8.8%) so period and day figures can be compared.
 7. **Weather severity pills:** fixed. The pills are gone; the effect is a signed percentage in red or green with a text label ("Moderate demand impact"), and zero is plain gray text.
 8. **Events influence:** fixed. Raw 0.5 / 1 values are gone; the list shows "Estimated influence" (High / Moderate / Low) with a tooltip. It reflects distance only (the backend's proximity tiers), not event size.
-9. **Tooltips exist on every Intelligence page.** Daily Outlook shows "Last updated" (from `generatedAt`, with the exact time in a tooltip). Weekly, Events and Weather don't show it yet.
+9. **Tooltips exist on every Intelligence page.** Daily and Weekly Outlook show "Last updated" (from `generatedAt`, with the exact time in a tooltip). Events and Weather don't show it yet.
 10. **Disabled buttons:** Settings dims with opacity while other pages use the gray fill.
 11. **Subtitle separators:** fixed. Every Intelligence page now uses `pageSubtitle()` ("Name · Concept · Zone · Date") with repeats removed.
 12. **Daypart windows vs operating hours:** "Closed" is worked out from the backend's windows (6–11, 11–4, 4–9, 9 PM–midnight), so there is no gap in the day.

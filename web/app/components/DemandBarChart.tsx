@@ -46,11 +46,14 @@ export function DemandBarChart({
   selected = null,
   onSelect,
   emphasizePeak = false,
+  showBand = false,
 }: {
   items: BarItem[];
   height?: number;
   /** Fade every bar except the highest one (when nothing is selected). The band stays in the label. */
   emphasizePeak?: boolean;
+  /** Write each bar's demand level (High, Minimal, …) under its name, so colour is never the only cue. */
+  showBand?: boolean;
   /** Highlights one bar and fades the rest (kept in sync with a grid elsewhere on the page). */
   selected?: number | null;
   onSelect?: (index: number) => void;
@@ -113,9 +116,16 @@ export function DemandBarChart({
             ? [i.label, "Closed"]
             : n === peakIndex
               ? [i.label, "Busiest"]
-              : [i.label],
+              : showBand && i.band
+                ? [i.label, i.band]
+                : [i.label],
       ),
-      labels: { style: { colors: AXIS_TEXT, fontSize: "13px" } },
+      // With the level written under each day, keep the labels flat and a touch smaller:
+      // a long name like "Exceptional" would otherwise make Apex tilt (and clip) them.
+      labels: {
+        style: { colors: AXIS_TEXT, fontSize: showBand ? "11px" : "13px" },
+        ...(showBand && { rotate: 0, rotateAlways: false, hideOverlappingLabels: false, trim: false }),
+      },
       axisBorder: { show: false },
       axisTicks: { show: false },
       tooltip: { enabled: false },

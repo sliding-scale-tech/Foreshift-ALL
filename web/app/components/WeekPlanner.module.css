@@ -71,7 +71,8 @@
   padding: 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-borders);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .grid {
@@ -122,6 +123,105 @@
 
 .dayNote {
   font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+/* "3 events": a real button that selects the day and shows its events. */
+.countBtn {
+  display: block;
+  width: 100%;
+  padding: 0 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-shift-electric-blue);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.countBtn:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Busiest day to come: a text tag plus an outline on its header (never colour alone). */
+.peakTag {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-primary-60);
+  background: var(--color-primary-20);
+  border: 1px solid var(--color-primary-40);
+  border-radius: 999px;
+}
+
+.peakCol .dayBtn {
+  outline: 2px solid var(--color-shift-electric-blue);
+  outline-offset: -2px;
+}
+
+/* ---- Weather row: icon, temperature and condition for the whole day ---- */
+
+.wx {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 56px;
+  padding: 6px 4px;
+  justify-content: center;
+  border: 1px solid var(--color-gray-30);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.wxTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wxIcon {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.wxTemp {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wxName {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+.wxNone {
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.vsNormal {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-gray-70);
+}
+
+.vsSmall {
+  font-size: 12px;
+  white-space: nowrap;
   color: var(--color-gray-70);
 }
 
@@ -255,12 +355,12 @@
   border-color: var(--color-gray-30);
 }
 .bandLight {
-  color: var(--color-shift-electric-blue);
+  color: var(--color-primary-60);
   background: var(--color-primary-20);
   border-color: var(--color-primary-30);
 }
 .bandModerate {
-  color: var(--color-alert-80);
+  color: var(--color-alert-90);
   background: var(--color-alert-20);
   border-color: var(--color-alert-40);
 }
@@ -331,7 +431,8 @@
   padding: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-borders);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .detailHead {
@@ -517,8 +618,9 @@
   }
 }
 
-/* Phones: one day at a time, chosen from the strip. */
-@media (max-width: 760px) {
+/* Phones: one day at a time, chosen from the strip. Screen only: a printed page
+   is also "narrow", and it must still show all seven days. */
+@media screen and (max-width: 760px) {
   .strip {
     display: flex;
   }
@@ -556,5 +658,36 @@
 @media (prefers-reduced-motion: reduce) {
   .cell::after {
     transition: none;
+  }
+}
+
+/* ---- Print / Save as PDF: the whole week, nothing split ---- */
+
+@media print {
+  .gridWrap {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+  /* The details panel only describes the one selected day, so it stays out of the PDF. */
+  .detail,
+  .noPrintTip {
+    display: none !important;
+  }
+  .selCol {
+    background: transparent;
+    box-shadow: none;
+  }
+  .dayHead.selCol {
+    box-shadow: none;
+  }
+  .cell::after {
+    display: none;
+  }
+  .countBtn {
+    color: #000;
+    text-decoration: none;
+  }
+  .grid {
+    border-spacing: 4px;
   }
 }

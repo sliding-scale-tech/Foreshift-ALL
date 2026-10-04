@@ -39,7 +39,11 @@ export function DriversCard({
                 </span>
               )}
             </div>
-            {d.liftPct > 0 ? (
+            {d.liftUnknown ? (
+              <span className={styles.pctNeutral} title="No baseline to compare with">
+                &mdash;
+              </span>
+            ) : d.liftPct > 0 ? (
               <span className={styles.pct}>+{d.liftPct}%</span>
             ) : (
               <span className={styles.pctNeutral}>No effect</span>

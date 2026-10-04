@@ -134,6 +134,17 @@
     display: none !important;
   }
 
+  .lower {
+    margin-top: 12px;
+    break-inside: avoid;
+  }
+
+  /* Tighter on paper so the glance tiles and the whole grid share the first page. */
+  h2.titleWithTip {
+    margin: 12px 0 6px;
+    break-after: avoid;
+  }
+
   .printHeader {
     display: block;
     margin-bottom: 12px;

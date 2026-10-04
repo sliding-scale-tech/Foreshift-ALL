@@ -34,7 +34,7 @@ export function DailyTotals({
         </span>
       </summary>
       {/* Mounted only while open: a chart drawn inside a closed <details> measures itself as 0px wide. */}
-      {open && <DemandBarChart height={300} selected={selected} onSelect={onSelect} items={items} />}
+      {open && <DemandBarChart height={300} selected={selected} onSelect={onSelect} items={items} showBand />}
     </details>
   );
 }
