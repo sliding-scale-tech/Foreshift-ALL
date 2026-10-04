@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import { api } from "my-app/convex/_generated/api";
 import { EventBody } from "@/app/components/EventBody";
 import { PageLoading } from "@/app/components/PageLoading";
+import { useEventSource } from "@/app/hooks/useEventSource";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
 import { useStickyValue } from "@/app/hooks/useStickyValue";
 import shared from "../../../shared.module.css";
@@ -34,6 +35,7 @@ function EventOutlook() {
     date,
   });
   const impact = useStickyValue(`event:${eventId}:${date ?? ""}`, liveImpact);
+  const source = useEventSource(decodeURIComponent(eventId), Boolean(impact));
 
   return (
     <>
@@ -51,7 +53,7 @@ function EventOutlook() {
       )}
 
       {impact && (
-        <EventBody impact={impact} zone={operator?.zone} />
+        <EventBody impact={impact} zone={operator?.zone} source={source} />
       )}
     </>
   );

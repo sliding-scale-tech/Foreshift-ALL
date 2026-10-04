@@ -1,5 +1,6 @@
 "use client";
 
+import type { Influence } from "@/app/lib/events";
 import { FULL_DAY, monthDay, type DayKey } from "@/app/lib/week";
 import styles from "./EventDaySelector.module.css";
 
@@ -9,6 +10,8 @@ export type SelectorDay = {
   count: number;
   isToday: boolean;
   isPast: boolean;
+  /** The strongest estimated influence among the day's events; null when it has none. */
+  top: Influence | null;
 };
 
 /** The value for "everything from today to the end of the week". */
@@ -58,15 +61,24 @@ export function EventDaySelector({
             type="button"
             className={`${styles.day} ${d.date === value ? styles.dayOn : ""} ${d.isPast ? styles.past : ""}`}
             aria-pressed={d.date === value}
-            aria-label={`${FULL_DAY[d.day as DayKey]}, ${monthDay(d.date)}${d.isToday ? ", today" : ""}. ${
-              d.isPast ? "No event data for earlier days" : plural(d.count)
-            }`}
+            aria-label={`${FULL_DAY[d.day as DayKey]}, ${monthDay(d.date)}${d.isToday ? ", today" : d.isPast ? ", earlier day" : ""}. ${plural(
+              d.count,
+            )}${d.top ? `. Strongest estimated influence: ${d.top}` : ""}`}
             onClick={() => onChange(d.date)}
           >
             <span className={styles.dow}>{d.day}</span>
             <span className={styles.date}>{monthDay(d.date)}</span>
-            <span className={styles.count}>{d.isPast ? "Earlier" : plural(d.count)}</span>
+            <span className={styles.count}>{plural(d.count)}</span>
+            <span className={styles.level} aria-hidden="true">
+              {d.top && (
+                <>
+                  <span className={`${styles.dot} ${styles[`dot${d.top}`]}`} />
+                  {d.top}
+                </>
+              )}
+            </span>
             {d.isToday && <span className={styles.today}>Today</span>}
+            {d.isPast && <span className={styles.earlierTag}>Earlier</span>}
           </button>
         ))}
       </div>

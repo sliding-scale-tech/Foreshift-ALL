@@ -280,6 +280,29 @@
   transition: background var(--duration-fast);
 }
 
+.address {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.statusBanner {
+  margin: 12px 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-destructive-70);
+  background: var(--color-destructive-10);
+  border: 1px solid var(--color-destructive-30);
+  border-radius: 10px;
+}
+
+.sourceNote {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-gray-70);
+}
+
 .primaryAction {
   color: #fff;
   background: var(--color-shift-electric-blue);

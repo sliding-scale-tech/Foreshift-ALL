@@ -23,9 +23,53 @@
 .filters {
   margin-top: 20px;
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto;
   gap: 12px;
   align-items: end;
+}
+
+/* "Clear filters" always sits at the end of the row; greyed out while nothing is filtered. */
+.resetWrap {
+  display: flex;
+  align-items: center;
+  height: 48px;
+}
+
+.reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-shift-electric-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.reset svg {
+  width: 18px;
+  height: 18px;
+}
+
+.reset:not(:disabled):hover,
+.reset:focus-visible {
+  text-decoration: underline;
+}
+
+.reset:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.reset:disabled {
+  color: var(--color-gray-70);
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .field {
@@ -129,19 +173,39 @@
   text-decoration: underline;
 }
 
-/* The list card sits a little below the filters. */
+/* The list and the side column sit a little below the filters. */
 .filters + *,
 .active + * {
   margin-top: 20px;
 }
 
+/* ---- List on the left, key events and the explainer on the right ---- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.main {
+  min-width: 0;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 /* ---- Expandable explainer ---- */
 
 .explainer {
-  margin-top: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-borders);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .explainer summary {
@@ -162,7 +226,7 @@
 .explainer summary:focus-visible {
   outline: 2px solid var(--color-primary-50);
   outline-offset: 2px;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
 }
 
 .explainerToggle {
@@ -186,20 +250,42 @@
 }
 
 .explainerBody {
-  max-width: 760px;
   padding: 0 20px 20px;
   font-size: 14px;
   line-height: 1.55;
   color: var(--color-text);
 }
 
-.explainerBody ul {
-  margin: 0 0 10px;
-  padding-left: 20px;
+.shapes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
 }
 
-.explainerBody li {
-  margin-bottom: 4px;
+.shapes li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.shapeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--color-primary-60);
+  background: var(--color-primary-20);
+  border-radius: 8px;
+}
+
+.shapeIcon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .explainerBody p {
@@ -211,8 +297,17 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .search {
+  .search,
+  .resetWrap {
     grid-column: 1 / -1;
+  }
+
+  .resetWrap {
+    height: auto;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

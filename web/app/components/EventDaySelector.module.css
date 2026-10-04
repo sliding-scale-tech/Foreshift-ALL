@@ -80,7 +80,7 @@
 }
 
 .past {
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .dow {
@@ -100,8 +100,54 @@
   color: var(--color-gray-70);
 }
 
+/* The day's strongest influence: a dot plus the word (never colour alone). Always takes its line, so
+   days with no events keep the same height. */
+.level {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary-70);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.dotHigh {
+  background: var(--color-primary-70);
+}
+
+.dotModerate {
+  background: var(--color-primary-40);
+}
+
+.dotLow {
+  background: var(--color-gray-50);
+}
+
 .dayOn .count {
   color: var(--color-primary-70);
+}
+
+.earlierTag {
+  position: absolute;
+  top: -9px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border: 1px solid var(--color-gray-40);
+  border-radius: 999px;
 }
 
 .today {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import styles from "./Select.module.css";
 
 export type SelectOption = { value: string; label: string };
@@ -19,6 +19,7 @@ export function Select({
   invalid,
   describedBy,
   variant = "default",
+  icon,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -30,6 +31,8 @@ export function Select({
   describedBy?: string;
   /** default: onboarding fields · filled: Settings · filter: Events filter bar */
   variant?: "default" | "filled" | "filter";
+  /** Small decorative icon before the value. */
+  icon?: ReactNode;
 }) {
   const items: SelectOption[] = options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
   const listId = useId();
@@ -152,8 +155,15 @@ export function Select({
         }}
       >
         {/* An option with an empty value is the "nothing chosen" row — shown like the placeholder. */}
-        <span className={current && current.value !== "" ? styles.value : styles.placeholder}>
-          {current ? current.label : placeholder}
+        <span className={styles.valueWrap}>
+          {icon && (
+            <span className={styles.leadIcon} aria-hidden="true">
+              {icon}
+            </span>
+          )}
+          <span className={current && current.value !== "" ? styles.value : styles.placeholder}>
+            {current ? current.label : placeholder}
+          </span>
         </span>
         <svg className={styles.chevron} viewBox="0 0 10 6" aria-hidden="true">
           <path d="m1 1 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

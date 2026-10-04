@@ -1,0 +1,104 @@
+.card {
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-text);
+}
+
+.note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-gray-70);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-gray-30);
+}
+
+.row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.text {
+  min-width: 0;
+}
+
+/* The name link covers the row, so any click opens the event. */
+.name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-text);
+}
+
+.name::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.name:hover {
+  text-decoration: underline;
+}
+
+.row:has(.name:focus-visible) {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.name:focus-visible {
+  outline: none;
+}
+
+.meta,
+.when {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-gray-70);
+}
+
+.when {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.dist {
+  font-size: 12px;
+  color: var(--color-gray-70);
+}

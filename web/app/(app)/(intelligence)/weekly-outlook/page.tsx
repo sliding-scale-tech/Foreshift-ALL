@@ -17,6 +17,7 @@ import { PageLoading } from "@/app/components/PageLoading";
 import { DayDetail, DayStrip, WeekGrid } from "@/app/components/WeekPlanner";
 import { WeekGlance } from "@/app/components/WeekGlance";
 import { dayDrivers, toDrivers } from "@/app/lib/drivers";
+import { groupListings } from "@/app/lib/events";
 import { FULL_DAY, weekLabel, type DayKey } from "@/app/lib/week";
 import { buildPlan, glance } from "@/app/lib/weekPlan";
 import shared from "../../shared.module.css";
@@ -47,7 +48,9 @@ export default function WeeklyOutlookPage() {
   const selected = picked ?? (plan.some((d) => d.date === week.today) ? week.today : plan[0].date);
   const selectedIdx = Math.max(0, plan.findIndex((d) => d.date === selected));
   const selectedPlan = plan[selectedIdx];
-  const eventCounts = Object.fromEntries(plan.map((d) => [d.date, week.events.filter((e) => e.date === d.date).length]));
+  // Ticket packages are folded into their show, exactly as on the Events page, so the counts match.
+  const eventsOn = (date: string) => groupListings(week.events.filter((e) => e.date === date));
+  const eventCounts = Object.fromEntries(plan.map((d) => [d.date, eventsOn(d.date).length]));
 
   const { busiest, quietest } = glance(plan);
   const allDrivers = toDrivers(outlook.result.drivers);
@@ -55,7 +58,7 @@ export default function WeeklyOutlookPage() {
   // not just the ones that made the week's top few.
   const drivers = onlyDay
     ? dayDrivers(
-        week.events.filter((e) => e.date === selected),
+        eventsOn(selected),
         allDrivers.filter((d) => d.kind === "weather" && d.date === selected),
       )
     : allDrivers;
@@ -141,7 +144,7 @@ export default function WeeklyOutlookPage() {
           })
         }
       />
-      <DayDetail plan={selectedPlan} weekDay={week.days[selectedIdx]} events={week.events.filter((e) => e.date === selected)} />
+      <DayDetail plan={selectedPlan} weekDay={week.days[selectedIdx]} events={eventsOn(selected)} />
 
       <div className={styles.lower}>
         <DailyTotals

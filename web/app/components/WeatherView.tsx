@@ -8,6 +8,7 @@ import type { useMyOperator } from "@/app/hooks/useMyOperator";
 import type { WeekData } from "@/app/hooks/useWeek";
 import { BandPill } from "@/app/components/BandPill";
 import { InfoTip } from "@/app/components/InfoTip";
+import { LastUpdated } from "@/app/components/LastUpdated";
 import { IconSparkle } from "@/app/components/dashboard-icons";
 import { WeatherIcon } from "@/app/components/WeatherIcon";
 import { DAYPARTS } from "@/app/lib/dayparts";
@@ -46,7 +47,11 @@ function DaySelector({
         const isToday = d.date === week.today;
         const w = d.weather;
         const label = `${FULL_DAY[d.day as DayKey]}, ${monthDay(d.date)}${isToday ? ", today" : ""}. ${
-          past ? "Earlier day, no forecast kept" : w ? `${w.condition}, average ${Math.round(w.tempF)}°F, ${Math.round(w.precipChance)}% chance of precipitation` : "No forecast"
+          w
+            ? `${past ? "Earlier day, recorded weather: " : ""}${w.condition}, high ${Math.round(w.highF)}°F, low ${Math.round(w.lowF)}°F, ${Math.round(w.precipChance)}% chance of precipitation`
+            : past
+              ? "Earlier day, no weather recorded"
+              : "No forecast"
         }`;
         return (
           <button
@@ -55,24 +60,24 @@ function DaySelector({
             className={`${styles.day} ${d.date === selected ? styles.dayOn : ""} ${past ? styles.past : ""}`}
             aria-pressed={d.date === selected}
             aria-label={label}
-            disabled={past}
             onClick={() => onSelect(d.date)}
           >
             <span className={styles.dow}>{d.day}</span>
             <span className={styles.date}>{monthDay(d.date)}</span>
-            {/* No icon without a forecast: an empty cloud would read as "Cloudy". */}
-            <span className={styles.dayIcon}>{!past && w && <WeatherIcon condition={w.condition} />}</span>
-            {past ? (
-              <span className={styles.dayNote}>Earlier</span>
-            ) : w ? (
+            {/* No icon without a reading: an empty cloud would read as "Cloudy". */}
+            <span className={styles.dayIcon}>{w && <WeatherIcon condition={w.condition} />}</span>
+            {w ? (
               <>
-                <span className={styles.dayTemp}>{Math.round(w.tempF)}°F</span>
+                <span className={styles.dayTemp}>
+                  {Math.round(w.highF)}°<span className={styles.dayLow}> / {Math.round(w.lowF)}°</span>
+                </span>
                 <span className={styles.dayNote}>{Math.round(w.precipChance)}% rain</span>
               </>
             ) : (
-              <span className={styles.dayNote}>No forecast</span>
+              <span className={styles.dayNote}>{past ? "Not recorded" : "No forecast"}</span>
             )}
             {isToday && <span className={styles.today}>Today</span>}
+            {past && <span className={styles.earlierTag}>Earlier</span>}
           </button>
         );
       })}
@@ -82,7 +87,7 @@ function DaySelector({
 
 // ---- One period row, opened for its explanation -----------------------------------
 
-function PeriodRow({ p, open, onToggle }: { p: WeatherPeriod; open: boolean; onToggle: () => void }) {
+function PeriodRow({ p, open, onToggle, past }: { p: WeatherPeriod; open: boolean; onToggle: () => void; past: boolean }) {
   const effect = effectOf(p.pct, p.severity);
   const id = `period-${p.key}`;
   return (
@@ -106,7 +111,7 @@ function PeriodRow({ p, open, onToggle }: { p: WeatherPeriod; open: boolean; onT
               {p.condition}
             </>
           ) : (
-            <span className={styles.muted}>No forecast</span>
+            <span className={styles.muted}>{past ? "Not recorded" : "No forecast"}</span>
           )}
         </span>
 
@@ -140,7 +145,7 @@ function PeriodRow({ p, open, onToggle }: { p: WeatherPeriod; open: boolean; onT
       </button>
       {open && (
         <div id={id} className={styles.rowDetail}>
-          {describePeriod(p)}
+          {describePeriod(p, past)}
         </div>
       )}
     </li>
@@ -166,6 +171,8 @@ export function WeatherView({
   periodWeather: DaypartWeather | null;
 }) {
   const day = week.days.find((d) => d.date === selected);
+  // An earlier day this week: the weather shown is what was recorded, not a forecast.
+  const past = selected < week.today;
   const hours = hasRestaurant(operator) ? operator?.operatingHours : undefined;
 
   const periods: WeatherPeriod[] = DAYPARTS.map((dp) => {
@@ -189,7 +196,7 @@ export function WeatherView({
   const dayPct = hasForecast && Number.isFinite(parsed) ? parsed : null;
   const strongest = Math.max(0, ...periods.map((p) => p.severity));
   const dayEffect = effectOf(dayPct, strongest);
-  const sentences = buildWeatherSummary({ dayName: FULL_DAY[(day?.day ?? "Mon") as DayKey], dayPct, periods });
+  const sentences = buildWeatherSummary({ dayName: FULL_DAY[(day?.day ?? "Mon") as DayKey], dayPct, periods, past });
   const temps = tempSummary(periods);
   const conditions = [...new Set(periods.map((p) => p.condition).filter((c): c is string => c !== null))];
   const firstOpen = mostAffected(periods)[0]?.key ?? null;
@@ -200,12 +207,14 @@ export function WeatherView({
     <>
       <h1 className={shared.title}>Weather outlook</h1>
       <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
+      <LastUpdated generatedAt={week.syncedAt} />
 
       <h2 className={`${shared.sectionTitle} ${styles.titleWithTip}`}>
         Choose a day
         <InfoTip label="the day selector" align="start">
-          Pick a day to see how its weather may affect demand. Temperatures are daily averages. Weather
-          is only forecast from today onward, so earlier days are greyed out.
+          Pick a day to see how its weather may affect demand. Each day shows its warmest and coolest temperature
+          across the four service periods (high / low), and the chance of precipitation. Today and later days show
+          the forecast; earlier days this week show the weather that was recorded.
         </InfoTip>
       </h2>
       <DaySelector
@@ -226,6 +235,7 @@ export function WeatherView({
           <p className={styles.where}>
             {longDate(selected)}
             {operator?.zone ? ` · ${operator.zone}` : ""}
+            {past ? " · Earlier day: recorded weather" : ""}
           </p>
 
           {result === null ? (
@@ -269,7 +279,7 @@ export function WeatherView({
           ) : dayEffect.kind === "unavailable" ? (
             <div className={styles.metricNone}>Unavailable</div>
           ) : dayEffect.kind === "none" ? (
-            <div className={styles.metricNone}>No material weather effect expected</div>
+            <div className={styles.metricNone}>{past ? "No material weather effect" : "No material weather effect expected"}</div>
           ) : (
             <>
               <div className={`${styles.metricValue} ${dayEffect.kind === "lower" ? styles.pctLowerOnLight : styles.pctRaise}`}>
@@ -304,8 +314,12 @@ export function WeatherView({
           <p className={styles.updating}>Updating for this day…</p>
         ) : !hasForecast ? (
           <div className={styles.empty} role="status">
-            <strong>No weather forecast for this day.</strong>
-            <span>Forecasts cover today and the days ahead. This is different from a day with no weather effect.</span>
+            <strong>{past ? "No weather was recorded for this day." : "No weather forecast for this day."}</strong>
+            <span>
+              {past
+                ? "This is different from a day with no weather effect."
+                : "Forecasts cover today and the days ahead. This is different from a day with no weather effect."}
+            </span>
           </div>
         ) : (
           <>
@@ -336,7 +350,7 @@ export function WeatherView({
             </div>
             <ul className={styles.list}>
               {periods.map((p) => (
-                <PeriodRow key={p.key} p={p} open={openNow === p.key} onToggle={() => setOpenKey(openNow === p.key ? null : p.key)} />
+                <PeriodRow key={p.key} p={p} past={past} open={openNow === p.key} onToggle={() => setOpenKey(openNow === p.key ? null : p.key)} />
               ))}
             </ul>
           </>
@@ -347,6 +361,8 @@ export function WeatherView({
         <h2 className={styles.aboutTitle}>About this forecast</h2>
         <ul>
           <li>Weather comes from WeatherAPI. All times are Detroit local time (ET).</li>
+          <li>“Last updated” is when the forecast numbers were last recalculated from the latest weather and events.</li>
+          <li>Earlier days this week show the weather that was recorded for them, not a forecast.</li>
           <li>Demand effects are estimates for your area, not weather warnings.</li>
           <li>
             Wind, gusts, feels-like temperature, rain amount and official weather alerts aren&apos;t shown yet.

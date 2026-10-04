@@ -52,7 +52,7 @@ export const EVENT_CLASS_ORDER = [
   "Concert / large show",
 ] as const;
 
-export function EventIcon({ eventClass, size = 32 }: { eventClass: string; size?: number }) {
+export function EventIcon({ eventClass, size = 32, color }: { eventClass: string; size?: number; color?: string }) {
   return (
     <svg
       role="img"
@@ -65,7 +65,7 @@ export function EventIcon({ eventClass, size = 32 }: { eventClass: string; size?
       strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ color: "var(--color-primary-60)", flexShrink: 0 }}
+      style={{ color: color ?? "var(--color-primary-60)", flexShrink: 0 }}
     >
       {GLYPHS[eventClass] ?? FALLBACK}
     </svg>

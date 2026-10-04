@@ -13,6 +13,8 @@ export type EventLike = {
   time: string | null; // "19:30", Detroit local; null = no start time listed
   distanceMiles: number | null;
   proximity: number; // 1 (<= 0.6 mi) or 0.5 (<= 1.5 mi) — the backend's locked tiers
+  /** The server's estimate (event size x closeness). Older responses don't have it. */
+  influence?: Influence;
 };
 
 // ---- Estimated influence ------------------------------------------------------
@@ -20,17 +22,29 @@ export type EventLike = {
 export type Influence = "High" | "Moderate" | "Low";
 
 /**
- * Customer-facing wording for the backend's proximity tier. It reflects how
- * close the event is to the centre of the operator's zone only — not the size
- * of the event — so it is called "estimated influence", never a demand number.
+ * Customer-facing "estimated influence". The server works it out from the kind
+ * of event and how close it is (a stadium game or large concert nearby ranks
+ * above a small event farther away). If a response doesn't carry it, fall back
+ * to distance alone — the backend's proximity tier. Never a demand number.
  */
-export function influenceOf(proximity: number): Influence {
-  if (proximity >= 1) return "High";
-  if (proximity >= 0.5) return "Moderate";
+export function influenceOf(e: { influence?: Influence; proximity: number }): Influence {
+  if (e.influence) return e.influence;
+  if (e.proximity >= 1) return "High";
+  if (e.proximity >= 0.5) return "Moderate";
   return "Low";
 }
 
 const INFLUENCE_RANK: Record<Influence, number> = { High: 3, Moderate: 2, Low: 1 };
+
+/** The strongest estimated influence among these events (null when there are none). */
+export function topInfluence<T extends EventLike>(events: T[]): Influence | null {
+  let best: Influence | null = null;
+  for (const e of events) {
+    const i = influenceOf(e);
+    if (best === null || INFLUENCE_RANK[i] > INFLUENCE_RANK[best]) best = i;
+  }
+  return best;
+}
 
 /** The biggest kinds of event first — breaks ties between equally close events. */
 const CLASS_RANK: Record<string, number> = {
@@ -114,7 +128,7 @@ export function sortEvents<T extends EventLike>(events: T[], key: SortKey): T[] 
   return [...events].sort((a, b) => {
     if (key === "distance") return dist(a) - dist(b) || byTime(a, b);
     if (key === "influence") {
-      return INFLUENCE_RANK[influenceOf(b.proximity)] - INFLUENCE_RANK[influenceOf(a.proximity)] || byTime(a, b);
+      return INFLUENCE_RANK[influenceOf(b)] - INFLUENCE_RANK[influenceOf(a)] || byTime(a, b);
     }
     return byTime(a, b);
   });
@@ -124,7 +138,7 @@ export function sortEvents<T extends EventLike>(events: T[], key: SortKey): T[] 
 export function rankEvents<T extends EventLike>(events: T[]): T[] {
   return [...events].sort(
     (a, b) =>
-      INFLUENCE_RANK[influenceOf(b.proximity)] - INFLUENCE_RANK[influenceOf(a.proximity)] ||
+      INFLUENCE_RANK[influenceOf(b)] - INFLUENCE_RANK[influenceOf(a)] ||
       (CLASS_RANK[a.eventClass] ?? 9) - (CLASS_RANK[b.eventClass] ?? 9) ||
       startOf(a).localeCompare(startOf(b)),
   );
@@ -153,14 +167,15 @@ export function buildSummary(args: {
   events: EventLike[]; // grouped, unfiltered, for the scope
   label: string; // "Thursday" or "the rest of this week"
   range: boolean;
-  earlier: boolean; // an earlier day: events aren't kept
+  earlier: boolean; // a day that has already happened: same data, past tense
 }): string {
   const { events, label, range, earlier } = args;
-  if (earlier) return "Event data isn't kept for earlier days.";
-  if (events.length === 0) return `No nearby events are listed for ${label}.`;
+  if (events.length === 0) {
+    return earlier ? `No nearby events were recorded for ${label}.` : `No nearby events are listed for ${label}.`;
+  }
 
   const n = events.length;
-  const noun = n === 1 ? "event is" : "events are";
+  const noun = earlier ? (n === 1 ? "event was" : "events were") : n === 1 ? "event is" : "events are";
   let first: string;
   if (range) {
     const perDay = new Map<string, number>();
@@ -184,6 +199,8 @@ export function buildSummary(args: {
   const [a, b] = rankEvents(events);
   const where = [a.venue, a.time ? formatClock(a.time) : ""].filter(Boolean).join(", ");
   const second = `Most relevant: ${a.name}${where ? ` (${where})` : ""}${b ? `, and ${b.name}` : ""}.`;
-  const third = "They may increase demand around the same time; open an event to see its estimated effect.";
+  const third = earlier
+    ? "They may have increased demand around the same time; open an event to see its estimated effect."
+    : "They may increase demand around the same time; open an event to see its estimated effect.";
   return `${first} ${second} ${third}`;
 }

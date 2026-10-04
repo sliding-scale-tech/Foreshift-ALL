@@ -7,6 +7,7 @@ import { BandPill } from "@/app/components/BandPill";
 import { DaypartIcon } from "@/app/components/DaypartIcon";
 import { EventIcon } from "@/app/components/EventIcon";
 import { InfoTip } from "@/app/components/InfoTip";
+import type { SourceState } from "@/app/hooks/useEventSource";
 import { DAYPARTS } from "@/app/lib/dayparts";
 import { influenceOf, isCrossBorder } from "@/app/lib/events";
 import { formatClock, trimNumber } from "@/app/lib/week";
@@ -24,13 +25,29 @@ const chipDate = (iso: string) =>
 
 export type EventImpact = NonNullable<ReturnType<typeof useQuery<typeof api.outlookApp.getEventImpact>>>;
 
-export function EventBody({ impact, zone }: { impact: EventImpact; zone?: string }) {
+const checkedAt = (ms: number) =>
+  new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Detroit",
+    timeZoneName: "short",
+  }).format(new Date(ms));
+
+export function EventBody({ impact, zone, source }: { impact: EventImpact; zone?: string; source?: SourceState }) {
   const e = impact.event;
   const period = eventPeriod(e.time);
-  const influence = influenceOf(e.proximity);
+  const influence = influenceOf(e);
   const when = e.time ? formatClock(e.time) : null;
   const distance = e.distanceMiles === null ? null : `${trimNumber(e.distanceMiles, 1)} mi`;
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${e.venue} Detroit`)}`;
+  // Details from the source (address, link, status); null until it answers or when it can't.
+  const info = source?.status === "ready" && source.info.available ? source.info : null;
+  const address = info?.address ?? null;
+  const warn = info && ["cancelled", "postponed", "rescheduled"].includes(info.status) ? info.status : null;
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    address ? `${e.venue}, ${address}` : `${e.venue} Detroit`,
+  )}`;
   const reportUrl = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Incorrect event: ${e.name}`)}&body=${encodeURIComponent(
     `Event: ${e.name}\nVenue: ${e.venue}\nDate: ${e.date}\n\nWhat's wrong:\n`,
   )}`;
@@ -49,12 +66,20 @@ export function EventBody({ impact, zone }: { impact: EventImpact; zone?: string
       <section className={`${shared.card} ${styles.eventCard}`}>
         <h2 className={styles.cardTitle}>Event details</h2>
 
+        {warn && (
+          <p className={styles.statusBanner} role="alert">
+            <strong>The source lists this event as {warn}.</strong> It may not happen as shown, so treat its effect on
+            demand as uncertain.
+          </p>
+        )}
+
         <div className={styles.eventHead}>
           <div className={styles.dateChip}>{chipDate(e.date)}</div>
           <EventIcon eventClass={e.eventClass} size={36} />
           <div>
             <div className={styles.name}>{e.name}</div>
             <div className={styles.venue}>{e.venue}</div>
+            {address && <div className={styles.address}>{address}</div>}
           </div>
         </div>
 
@@ -86,6 +111,15 @@ export function EventBody({ impact, zone }: { impact: EventImpact; zone?: string
               {when ? `${when} (Detroit time)` : "No start time listed"}
             </span>
           </div>
+          {info?.endTime && (
+            <div className={styles.fact}>
+              <span className={styles.factLabel}>
+                <ClockIcon />
+                Local end time
+              </span>
+              <span className={styles.factValue}>{formatClock(info.endTime)} (Detroit time)</span>
+            </div>
+          )}
           <div className={styles.fact}>
             <span className={styles.factLabel}>
               <PeriodIcon />
@@ -116,8 +150,8 @@ export function EventBody({ impact, zone }: { impact: EventImpact; zone?: string
               <SignalIcon />
               Estimated influence
               <InfoTip label="estimated influence" align="start">
-                How strongly this event could affect your area, based only on how close it is (High up to 0.6 miles,
-                Moderate up to 1.5 miles).
+                How strongly this event could affect your area, based on the kind of event and how close it is. An
+                estimate, not your demand forecast. The effect on your own demand is shown above.
               </InfoTip>
             </span>
             <span className={styles.factValue}>{influence}</span>
@@ -140,10 +174,24 @@ export function EventBody({ impact, zone }: { impact: EventImpact; zone?: string
           <a href={mapUrl} target="_blank" rel="noopener noreferrer" className={styles.secondaryAction}>
             Open venue in Google Maps
           </a>
+          {info?.url && (
+            <a href={info.url} target="_blank" rel="noopener noreferrer" className={styles.secondaryAction}>
+              View original listing
+            </a>
+          )}
           <a href={reportUrl} className={styles.linkAction}>
             Report incorrect event
           </a>
         </div>
+        <p className={styles.sourceNote} role="status">
+          {source?.status === "loading" && "Checking the source for the address, link and status…"}
+          {source?.status === "error" && "Source details (address, link, status) couldn't be loaded right now."}
+          {source?.status === "ready" && !source.info.available && "Source details (address, link, status) aren't available for this event."}
+          {info &&
+            `Source: ${info.source}. Checked ${checkedAt(info.checkedAt)}.${
+              info.status === "unknown" ? " Cancellation status isn't checked for this source." : ""
+            }`}
+        </p>
       </section>
 
       <div>

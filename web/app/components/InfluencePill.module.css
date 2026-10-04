@@ -1,0 +1,26 @@
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.High {
+  color: #fff;
+  background: var(--color-primary-70);
+  border-color: var(--color-primary-70);
+}
+
+.Moderate {
+  color: var(--color-primary-70);
+  background: var(--color-primary-20);
+  border-color: var(--color-primary-30);
+}
+
+.Low {
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border-color: var(--color-gray-30);
+}

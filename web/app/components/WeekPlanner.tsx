@@ -120,8 +120,7 @@ export function WeekGrid({
                     {d.date === peakDate && <span className={styles.peakTag}>Peak day</span>}
                     {d.isPast && <span className={styles.dayNote}>Earlier</span>}
                   </button>
-                  {!d.isPast &&
-                    (n > 0 ? (
+                  {(n > 0 ? (
                       <button
                         type="button"
                         className={styles.countBtn}
@@ -196,7 +195,7 @@ export function WeekGrid({
                           <span className={styles.wxName}>{w.condition}</span>
                         </>
                       ) : (
-                        <span className={styles.wxNone} aria-label={d.isPast ? "Not kept for earlier days" : "No forecast"}>
+                        <span className={styles.wxNone} aria-label={d.isPast ? "No weather was recorded" : "No forecast"}>
                           &mdash;
                         </span>
                       )}
@@ -240,7 +239,7 @@ export function DayDetail({
 }: {
   plan: PlanDay;
   weekDay: WeekDay | undefined;
-  events: WeekEvent[];
+  events: (WeekEvent & { related?: WeekEvent[] })[];
 }) {
   const name = FULL_DAY[plan.day as DayKey];
   const weather = weekDay?.weather ?? null;
@@ -253,7 +252,7 @@ export function DayDetail({
           <h2 id="day-detail-title" className={styles.detailTitle}>
             {name}, {monthDay(plan.date)}
             {plan.isToday && <span className={styles.todayTag}>Today</span>}
-            {plan.isPast && <span className={styles.pastTag}>Earlier forecast</span>}
+            {plan.isPast && <span className={styles.pastTag}>Earlier day</span>}
           </h2>
           <p className={styles.detailSub}>
             {peak && peak.score !== null
@@ -315,7 +314,7 @@ export function DayDetail({
         </div>
 
         <div>
-          <h3 className={styles.blockTitle}>Weather</h3>
+          <h3 className={styles.blockTitle}>Weather{plan.isPast ? " (recorded)" : ""}</h3>
           {weather ? (
             <div className={styles.weather}>
               <div className={styles.weatherIcon}>
@@ -329,7 +328,7 @@ export function DayDetail({
               </div>
             </div>
           ) : (
-            <p className={styles.muted}>{plan.isPast ? "Not kept for earlier days." : "No forecast for this day."}</p>
+            <p className={styles.muted}>{plan.isPast ? "No weather was recorded for this day." : "No forecast for this day."}</p>
           )}
 
           <h3 id="day-events" tabIndex={-1} className={`${styles.blockTitle} ${styles.eventsTitle}`}>
@@ -340,7 +339,7 @@ export function DayDetail({
             </InfoTip>
           </h3>
           {events.length === 0 ? (
-            <p className={styles.muted}>{plan.isPast ? "Not kept for earlier days." : "No nearby events."}</p>
+            <p className={styles.muted}>{plan.isPast ? "No events were recorded for this day." : "No nearby events."}</p>
           ) : (
             <ul className={styles.events}>
               {events.map((e) => (
@@ -350,7 +349,12 @@ export function DayDetail({
                     <span className={styles.eventText}>
                       <span className={styles.eventName}>{e.name}</span>
                       <span className={styles.eventMeta}>
-                        {[e.venue, e.time ? formatClock(e.time) : "Time not listed", eventPeriod(e.time)]
+                        {[
+                          e.venue,
+                          e.time ? formatClock(e.time) : "Time not listed",
+                          eventPeriod(e.time),
+                          e.related?.length ? `+ ${e.related.length} related ${e.related.length === 1 ? "listing" : "listings"}` : "",
+                        ]
                           .filter(Boolean)
                           .join(" · ")}
                       </span>

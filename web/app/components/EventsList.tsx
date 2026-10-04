@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { EventIcon } from "@/app/components/EventIcon";
+import { EventBadge } from "@/app/components/EventBadge";
+import { InfluencePill } from "@/app/components/InfluencePill";
 import { InfoTip } from "@/app/components/InfoTip";
 import { Select } from "@/app/components/Select";
 import {
   influenceOf,
   isCrossBorder,
   type EventGroup,
-  type Influence,
   type SortKey,
 } from "@/app/lib/events";
 import type { WeekEvent } from "@/app/hooks/useWeek";
@@ -17,7 +17,7 @@ import styles from "./EventsList.module.css";
 
 export type EventRowData = EventGroup<WeekEvent>;
 
-export type EmptyKind = "earlier" | "none" | "filtered" | null;
+export type EmptyKind = "none" | "filtered" | null;
 
 const SORTS = [
   { value: "time", label: "Start time" },
@@ -30,10 +30,6 @@ const dateLabel = (iso: string) =>
     new Date(`${iso}T12:00:00Z`),
   );
 
-function InfluencePill({ influence }: { influence: Influence }) {
-  return <span className={`${styles.pill} ${styles[`pill${influence}`]}`}>{influence}</span>;
-}
-
 function Chevron() {
   return (
     <svg className={styles.chevron} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -43,7 +39,7 @@ function Chevron() {
 }
 
 function EventRow({ e, isKey }: { e: EventRowData; isKey: boolean }) {
-  const influence = influenceOf(e.proximity);
+  const influence = influenceOf(e);
   const when = e.time ? formatClock(e.time) : "No start time listed";
   const distance = e.distanceMiles === null ? "—" : `${trimNumber(e.distanceMiles, 1)} mi`;
   const relatedNames = e.related.map((r) => r.name).join("; ");
@@ -52,7 +48,7 @@ function EventRow({ e, isKey }: { e: EventRowData; isKey: boolean }) {
     <li className={styles.row}>
       <div className={styles.cellEvent}>
         <span className={styles.icon}>
-          <EventIcon eventClass={e.eventClass} size={28} />
+          <EventBadge eventClass={e.eventClass} size={36} />
         </span>
         <div className={styles.eventText}>
           <Link
@@ -171,9 +167,9 @@ export function EventsList({
             <span className={styles.colWithTip}>
               Estimated influence
               <InfoTip label="estimated influence" align="end">
-                How strongly an event could affect your area, based only on how close it is: High up to 0.6 miles,
-                Moderate up to 1.5 miles. It doesn&apos;t include the event&apos;s size. Open an event to see its
-                estimated effect on demand.
+                How strongly an event could affect your area, based on the kind of event and how close it is. A
+                stadium game or large concert nearby ranks higher than a small event farther away. It&apos;s an
+                estimate, and it isn&apos;t your demand forecast: open an event to see its estimated effect on demand.
               </InfoTip>
             </span>
             <span />
@@ -203,12 +199,6 @@ export function EventsList({
         </>
       )}
 
-      {empty === "earlier" && (
-        <div className={styles.empty} role="status">
-          <strong>Event data isn&apos;t available for earlier days.</strong>
-          <span>Events are only kept from today onward. Choose today or a later day.</span>
-        </div>
-      )}
       {empty === "none" && (
         <div className={styles.empty} role="status">
           <strong>No nearby events are listed for this day.</strong>

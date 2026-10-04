@@ -62,19 +62,23 @@ export function rainBehindLabel(p: WeatherPeriod): boolean {
   );
 }
 
-/** One or two sentences explaining a period's row when it's opened. */
-export function describePeriod(p: WeatherPeriod): string {
-  if (p.condition === null) return `No weather forecast is available for the ${p.label.toLowerCase()} period.`;
+/** One or two sentences explaining a period's row when it's opened. `past`: an earlier day this week, whose recorded weather is shown. */
+export function describePeriod(p: WeatherPeriod, past = false): string {
+  if (p.condition === null) {
+    return past
+      ? `No weather was recorded for the ${p.label.toLowerCase()} period.`
+      : `No weather forecast is available for the ${p.label.toLowerCase()} period.`;
+  }
   const parts: string[] = [];
   const e = effectOf(p.pct, p.severity);
-  if (e.kind === "none") parts.push("No material weather effect is expected.");
+  if (e.kind === "none") parts.push(past ? "Weather had no material effect." : "No material weather effect is expected.");
   else if (e.kind === "lower")
-    parts.push(`May lower demand by ${fmtPct(Math.abs(p.pct ?? 0)).slice(1)} compared with a normal ${p.label.toLowerCase()} period.`);
+    parts.push(`May ${past ? "have lowered" : "lower"} demand by ${fmtPct(Math.abs(p.pct ?? 0)).slice(1)} compared with a normal ${p.label.toLowerCase()} period.`);
   else if (e.kind === "raise")
-    parts.push(`May raise demand by ${fmtPct(p.pct ?? 0).slice(1)} compared with a normal ${p.label.toLowerCase()} period.`);
+    parts.push(`May ${past ? "have raised" : "raise"} demand by ${fmtPct(p.pct ?? 0).slice(1)} compared with a normal ${p.label.toLowerCase()} period.`);
   if (rainBehindLabel(p)) {
     parts.push(
-      `The condition is labelled ${p.condition}, but the ${Math.round(p.precip ?? 0)}% chance of precipitation is what lowers demand.`,
+      `The condition is labelled ${p.condition}, but the ${Math.round(p.precip ?? 0)}% chance of precipitation is what ${past ? "lowered" : "lowers"} demand.`,
     );
   }
   if (p.closed) parts.push("Your restaurant is closed then, so the weather is shown for reference only.");
@@ -135,27 +139,34 @@ export function conditionRuns(periods: WeatherPeriod[]): string {
  * lands, the conditions, and the rain chance when it matters. `dayPct` is the
  * backend's demand-weighted figure for the whole day.
  */
-export function buildWeatherSummary(args: { dayName: string; dayPct: number | null; periods: WeatherPeriod[] }): string[] {
-  const { dayName, dayPct, periods } = args;
+export function buildWeatherSummary(args: {
+  dayName: string;
+  dayPct: number | null;
+  periods: WeatherPeriod[];
+  /** An earlier day this week: describe the recorded weather in the past tense. */
+  past?: boolean;
+}): string[] {
+  const { dayName, dayPct, periods, past = false } = args;
   const forecast = periods.filter((p) => p.condition !== null);
-  if (forecast.length === 0) return [`No weather forecast is available for ${dayName}.`];
+  if (forecast.length === 0) return [past ? `No weather was recorded for ${dayName}.` : `No weather forecast is available for ${dayName}.`];
 
   const out: string[] = [];
   const effect = effectOf(dayPct, 0.25);
   const hit = mostAffected(forecast);
   const where = hit.length ? `, mostly ${joinWords(hit.map((p) => whenPhrase(p.label)))}` : "";
   if (effect.kind === "unavailable") out.push(`The weather effect for ${dayName} isn't available.`);
-  else if (effect.kind === "none") out.push(`Weather isn't expected to materially affect demand on ${dayName}.`);
+  else if (effect.kind === "none")
+    out.push(past ? `Weather didn't materially affect demand on ${dayName}.` : `Weather isn't expected to materially affect demand on ${dayName}.`);
   else
     out.push(
-      `Weather may ${effect.kind === "lower" ? "lower" : "raise"} demand by ${fmtPct(Math.abs(dayPct ?? 0)).slice(1)} on ${dayName}${where}.`,
+      `Weather may ${past ? "have " : ""}${effect.kind === "lower" ? (past ? "lowered" : "lower") : past ? "raised" : "raise"} demand by ${fmtPct(Math.abs(dayPct ?? 0)).slice(1)} on ${dayName}${where}.`,
     );
 
   out.push(`Conditions: ${conditionRuns(forecast)}.`);
 
   const wettest = forecast.reduce((a, b) => ((b.precip ?? -1) > (a.precip ?? -1) ? b : a));
   if (wettest.precip !== null && wettest.precip >= 20) {
-    out.push(`The chance of precipitation peaks at ${Math.round(wettest.precip)}% ${whenPhrase(wettest.label)}.`);
+    out.push(`The chance of precipitation ${past ? "peaked" : "peaks"} at ${Math.round(wettest.precip)}% ${whenPhrase(wettest.label)}.`);
   }
   return out;
 }

@@ -262,14 +262,14 @@ click-through with a real login.
 
 **1. Dates and summary**
 - [ ] Weekday/date mismatch — **verify** (the web app reads Detroit dates from the same helpers as the other pages)
-- [x] Day selector, summary, event list and per-day counts all come from one selected day, so they can't disagree
+- [x] Day selector, summary, event list and per-day counts all come from one selected day, so they can't disagree (the Weekly grid's event counts and day details now fold ticket packages in the same way, so both pages show the same numbers)
 - [x] Summary and key events reference the same day (the summary is built from the list itself, no AI text)
 - [x] Active date range explicit ("Showing events for …"); filtering stays inside it
 
 **2. Impact numbers**
 - [x] Raw 0.5 / 1 values no longer shown
 - [x] Low / Moderate / High "Estimated influence"
-  - It reflects distance only (≤ 0.6 mi High, ≤ 1.5 mi Moderate). The backend drops events beyond 1.5 mi, so "Low" doesn't appear in practice.
+  - Now worked out on the server from the kind of event and how close it is (only the tier is sent, never the weights): a stadium game or large concert nearby is High, a small event farther away is Low. Older responses fall back to distance alone.
 - [x] Tooltip explaining the metric, scope and uncertainty
 - [x] Event influence kept apart from the overall demand forecast (the event page shows the estimated effect separately)
 
@@ -300,9 +300,9 @@ click-through with a real login.
 - [x] Stacked cards on mobile
 
 **6. Event detail**
-- [ ] Venue address and map link — **partial**: a Google Maps link by venue name; no street address (**needs backend**)
-- [x] Local start time ("Detroit time"); no end time is available
-- [ ] Source link and last updated — **needs backend**
+- [x] Venue address and map link — the event page reads the street address from Ticketmaster when it opens, and the Google Maps link uses it (Huntington Place events keep the venue name only)
+- [x] Local start time ("Detroit time"); a local end time too, but only when the source gives one (Ticketmaster rarely does)
+- [x] Source link ("View original listing") and when we checked the source ("Source: Ticketmaster. Checked Oct 4, 7:52 AM EDT"). Looked up on demand for signed-in users; nothing is stored
 - [x] Affected service period
 - [x] Why it's relevant to this location and concept
 - [x] "View demand outlook for this date"
@@ -313,11 +313,11 @@ click-through with a real login.
 - [x] Duplicate listings and packages grouped under the show in the list (same venue, date and start time; shown as "+ n related listings")
   - Display only. A heuristic: a suite rental or hotel package leads to the show with the plain title.
 - [ ] Duplicates don't inflate forecast impact — **needs backend** (the page's counts are grouped; the forecast is not)
-- [ ] Canceled, postponed and rescheduled events handled consistently — **needs backend**
+- [ ] Canceled, postponed and rescheduled events handled consistently — **partial**: the event page shows a red warning when the source marks one of these. The list, counts and forecast are not changed (needs backend)
 
 **8. Geographic relevance**
 - [x] Straight-line vs travel distance explained (distance tooltip: venue to the centre of your area)
-- [x] Nearby venues aren't treated as equal: closer events rank higher and carry a higher influence label
+- [x] Nearby venues aren't treated as equal: the size of the event and how close it is both set its influence and rank
 - [x] Cross-border venues (Caesars Windsor) tagged "Across the border" with an explanation
   - Tagged by venue name; the forecast's own weighting of them is unchanged (**needs backend** to change).
 
@@ -334,15 +334,15 @@ click-through with a real login.
 - [x] Smaller header
 - [ ] Less vertical spacing — **partial**
 - [x] Better contrast on the navy card
-- [ ] Consistent icons, borders and spacing — **partial**: event icons are now SVG; borders and spacing on this page haven't been re-checked
+- [x] Consistent icons, borders and spacing (SVG icons; the list and the explainer use the same radius and shadow as the other pages). Layout follows the Figma frame: list with a grey header band and tinted event icons on the left, "Top events today" and the expandable explainer on the right, icons in the filter selects, and each day button shows its strongest influence
 - [x] Hover/keyboard/tap explanations for influence and distance
-- [x] "No matching events" vs "Event data unavailable" vs "No nearby events"
+- [x] "No matching events" vs "Event data unavailable" vs "No nearby events" (a banner says the data may be out of date when the last successful update is over 36 hours old, or isn't available if there never was one; "Last updated" is shown under the subtitle)
 
 ## 10. Weather page
 
 **1. Consistency**
 - [x] Summary, icons, conditions and impact all come from the same per-period data (the summary is built from the table rows, not from AI text, so they can't disagree)
-  - The page still waits for the day's weather outlook to be generated, which calls Gemini on the backend for text this page no longer shows. A Gemini outage therefore still shows "Try again" (**needs backend** to avoid).
+  - The page's weather outlook is now built without a Gemini call (the AI paragraph was never shown), so a Gemini outage can't block it or show "Try again".
 - [x] Rain probability shown per period; when it drives the impact under a sunny label, the row says so ("labelled Clear/Sunny, but the 60% chance of precipitation is what lowers demand")
 
 **2. Dates**
@@ -356,8 +356,8 @@ click-through with a real login.
 - [x] Daily figure explained (tooltip: it combines the four periods, counting busier ones more, so it isn't their simple average)
 
 **4. Date selector**
-- [ ] Weekday, date, icon, high/low and impact per day — **partial**: weekday, date, icon, average temperature and rain chance are there; high/low and a per-day effect **need backend**
-- [x] Seven same-size days; today and selected highlighted; earlier days greyed; scrolls sideways on phones instead of wrapping
+- [ ] Weekday, date, icon, high/low and impact per day — **partial**: weekday, date, icon, high / low (across the four service periods) and rain chance are there; a per-day demand effect is not returned per day yet (**needs backend**)
+- [x] Seven same-size days; today and selected highlighted; earlier days are selectable, tagged "Earlier" and show their recorded weather; scrolls sideways on phones instead of wrapping
 
 **5. One summary panel**
 - [x] Heading "Weather impact at a glance"
@@ -380,12 +380,12 @@ click-through with a real login.
 
 **9. Explanations and freshness**
 - [x] Tooltips: daily effect and its aggregation, estimated demand effect, rain chance, temperature, day selector
-- [ ] Source, last updated and time zone — **partial**: source (WeatherAPI) and time zone (Detroit) are stated; "last updated" **needs backend**
+- [x] Source, last updated and time zone: WeatherAPI and Detroit time are stated; "Last updated" shows the last successful sync (weather rows have no timestamp of their own)
 - [x] Unavailable data distinguished from no impact ("Unavailable" / "No weather forecast for this day", never 0%)
 
 **10. Design and navigation**
 - [x] Smaller heading
-- [ ] Smaller icons and less empty space — **partial**
+- [x] Smaller icons and less empty space (day, summary and row icons, padding and gaps reduced)
 - [x] Better contrast for the blue heading on navy
 - [x] Consistent weather icons (the same `WeatherIcon` in tiles, summary and rows; none shown without a forecast)
 - [x] Restrained colours for negative / neutral / positive, always with text
@@ -403,8 +403,8 @@ click-through with a real login.
 | Onboarding (choice, info, hours, success) | 32 | 34 |
 | Daily Outlook | 60 | 62 |
 | Weekly Outlook | 39 | 44 |
-| Events | 47 | 55 |
-| Weather | 23 | 31 |
-| **Total** | **225** | **250** |
+| Events | 50 | 55 |
+| Weather | 25 | 31 |
+| **Total** | **230** | **250** |
 
-Every page in the review has now been worked through. What is left is mostly **needs backend** items (last updated, other weeks, Gemini fallback, wind/alerts, event addresses) and the **verify** items that need a real signed-in session.
+Every page in the review has now been worked through. What is left is mostly **needs backend** items (other weeks, wind/alerts, rain amount and timing, outdoor seating, a per-day weather effect) and the **verify** items that need a real signed-in session.

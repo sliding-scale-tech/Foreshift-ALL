@@ -3,10 +3,15 @@
 import { useMemo, useState } from "react";
 import type { useMyOperator } from "@/app/hooks/useMyOperator";
 import type { WeekData } from "@/app/hooks/useWeek";
+import { useNow } from "@/app/hooks/useNow";
 import { EventDaySelector, REST_OF_WEEK } from "@/app/components/EventDaySelector";
 import { EventsList, type EmptyKind } from "@/app/components/EventsList";
+import { BriefcaseIcon, BuildingIcon, GlobeIcon, MusicIcon, PeopleIcon, RefreshIcon, TagIcon } from "@/app/components/event-icons";
 import { InfoTip } from "@/app/components/InfoTip";
+import { KeyEvents } from "@/app/components/KeyEvents";
+import { LastUpdated } from "@/app/components/LastUpdated";
 import { Select } from "@/app/components/Select";
+import { StaleNotice } from "@/app/components/StaleNotice";
 import { IconSparkle } from "@/app/components/dashboard-icons";
 import { pageSubtitle } from "@/app/lib/displayName";
 import {
@@ -17,9 +22,12 @@ import {
   filterEvents,
   groupListings,
   keyEventIds,
+  rankEvents,
   sortEvents,
+  topInfluence,
   weekdayName,
   type Filters,
+  type Influence,
   type SortKey,
 } from "@/app/lib/events";
 import { longDate, monthDay, weekLabel } from "@/app/lib/week";
@@ -39,6 +47,13 @@ const DISTANCE_CHOICES = [
   { value: "1.5", label: "Within 1.5 miles" },
 ];
 
+// General patterns only — possibilities, not predictions.
+const SHAPES = [
+  { icon: <MusicIcon />, text: "Concerts and nightlife may increase evening and after-show demand." },
+  { icon: <BriefcaseIcon />, text: "Conferences and expos may bring steady lunch traffic." },
+  { icon: <PeopleIcon />, text: "Large sports games can bring crowds in the hours before and after." },
+];
+
 // Events Overview — "which nearby events could affect my restaurant, when, and
 // why?" One selected day (or the rest of the week) drives the summary, the
 // date selector's count and the list, all from the same week query, so they
@@ -55,6 +70,12 @@ export function EventsOverviewView({
   const [sort, setSort] = useState<SortKey>("time");
   const [page, setPage] = useState(1);
   const [explainerOpen, setExplainerOpen] = useState(false);
+  // Event data is refreshed once a day. If the last successful refresh is over 36 hours old (or there
+  // never was one) "no events" can't be trusted, so say so instead of showing an empty list as fact.
+  // Read the clock after mount so the server and browser render the same thing.
+  const now = useNow();
+  const dataGap =
+    week.syncedAt === null ? "unavailable" : now !== null && now - week.syncedAt > 36 * 60 * 60 * 1000 ? "stale" : null;
 
   const scope = picked ?? week.today;
   const range = scope === REST_OF_WEEK;
@@ -65,10 +86,14 @@ export function EventsOverviewView({
     return groupListings(inScope);
   }, [week, scope, range]);
 
-  const dayCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const d of week.days) counts[d.date] = groupListings(week.events.filter((e) => e.date === d.date)).length;
-    return counts;
+  // Per day: how many events, and the strongest estimated influence among them.
+  const dayInfo = useMemo(() => {
+    const info: Record<string, { count: number; top: Influence | null }> = {};
+    for (const d of week.days) {
+      const events = groupListings(week.events.filter((e) => e.date === d.date));
+      info[d.date] = { count: events.length, top: topInfluence(events) };
+    }
+    return info;
   }, [week]);
 
   const venues = useMemo(
@@ -78,11 +103,17 @@ export function EventsOverviewView({
 
   const results = useMemo(() => sortEvents(filterEvents(scoped, filters), sort), [scoped, filters, sort]);
   const keyIds = useMemo(() => keyEventIds(scoped), [scoped]);
+  const topEvents = useMemo(() => rankEvents(scoped).slice(0, 3), [scoped]);
 
   const earlier = !range && scope < week.today;
   // In range mode `scope` isn't a date, so only a single day gets a weekday name.
   const label = range ? "the rest of this week" : scope === week.today ? "today" : weekdayName(scope);
   const summary = buildSummary({ events: scoped, label, range, earlier });
+  const keyTitle = range
+    ? "Key events for the rest of this week"
+    : scope === week.today
+      ? "Top events today"
+      : `Key events for ${weekdayName(scope)}, ${monthDay(scope)}`;
 
   const filterCount = activeFilterCount(filters);
   const pageCount = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
@@ -90,7 +121,7 @@ export function EventsOverviewView({
   const rows = results.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
 
   const empty: EmptyKind =
-    results.length > 0 ? null : earlier ? "earlier" : scoped.length === 0 ? "none" : "filtered";
+    results.length > 0 ? null : scoped.length === 0 ? "none" : "filtered";
 
   const update = (patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
@@ -112,6 +143,17 @@ export function EventsOverviewView({
     <>
       <h1 className={shared.title}>Events overview</h1>
       <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
+      <LastUpdated generatedAt={week.syncedAt} />
+      {dataGap === "unavailable" && (
+        <StaleNotice title="Event data isn't available right now.">
+          {" "}An empty list below doesn&apos;t mean there are no events. Please check back later.
+        </StaleNotice>
+      )}
+      {dataGap === "stale" && (
+        <StaleNotice title="Event data may be out of date.">
+          {" "}It was last updated more than a day and a half ago, so new events may not be listed yet.
+        </StaleNotice>
+      )}
 
       <section className={shared.banner} aria-live="polite">
         <div className={shared.bannerTitle}>
@@ -124,8 +166,9 @@ export function EventsOverviewView({
       <h2 className={`${shared.sectionTitle} ${styles.titleWithTip}`}>
         Choose a day
         <InfoTip label="the day selector" align="start">
-          Pick a day, or the rest of this week. The summary and the event list below update together. Event data
-          starts today, so earlier days have none.
+          Pick a day, or the rest of this week. The summary and the event list below update together. The label under
+          each count is the strongest estimated influence among that day&apos;s events. Event data covers this week,
+          Monday to Sunday: earlier days show the events that were listed for them. Next week isn&apos;t covered yet.
         </InfoTip>
       </h2>
       <EventDaySelector
@@ -137,7 +180,8 @@ export function EventsOverviewView({
         days={week.days.map((d) => ({
           date: d.date,
           day: d.day,
-          count: dayCounts[d.date] ?? 0,
+          count: dayInfo[d.date]?.count ?? 0,
+          top: dayInfo[d.date]?.top ?? null,
           isToday: d.date === week.today,
           isPast: d.date < week.today,
         }))}
@@ -145,6 +189,7 @@ export function EventsOverviewView({
       <p className={styles.showing}>
         Showing events for{" "}
         <strong>{range ? `the rest of this week (${monthDay(week.today)} – ${monthDay(week.weekEnd)})` : longDate(scope)}</strong>
+        {earlier && " (an earlier day)"}
       </p>
 
       <div className={styles.filters} role="search" aria-label="Filter events">
@@ -165,7 +210,14 @@ export function EventsOverviewView({
           <label className={styles.label} htmlFor="events-type">
             Event type
           </label>
-          <Select id="events-type" variant="filter" value={filters.type} onChange={(v) => update({ type: v })} options={TYPE_CHOICES} />
+          <Select
+            id="events-type"
+            variant="filter"
+            icon={<TagIcon />}
+            value={filters.type}
+            onChange={(v) => update({ type: v })}
+            options={TYPE_CHOICES}
+          />
         </div>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="events-venue">
@@ -174,6 +226,7 @@ export function EventsOverviewView({
           <Select
             id="events-venue"
             variant="filter"
+            icon={<BuildingIcon />}
             value={filters.venue}
             onChange={(v) => update({ venue: v })}
             options={[ANY("All venues"), ...venues.map((v) => ({ value: v, label: v }))]}
@@ -186,10 +239,17 @@ export function EventsOverviewView({
           <Select
             id="events-distance"
             variant="filter"
+            icon={<GlobeIcon />}
             value={filters.maxMiles}
             onChange={(v) => update({ maxMiles: v })}
             options={DISTANCE_CHOICES}
           />
+        </div>
+        <div className={styles.resetWrap}>
+          <button type="button" className={styles.reset} onClick={clear} disabled={filterCount === 0}>
+            <RefreshIcon />
+            Clear filters
+          </button>
         </div>
       </div>
 
@@ -211,50 +271,64 @@ export function EventsOverviewView({
           <span className={styles.resultCount} aria-live="polite">
             {results.length} {results.length === 1 ? "result" : "results"}
           </span>
-          <button type="button" className={styles.clearAll} onClick={clear}>
-            Clear filters
-          </button>
         </div>
       )}
 
-      <EventsList
-        rows={rows}
-        total={results.length}
-        page={current}
-        pageSize={PAGE_SIZE}
-        onPage={setPage}
-        sort={sort}
-        onSort={(s) => {
-          setSort(s);
-          setPage(1);
-        }}
-        keyIds={keyIds}
-        empty={empty}
-        onClear={clear}
-      />
-
-      <details className={styles.explainer} open={explainerOpen} onToggle={(e) => setExplainerOpen(e.currentTarget.open)}>
-        <summary>
-          How events shape demand
-          <span className={styles.explainerToggle}>
-            {explainerOpen ? "Hide" : "Show"}
-            <svg className={styles.chevron} viewBox="0 0 10 6" aria-hidden="true">
-              <path d="m1 1 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        </summary>
-        <div className={styles.explainerBody}>
-          <ul>
-            <li>Concerts and nightlife may increase evening and after-show demand.</li>
-            <li>Conferences and expos may bring steady lunch traffic.</li>
-            <li>Large sports games can bring crowds in the hours before and after.</li>
-          </ul>
-          <p>
-            These are general patterns, not predictions. An event&apos;s effect depends on its size and how close it
-            is. Open an event to see its estimated effect on your demand, period by period.
-          </p>
+      <div className={styles.layout}>
+        <div className={styles.main}>
+          <EventsList
+            rows={rows}
+            total={results.length}
+            page={current}
+            pageSize={PAGE_SIZE}
+            onPage={setPage}
+            sort={sort}
+            onSort={(s) => {
+              setSort(s);
+              setPage(1);
+            }}
+            keyIds={keyIds}
+            empty={empty}
+            onClear={clear}
+          />
         </div>
-      </details>
+
+        <aside className={styles.side} aria-label="Key events and how events shape demand">
+          <KeyEvents
+            title={keyTitle}
+            events={topEvents}
+            note={earlier ? "No nearby events were recorded for this day." : "No nearby events to highlight for this day."}
+          />
+
+          <details className={styles.explainer} open={explainerOpen} onToggle={(e) => setExplainerOpen(e.currentTarget.open)}>
+            <summary>
+              How events shape demand
+              <span className={styles.explainerToggle}>
+                {explainerOpen ? "Hide" : "Show"}
+                <svg className={styles.chevron} viewBox="0 0 10 6" aria-hidden="true">
+                  <path d="m1 1 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </summary>
+            <div className={styles.explainerBody}>
+              <ul className={styles.shapes}>
+                {SHAPES.map((s) => (
+                  <li key={s.text}>
+                    <span className={styles.shapeIcon} aria-hidden="true">
+                      {s.icon}
+                    </span>
+                    <span>{s.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <p>
+                These are general patterns, not predictions. An event&apos;s effect depends on its size and how close
+                it is. Open an event to see its estimated effect on your demand, period by period.
+              </p>
+            </div>
+          </details>
+        </aside>
+      </div>
     </>
   );
 }

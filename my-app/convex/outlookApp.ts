@@ -32,7 +32,8 @@ import {
   computeWeatherOutlook,
   type OutlookInputs,
 } from "./lib/outlook";
-import { withFactsFallback } from "./lib/outlookFacts";
+import { factsOnlyWeather, withFactsFallback } from "./lib/outlookFacts";
+import { fetchTicketmasterEventInfo, type EventSourceInfo } from "./lib/ticketmasterDetail";
 import {
   type DemandRecord,
   type EventSignalRead,
@@ -152,6 +153,12 @@ async function fingerprint(
   return hash(JSON.stringify(parts));
 }
 
+/** Customer-facing tier for an event's estimated lift (demand points: its size x how close
+ * it is x the concept's affinity). Only the tier leaves the server, never the raw weights. */
+function influenceTier(lift: number): "High" | "Moderate" | "Low" {
+  return lift >= 12 ? "High" : lift >= 5 ? "Moderate" : "Low";
+}
+
 async function operatorFor(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error("Not signed in.");
@@ -246,8 +253,9 @@ export const getSample = query({
  * calendar. No AI text (that comes from getMine); reactive, so it updates the
  * moment a cron run writes new signals.
  *
- * Days before today have no signals (the sync window starts today), so their
- * `weather` is null and they have no events — same as Bubble. */
+ * Earlier days of the week keep their stored signals too (the weather sync back-fills
+ * them), so they carry weather and events like any other day. A day with no stored
+ * signals has `weather: null`. */
 export const getWeek = query({
   args: {},
   handler: async (ctx) => {
@@ -266,6 +274,8 @@ export const getWeek = query({
       .query("eventAffinity")
       .withIndex("by_concept", (q) => q.eq("concept", concept))
       .unique();
+    const liftOf = (eventClass: string, proximity: number) =>
+      (magnitudeRows.find((m) => m.eventClass === eventClass)?.magnitude ?? 0) * (affinityRow?.affinity ?? 0) * proximity;
     // When the forecast numbers were last recomputed: the latest successful sync run.
     const syncRuns = await ctx.db.query("bubbleSyncLog").order("desc").take(10);
     const syncedAt = syncRuns.find((r) => r.status === "success")?.finishedAt ?? null;
@@ -300,6 +310,8 @@ export const getWeek = query({
         name: e.name,
         venue: e.venueName ?? "",
         eventClass: e.eventClass,
+        // Estimated influence: the kind of event and how close it is (not just distance).
+        influence: influenceTier(liftOf(e.eventClass, e.proximity)),
         // Estimated extra demand in its headline period, as a percent of that
         // period's normal; null when there is no baseline to measure against.
         liftPercent: (() => {
@@ -336,6 +348,10 @@ export const getWeek = query({
       const demand = demandRows.find((r) => r.day === day);
       const weather = weatherRows.find((w) => w.date === date);
       const base = baseRows.find((r) => r.day === day);
+      // Warmest and coolest of the four service periods; null when there is no reading.
+      const periodTemps = weather
+        ? [weather.morning.tempF, weather.midday.tempF, weather.dinner.tempF, weather.late.tempF]
+        : [];
       return {
         day,
         date,
@@ -363,6 +379,8 @@ export const getWeek = query({
           ? {
               condition: weather.condition,
               tempF: weather.tempF,
+              highF: Math.max(...periodTemps),
+              lowF: Math.min(...periodTemps),
               severity: weather.severity,
               precipChance: weather.precipChance,
             }
@@ -451,6 +469,7 @@ export const getEventImpact = query({
         time: event.eventTime ? event.eventTime.slice(0, 5) : null,
         headlineDaypart: headline,
         proximity: event.proximity,
+        influence: influenceTier(lift),
         distanceMiles: event.distanceMiles ?? null,
       },
       // Band of the headline daypart once this event's lift lands (event only —
@@ -636,9 +655,13 @@ async function generateIfStale(
   // If Gemini is down the numbers still come through; the sentences are then
   // written from those numbers and the result is marked so the page can say so.
   let usedFacts = false;
-  const narrators = withFactsFallback(() => {
-    usedFacts = true;
-  });
+  // The Weather page never shows the AI paragraph, so it doesn't wait for (or spend) a Gemini call.
+  const narrators =
+    type === "weather"
+      ? factsOnlyWeather
+      : withFactsFallback(() => {
+          usedFacts = true;
+        });
   const common = { zone, concept, coeffs, inputs, narrators };
   const result =
     type === "weekly"
@@ -686,6 +709,38 @@ export const ensureSample = action({
       type: "today",
     });
     return generateIfStale(ctx, s, "today");
+  },
+});
+
+/** Source details for one event: address, link back to the listing, end time and whether the
+ * source marked it cancelled / postponed. Read straight from the source when asked; nothing is
+ * stored, and none of it feeds the forecast. */
+async function lookupEventSource(eventId: string): Promise<EventSourceInfo> {
+  if (eventId.startsWith("hp_")) {
+    // Huntington Place is scraped from its own calendar; link to that calendar.
+    return {
+      available: true,
+      source: "Huntington Place",
+      url: "https://www.huntingtonplacedetroit.com/events/",
+      address: null,
+      endTime: null,
+      status: "unknown",
+      checkedAt: Date.now(),
+    };
+  }
+  const apiKey = process.env.TICKETMASTER_API_KEY;
+  if (!apiKey) return { available: false, reason: "no_key" };
+  return fetchTicketmasterEventInfo({ apiKey, eventId });
+}
+
+/** The event page's "venue and source" block. Signed-in users only, so the Ticketmaster
+ * quota can't be used by strangers. */
+export const eventSource = action({
+  args: { eventId: v.string() },
+  handler: async (ctx, args): Promise<EventSourceInfo> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not signed in.");
+    return lookupEventSource(args.eventId);
   },
 });
 

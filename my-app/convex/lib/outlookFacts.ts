@@ -190,6 +190,12 @@ const factsNarrators = {
 };
 
 /**
+ * Facts only, no Gemini call at all. For the web Weather page: it shows the numbers per period and
+ * builds its own sentences, so the AI paragraph is never displayed and isn't worth waiting for.
+ */
+export const factsOnlyWeather: Narrators = { weather: factsNarrators.weather };
+
+/**
  * The real Gemini narrators, each backed by the plain-facts version above. Use
  * the real one first; if it throws, write the facts instead and call
  * `onFallback` so the caller can mark the result.

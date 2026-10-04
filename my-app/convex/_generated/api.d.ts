@@ -35,6 +35,7 @@ import type * as lib_stripe from "../lib/stripe.js";
 import type * as lib_stripeWebhook from "../lib/stripeWebhook.js";
 import type * as lib_svix from "../lib/svix.js";
 import type * as lib_ticketmaster from "../lib/ticketmaster.js";
+import type * as lib_ticketmasterDetail from "../lib/ticketmasterDetail.js";
 import type * as lib_vocab from "../lib/vocab.js";
 import type * as lib_weatherSeverity from "../lib/weatherSeverity.js";
 import type * as lib_weatherapi from "../lib/weatherapi.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   "lib/stripeWebhook": typeof lib_stripeWebhook;
   "lib/svix": typeof lib_svix;
   "lib/ticketmaster": typeof lib_ticketmaster;
+  "lib/ticketmasterDetail": typeof lib_ticketmasterDetail;
   "lib/vocab": typeof lib_vocab;
   "lib/weatherSeverity": typeof lib_weatherSeverity;
   "lib/weatherapi": typeof lib_weatherapi;
