@@ -124,7 +124,13 @@ export function OutlookBody({
 
       <div className={styles.dayparts}>
         {data.dayparts.map((dp, i) => (
-          <DaypartCard key={dp.key} dp={dp} closed={open[i] === false} busiest={dp.key === busiestKey} />
+          <DaypartCard
+            key={dp.key}
+            dp={dp}
+            closed={open[i] === false}
+            busiest={dp.key === busiestKey}
+            canEditHours={hours !== undefined}
+          />
         ))}
       </div>
 
@@ -151,7 +157,18 @@ export function OutlookBody({
   );
 }
 
-function DaypartCard({ dp, closed, busiest }: { dp: DaypartOutlook; closed: boolean; busiest: boolean }) {
+function DaypartCard({
+  dp,
+  closed,
+  busiest,
+  canEditHours,
+}: {
+  dp: DaypartOutlook;
+  closed: boolean;
+  busiest: boolean;
+  // Shows the edit-hours link beside "Closed". Signed-in only: the public sample has no hours to edit.
+  canEditHours: boolean;
+}) {
   return (
     <div className={`${shared.card} ${styles.dpCard} ${busiest ? styles.dpBusiest : ""}`}>
       {busiest && <span className={styles.busiestTag}>Busiest period</span>}
@@ -161,7 +178,21 @@ function DaypartCard({ dp, closed, busiest }: { dp: DaypartOutlook; closed: bool
           <div className={styles.dpTitle}>{dp.label}</div>
           <div className={styles.dpWindow}>{dp.window}</div>
         </div>
-        {closed && <span className={styles.closedBadge}>Closed</span>}
+        {closed && (
+          <div className={styles.dpCorner}>
+            <span className={styles.closedBadge}>Closed</span>
+            {canEditHours && (
+              <Link
+                href="/settings#operating-hours"
+                className={styles.editHours}
+                aria-label="Edit operating hours"
+                title="Edit operating hours"
+              >
+                <IconPencil />
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={styles.dpMeta}>
@@ -207,6 +238,21 @@ function DaypartCard({ dp, closed, busiest }: { dp: DaypartOutlook; closed: bool
       <p className={styles.eventNote}>{dp.eventNote}</p>
       {closed && <p className={styles.closedNote}>Your restaurant is closed during this period.</p>}
     </div>
+  );
+}
+
+function IconPencil() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="m14.5 7.5 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
 

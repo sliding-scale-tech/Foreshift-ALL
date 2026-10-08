@@ -14,6 +14,8 @@ export type WeatherPeriod = {
   precip: number | null;
   /** Weather's effect on demand for this period, in percent (signed). */
   pct: number | null;
+  /** The same effect in demand-score points (signed): what weather adds to or takes off the period's score. */
+  impactScore: number | null;
   /** Backend severity: 0.5 storm/snow, 0.25 rain, 0 normal, negative = ideal day. */
   severity: number;
   /** Outside the restaurant's hours. Weather is still shown for reference. */
@@ -36,6 +38,14 @@ export function fmtPct(n: number): string {
   if (r === 0) return "0%";
   const body = Number.isInteger(r) ? String(Math.abs(r)) : Math.abs(r).toFixed(1);
   return `${r > 0 ? "+" : MINUS}${body}%`;
+}
+
+/** "+1.2", "−3.4", "0" — demand-score points, typographic minus, one decimal at most. */
+export function fmtPoints(n: number): string {
+  const r = Math.round(n * 10) / 10;
+  if (r === 0) return "0";
+  const body = Number.isInteger(r) ? String(Math.abs(r)) : Math.abs(r).toFixed(1);
+  return `${r > 0 ? "+" : MINUS}${body}`;
 }
 
 /** Whether a figure is big enough to call an effect. Under half a percent is "none". */

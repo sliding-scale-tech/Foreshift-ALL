@@ -97,6 +97,14 @@
   color: var(--color-gray-70);
 }
 
+/* Weather impact score for the day; coloured by direction, always with the signed number as text. */
+.dayImpact {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gray-70);
+}
+
 /* Marks a day that has already happened; its weather is what was recorded. */
 .earlierTag {
   position: absolute;
@@ -424,6 +432,12 @@
   color: var(--color-gray-70);
 }
 
+.impactScore {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gray-70);
+}
+
 .effectNone {
   font-size: 13px;
   line-height: 1.35;
@@ -558,6 +572,7 @@
   .cellEffect {
     grid-area: effect;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 8px;
   }

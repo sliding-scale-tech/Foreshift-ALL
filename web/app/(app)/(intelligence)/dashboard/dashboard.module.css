@@ -120,10 +120,35 @@
 }
 
 /* Pinned to the corner so a closed card keeps the same header height as the others. */
-.closedBadge {
+.dpCorner {
   position: absolute;
   top: 16px;
   right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editHours {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--color-shift-electric-blue);
+}
+
+.editHours:hover {
+  background: var(--color-gray-20);
+}
+
+.editHours:focus-visible {
+  outline: 2px solid var(--color-shift-electric-blue);
+  outline-offset: 1px;
+}
+
+.closedBadge {
   padding: 3px 8px;
   font-size: 12px;
   font-weight: 600;

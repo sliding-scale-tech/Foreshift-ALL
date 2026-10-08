@@ -229,6 +229,11 @@ export default function SignUpPage() {
 
         {error && <p className={formStyles.error}>{error}</p>}
 
+        {/* Clerk bot protection mounts its Smart CAPTCHA here (used by both
+            signUp.create and the Google redirect). Without it Clerk falls back
+            to the invisible widget and logs a console error. */}
+        <div id="clerk-captcha" />
+
         <button type="submit" className={formStyles.primaryBtn} disabled={submitting}>
           {submitting ? "Creating account…" : "Create account"}
           {!submitting && <IconArrowRight />}

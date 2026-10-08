@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "my-app/convex/_generated/api";
@@ -306,6 +306,16 @@ function HoursCard({ operator }: { operator: Operator }) {
   const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // The daypart cards' edit icon links to #operating-hours. The page shows a
+  // loader first, so the browser's own hash jump finds nothing; scroll here
+  // once this card has mounted.
+  useEffect(() => {
+    if (window.location.hash === "#operating-hours") {
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
 
   async function save() {
     setMsg(null);
@@ -326,7 +336,7 @@ function HoursCard({ operator }: { operator: Operator }) {
   }
 
   return (
-    <section className={styles.card}>
+    <section id="operating-hours" ref={sectionRef} className={`${styles.card} ${styles.anchored}`}>
       <h2 className={styles.cardTitle}>Operating Hours</h2>
       <p className={styles.cardSub}>Set your regular service hours. You can adjust individual days.</p>
       <div className={styles.hours}>

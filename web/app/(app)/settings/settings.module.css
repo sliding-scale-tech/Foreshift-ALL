@@ -172,3 +172,8 @@
     padding: 20px;
   }
 }
+
+/* Room above the hours card when it's scrolled to from a daypart card's edit icon. */
+.anchored {
+  scroll-margin-top: 24px;
+}

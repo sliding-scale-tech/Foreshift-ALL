@@ -292,7 +292,7 @@ function StepChoice({
 
         <div className={styles.choiceCard}>
           <div className={styles.choiceIllustration}>
-            <Image src="/onboarding/choice-explore.png" alt="" width={417} height={236} unoptimized priority />
+            <Image src="/onboarding/choice-explore.png" alt="" width={836} height={470} unoptimized priority />
           </div>
           <h2>I&apos;m exploring opportunities</h2>
           <p>Explore demand for your restaurant concept across different locations.</p>

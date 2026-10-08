@@ -19,6 +19,7 @@ import {
   describePeriod,
   effectOf,
   fmtPct,
+  fmtPoints,
   mostAffected,
   tempSummary,
   type WeatherPeriod,
@@ -46,9 +47,12 @@ function DaySelector({
         const past = d.date < week.today;
         const isToday = d.date === week.today;
         const w = d.weather;
+        const impact = w ? d.weatherImpact : null;
         const label = `${FULL_DAY[d.day as DayKey]}, ${monthDay(d.date)}${isToday ? ", today" : ""}. ${
           w
-            ? `${past ? "Earlier day, recorded weather: " : ""}${w.condition}, high ${Math.round(w.highF)}°F, low ${Math.round(w.lowF)}°F, ${Math.round(w.precipChance)}% chance of precipitation`
+            ? `${past ? "Earlier day, recorded weather: " : ""}${w.condition}, high ${Math.round(w.highF)}°F, low ${Math.round(w.lowF)}°F, ${Math.round(w.precipChance)}% chance of precipitation${
+                impact ? `, estimated weather effect on demand ${fmtPct(impact.percent)}` : ""
+              }`
             : past
               ? "Earlier day, no weather recorded"
               : "No forecast"
@@ -72,6 +76,20 @@ function DaySelector({
                   {Math.round(w.highF)}°<span className={styles.dayLow}> / {Math.round(w.lowF)}°</span>
                 </span>
                 <span className={styles.dayNote}>{Math.round(w.precipChance)}% rain</span>
+                {/* Percent, the same figure the summary's "Estimated weather effect" shows for this day. */}
+                {impact && (
+                  <span
+                    className={`${styles.dayImpact} ${
+                      effectOf(impact.percent, w.severity).kind === "lower"
+                        ? styles.pctLowerOnLight
+                        : effectOf(impact.percent, w.severity).kind === "raise"
+                          ? styles.pctRaise
+                          : ""
+                    }`}
+                  >
+                    Impact {fmtPct(impact.percent)}
+                  </span>
+                )}
               </>
             ) : (
               <span className={styles.dayNote}>{past ? "Not recorded" : "No forecast"}</span>
@@ -137,6 +155,9 @@ function PeriodRow({ p, open, onToggle, past }: { p: WeatherPeriod; open: boolea
               <span className={styles.effectLabel}>{effect.text}</span>
             </>
           )}
+          {effect.kind !== "unavailable" && p.impactScore !== null && (
+            <span className={styles.impactScore}>Impact score {fmtPoints(p.impactScore)}</span>
+          )}
         </span>
 
         <svg className={styles.chevron} viewBox="0 0 10 6" aria-hidden="true">
@@ -186,6 +207,7 @@ export function WeatherView({
       tempF: w ? w.temp_f : null,
       precip: w && pw ? pw.precipChance : null,
       pct: w ? w.weather_impact_percent : null,
+      impactScore: w ? w.weather_impact_score : null,
       severity: w ? w.severity : 0,
       closed: hours ? openDuring(hours, selected, dp.start, dp.end) === false : false,
     };
@@ -213,7 +235,8 @@ export function WeatherView({
         Choose a day
         <InfoTip label="the day selector" align="start">
           Pick a day to see how its weather may affect demand. Each day shows its warmest and coolest temperature
-          across the four service periods (high / low), and the chance of precipitation. Today and later days show
+          across the four service periods (high / low), the chance of precipitation, and the weather&apos;s estimated effect
+          on demand for the whole day (the same figure as &ldquo;Estimated weather effect on demand&rdquo; below). Today and later days show
           the forecast; earlier days this week show the weather that was recorded.
         </InfoTip>
       </h2>
@@ -343,7 +366,8 @@ export function WeatherView({
                 Estimated demand effect
                 <InfoTip label="estimated demand effect" align="end">
                   The estimated change in demand for the period from weather alone, compared with a normal one. It
-                  isn&apos;t a weather warning.
+                  isn&apos;t a weather warning. The impact score is the same change in demand-score points: what
+                  the weather adds to or takes off the period&apos;s score.
                 </InfoTip>
               </span>
               <span />
