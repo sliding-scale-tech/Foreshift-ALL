@@ -39,7 +39,13 @@ import {
   type EventSignalRead,
   type WeatherSignalRead,
 } from "./lib/bubble";
-import { type CoefficientBundle } from "./lib/resolve";
+import {
+  indexEventsByCell,
+  indexWeatherByZoneDay,
+  resolveCell,
+  type CoefficientBundle,
+} from "./lib/resolve";
+import { readCoefficients } from "./coefficients";
 import { SCORE_CAP } from "./lib/formula";
 import {
   ZONES,
@@ -343,6 +349,44 @@ export const getWeek = query({
           a.name.localeCompare(b.name),
       );
 
+    // Weather's effect on each day, worked out cell by cell with the same
+    // resolveCell math the Weather page's period rows come from, so a day card
+    // and that day's rows can't disagree.
+    const inputs = await readInputs(ctx, { zone, concept, days: [] });
+    const coeffs = await readCoefficients(ctx);
+    const weatherImpactOf = (day: Day, date: string) => {
+      const record = inputs.records.find((r) => r.day === day);
+      const weather = inputs.weather.filter((w) => w.date === date);
+      if (!record || weather.length === 0) return null;
+      const eventsByCell = indexEventsByCell(inputs.events.filter((e) => e.date === date));
+      const weatherByZoneDay = indexWeatherByZoneDay(weather);
+      let score = 0;
+      let subtotal = 0;
+      for (const dp of DAYPARTS) {
+        const cell = record.dayparts.find((d) => d.daypart === dp);
+        const c = resolveCell({
+          zone,
+          concept,
+          day,
+          daypart: dp,
+          window: "",
+          base_score: cell?.base_score ?? 0,
+          base_band: cell?.base_band ?? "Minimal",
+          eventsByCell,
+          weatherByZoneDay,
+          coeffs,
+        });
+        score += c.weather?.weather_impact_score ?? 0;
+        subtotal += c.base_score + c.event_lift;
+      }
+      return {
+        // Demand-score points weather adds (+) or takes off (−) across the four periods.
+        score: Math.round(score * 10) / 10,
+        // The same as a percent of the day's pre-weather demand (the page's daily figure).
+        percent: subtotal > 0 ? Math.round((score / subtotal) * 1000) / 10 : 0,
+      };
+    };
+
     const days = DAYS.map((day) => {
       const date = dates[day];
       const demand = demandRows.find((r) => r.day === day);
@@ -385,6 +429,8 @@ export const getWeek = query({
               precipChance: weather.precipChance,
             }
           : null,
+        // null without a weather reading or base demand for the day.
+        weatherImpact: weatherImpactOf(day, date),
       };
     });
 
@@ -489,80 +535,86 @@ export const getEventImpact = query({
  * lib/outlook.ts runs unchanged. */
 export const loadInputs = internalQuery({
   args: { zone: v.string(), concept: v.string(), days: v.array(v.string()) },
-  handler: async (ctx, args): Promise<OutlookInputs> => {
-    const inDays = (d: string | undefined) => args.days.length === 0 || args.days.includes(d ?? "");
-
-    const base = await ctx.db
-      .query("demandScores")
-      .withIndex("by_zone_concept_day", (q) =>
-        q.eq("zone", args.zone).eq("concept", args.concept),
-      )
-      .collect();
-    const records: DemandRecord[] = base
-      .filter((r) => inDays(r.day))
-      .map((r) => ({
-        zone: r.zone,
-        concept: r.concept,
-        day: r.day,
-        dayparts: DAYPARTS.map((dp) => ({
-          daypart: dp,
-          window: "",
-          base_score: r[`${dp}BaseScore`],
-          base_band: r[`${dp}BaseBand`],
-        })),
-      }));
-
-    const eventRows = await ctx.db
-      .query("eventSignals")
-      .withIndex("by_zone_day", (q) => q.eq("zone", args.zone))
-      .collect();
-    const events: EventSignalRead[] = eventRows
-      .filter((e) => inDays(e.day))
-      .map((e) => ({
-        event_id: e.eventId,
-        zone: e.zone,
-        day: e.day ?? "",
-        date: e.date,
-        daypart: e.daypart ?? "",
-        event_class: e.eventClass,
-        proximity: e.proximity,
-        distance_miles: e.distanceMiles ?? 0,
-        // The mirror keeps "HH:MM:SS"; Bubble's reader (and the outlook code) use "HH:MM".
-        event_time: e.eventTime ? e.eventTime.slice(0, 5) : null,
-        name: e.name,
-        venue_name: e.venueName ?? "",
-        all_dayparts: e.allDayparts,
-      }));
-
-    const weatherRows = await ctx.db
-      .query("weatherSignals")
-      .withIndex("by_zone_day", (q) => q.eq("zone", args.zone))
-      .collect();
-    const slice = (s: { severity: number; condition: string; tempF: number; precipChance: number }) => ({
-      severity: s.severity,
-      condition: s.condition,
-      temp_f: s.tempF,
-      precip_chance: s.precipChance,
-    });
-    const weather: WeatherSignalRead[] = weatherRows
-      .filter((w) => inDays(w.day))
-      .map((w) => ({
-        zone: w.zone,
-        day: w.day ?? "",
-        date: w.date,
-        severity: w.severity,
-        condition: w.condition,
-        temp_f: w.tempF,
-        precip_chance: w.precipChance,
-        morning: slice(w.morning),
-        midday: slice(w.midday),
-        dinner: slice(w.dinner),
-        late: slice(w.late),
-      }));
-
-    return { records, events, weather };
-  },
+  handler: async (ctx, args): Promise<OutlookInputs> => readInputs(ctx, args),
 });
+
+// loadInputs' body, also used directly by getWeek. `days: []` = every day.
+async function readInputs(
+  ctx: QueryCtx,
+  args: { zone: string; concept: string; days: string[] },
+): Promise<OutlookInputs> {
+  const inDays = (d: string | undefined) => args.days.length === 0 || args.days.includes(d ?? "");
+
+  const base = await ctx.db
+    .query("demandScores")
+    .withIndex("by_zone_concept_day", (q) =>
+      q.eq("zone", args.zone).eq("concept", args.concept),
+    )
+    .collect();
+  const records: DemandRecord[] = base
+    .filter((r) => inDays(r.day))
+    .map((r) => ({
+      zone: r.zone,
+      concept: r.concept,
+      day: r.day,
+      dayparts: DAYPARTS.map((dp) => ({
+        daypart: dp,
+        window: "",
+        base_score: r[`${dp}BaseScore`],
+        base_band: r[`${dp}BaseBand`],
+      })),
+    }));
+
+  const eventRows = await ctx.db
+    .query("eventSignals")
+    .withIndex("by_zone_day", (q) => q.eq("zone", args.zone))
+    .collect();
+  const events: EventSignalRead[] = eventRows
+    .filter((e) => inDays(e.day))
+    .map((e) => ({
+      event_id: e.eventId,
+      zone: e.zone,
+      day: e.day ?? "",
+      date: e.date,
+      daypart: e.daypart ?? "",
+      event_class: e.eventClass,
+      proximity: e.proximity,
+      distance_miles: e.distanceMiles ?? 0,
+      // The mirror keeps "HH:MM:SS"; Bubble's reader (and the outlook code) use "HH:MM".
+      event_time: e.eventTime ? e.eventTime.slice(0, 5) : null,
+      name: e.name,
+      venue_name: e.venueName ?? "",
+      all_dayparts: e.allDayparts,
+    }));
+
+  const weatherRows = await ctx.db
+    .query("weatherSignals")
+    .withIndex("by_zone_day", (q) => q.eq("zone", args.zone))
+    .collect();
+  const slice = (s: { severity: number; condition: string; tempF: number; precipChance: number }) => ({
+    severity: s.severity,
+    condition: s.condition,
+    temp_f: s.tempF,
+    precip_chance: s.precipChance,
+  });
+  const weather: WeatherSignalRead[] = weatherRows
+    .filter((w) => inDays(w.day))
+    .map((w) => ({
+      zone: w.zone,
+      day: w.day ?? "",
+      date: w.date,
+      severity: w.severity,
+      condition: w.condition,
+      temp_f: w.tempF,
+      precip_chance: w.precipChance,
+      morning: slice(w.morning),
+      midday: slice(w.midday),
+      dinner: slice(w.dinner),
+      late: slice(w.late),
+    }));
+
+  return { records, events, weather };
+}
 
 async function statusOf(
   ctx: QueryCtx,

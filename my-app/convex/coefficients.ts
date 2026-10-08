@@ -4,6 +4,7 @@ import {
   internalQuery,
   mutation,
   query,
+  type QueryCtx,
 } from "./_generated/server";
 import { CONCEPTS } from "./lib/vocab";
 import { requireAdmin } from "./users";
@@ -97,21 +98,24 @@ export const seedDummyCoefficients = internalMutation({
 // narration flow (resolve magnitude by class, affinities by concept).
 export const getAll = internalQuery({
   args: {},
-  handler: async (ctx) => {
-    const em = await ctx.db.query("eventMagnitude").collect();
-    const ea = await ctx.db.query("eventAffinity").collect();
-    const wa = await ctx.db.query("weatherAffinity").collect();
-
-    const eventMagnitude: Record<string, number> = {};
-    for (const c of em) eventMagnitude[c.eventClass] = c.magnitude;
-    const eventAffinity: Record<string, number> = {};
-    for (const c of ea) eventAffinity[c.concept] = c.affinity;
-    const weatherAffinity: Record<string, number> = {};
-    for (const c of wa) weatherAffinity[c.concept] = c.affinity;
-
-    return { eventMagnitude, eventAffinity, weatherAffinity };
-  },
+  handler: async (ctx) => readCoefficients(ctx),
 });
+
+// getAll's body, callable straight from another query (getWeek) without a runQuery hop.
+export async function readCoefficients(ctx: QueryCtx) {
+  const em = await ctx.db.query("eventMagnitude").collect();
+  const ea = await ctx.db.query("eventAffinity").collect();
+  const wa = await ctx.db.query("weatherAffinity").collect();
+
+  const eventMagnitude: Record<string, number> = {};
+  for (const c of em) eventMagnitude[c.eventClass] = c.magnitude;
+  const eventAffinity: Record<string, number> = {};
+  for (const c of ea) eventAffinity[c.concept] = c.affinity;
+  const weatherAffinity: Record<string, number> = {};
+  for (const c of wa) weatherAffinity[c.concept] = c.affinity;
+
+  return { eventMagnitude, eventAffinity, weatherAffinity };
+}
 
 // --- §4.3 Event magnitude ---
 export const listEventMagnitude = internalQuery({
