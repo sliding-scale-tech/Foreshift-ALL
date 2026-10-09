@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSignUp } from "@clerk/nextjs/legacy";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
+import { useRedirectIfSignedIn } from "@/app/hooks/useRedirectIfSignedIn";
 import { AuthShell } from "@/app/components/AuthShell";
 import { IconMail, IconEye, IconArrowRight, IconGoogle } from "@/app/components/icons";
 import formStyles from "@/app/components/AuthForm.module.css";
@@ -19,6 +20,7 @@ const FEATURES = [
 export default function SignUpPage() {
   const { signUp, isLoaded, setActive } = useSignUp();
   const router = useRouter();
+  useRedirectIfSignedIn();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

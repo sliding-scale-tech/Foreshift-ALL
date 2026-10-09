@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSignIn } from "@clerk/nextjs/legacy";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
+import { useRedirectIfSignedIn } from "@/app/hooks/useRedirectIfSignedIn";
 import { AuthShell } from "@/app/components/AuthShell";
 import { IconMail, IconEye, IconArrowRight, IconGoogle } from "@/app/components/icons";
 import formStyles from "@/app/components/AuthForm.module.css";
@@ -12,6 +13,7 @@ import formStyles from "@/app/components/AuthForm.module.css";
 export default function SignInPage() {
   const { signIn, isLoaded, setActive } = useSignIn();
   const router = useRouter();
+  useRedirectIfSignedIn();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
