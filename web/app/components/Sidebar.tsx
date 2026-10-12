@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
 import { operatorLabel } from "@/app/lib/displayName";
@@ -10,7 +10,10 @@ import { NAV_SECTIONS } from "./nav";
 import { IconLogout } from "./dashboard-icons";
 import { IconClose } from "./icons";
 import { FeedbackModal } from "./FeedbackModal";
+import { AiPassThreads } from "./aiPass/AiPassThreads";
 import styles from "./Sidebar.module.css";
+
+const AI_PASS = "/ai-pass";
 
 // The one sidebar for every signed-in page — rendered by the (app) route
 // group's layout, so it stays mounted (and consistent) across navigation.
@@ -23,6 +26,9 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const name = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? "";
+  // /ai-pass and its chats (/ai-pass/<id>) all count as the AI Pass page.
+  const inAiPass = pathname === AI_PASS || pathname.startsWith(`${AI_PASS}/`);
+  const isActive = (href: string) => (href === AI_PASS ? inAiPass : pathname === href);
 
   return (
     <>
@@ -71,16 +77,19 @@ export function Sidebar() {
                   {label}
                 </button>
               ) : (
-              <Link
-                key={href}
-                href={href}
-                className={`${styles.item} ${pathname === href ? styles.active : ""}`}
-                aria-current={pathname === href ? "page" : undefined}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Icon />
-                {label}
-              </Link>
+                <Fragment key={href}>
+                  <Link
+                    href={href}
+                    className={`${styles.item} ${isActive(href) ? styles.active : ""}`}
+                    aria-current={isActive(href) ? "page" : undefined}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <Icon />
+                    {label}
+                  </Link>
+                  {/* AI Pass opens its chat list (New Chat + past chats) right under it. */}
+                  {href === AI_PASS && inAiPass && <AiPassThreads onNavigate={() => setMobileOpen(false)} />}
+                </Fragment>
               ),
             )}
           </nav>

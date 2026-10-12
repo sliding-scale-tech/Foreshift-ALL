@@ -1,0 +1,180 @@
+/* The chat list nested under "AI Pass" in the dark sidebar. */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 2px 18px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.86);
+  border-radius: 8px;
+  transition: background var(--duration-fast) ease;
+}
+
+.link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.link:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.active {
+  color: #fff;
+  background: rgba(2, 127, 252, 0.55);
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.more {
+  position: absolute;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.more svg {
+  width: 16px;
+  height: 16px;
+}
+
+.row:hover .more,
+.more:focus-visible,
+.more[aria-expanded="true"] {
+  display: inline-flex;
+}
+
+.more:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 30;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(1, 20, 66, 0.25);
+}
+
+.menu button {
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--color-primary-20);
+}
+
+.rename {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-shift-electric-blue);
+  border-radius: 8px;
+  outline: none;
+}
+
+.confirm {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.confirm button {
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.confirm button:first-of-type {
+  background: var(--color-destructive-70);
+}
+
+.none {
+  padding: 4px 10px 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.error {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #ffb4a8;
+}

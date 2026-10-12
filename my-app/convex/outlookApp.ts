@@ -161,7 +161,7 @@ async function fingerprint(
 
 /** Customer-facing tier for an event's estimated lift (demand points: its size x how close
  * it is x the concept's affinity). Only the tier leaves the server, never the raw weights. */
-function influenceTier(lift: number): "High" | "Moderate" | "Low" {
+export function influenceTier(lift: number): "High" | "Moderate" | "Low" {
   return lift >= 12 ? "High" : lift >= 5 ? "Moderate" : "Low";
 }
 
@@ -266,177 +266,181 @@ export const getWeek = query({
   args: {},
   handler: async (ctx) => {
     const { zone, concept } = await operatorFor(ctx);
-    const dates = currentWeekDates(new Date());
-
-    const demandRows = await ctx.db
-      .query("resolvedDemand")
-      .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept))
-      .collect();
-    // How much each event may add: magnitude (per class) x the concept's affinity x
-    // proximity — the same inputs getEventImpact uses. Only the resulting percent
-    // is returned, never the raw coefficients.
-    const magnitudeRows = await ctx.db.query("eventMagnitude").collect();
-    const affinityRow = await ctx.db
-      .query("eventAffinity")
-      .withIndex("by_concept", (q) => q.eq("concept", concept))
-      .unique();
-    const liftOf = (eventClass: string, proximity: number) =>
-      (magnitudeRows.find((m) => m.eventClass === eventClass)?.magnitude ?? 0) * (affinityRow?.affinity ?? 0) * proximity;
-    // When the forecast numbers were last recomputed: the latest successful sync run.
-    const syncRuns = await ctx.db.query("bubbleSyncLog").order("desc").take(10);
-    const syncedAt = syncRuns.find((r) => r.status === "success")?.finishedAt ?? null;
-    // The fixed per-period baseline ("normal") the comparison percentages are
-    // measured against.
-    const baseRows = await ctx.db
-      .query("demandScores")
-      .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept))
-      .collect();
-    const weatherRows = await ctx.db
-      .query("weatherSignals")
-      .withIndex("by_zone_day", (q) => q.eq("zone", zone))
-      .collect();
-    const eventRows = await ctx.db
-      .query("eventSignals")
-      .withIndex("by_zone_day", (q) => q.eq("zone", zone))
-      .collect();
-
-    // One row per real event: Ticketmaster can list the same event under
-    // several ids, and the same identity rule is used by the outlook math.
-    const seen = new Set<string>();
-    const events = eventRows
-      .filter((e) => DAYS.some((d) => dates[d] === e.date))
-      .filter((e) => {
-        const key = `${e.date}|${e.name}|${e.venueName ?? ""}|${e.eventClass}|${e.eventTime ?? ""}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .map((e) => ({
-        eventId: e.eventId,
-        name: e.name,
-        venue: e.venueName ?? "",
-        eventClass: e.eventClass,
-        // Estimated influence: the kind of event and how close it is (not just distance).
-        influence: influenceTier(liftOf(e.eventClass, e.proximity)),
-        // Estimated extra demand in its headline period, as a percent of that
-        // period's normal; null when there is no baseline to measure against.
-        liftPercent: (() => {
-          const base = baseRows.find((r) => r.day === e.day);
-          if (!base) return null;
-          const lift =
-            (magnitudeRows.find((m) => m.eventClass === e.eventClass)?.magnitude ?? 0) *
-            (affinityRow?.affinity ?? 0) *
-            e.proximity;
-          const baseOf = (dp: (typeof DAYPARTS)[number]) => base[`${dp}BaseScore`];
-          const busiest = [...DAYPARTS].sort((a, b) => baseOf(b) - baseOf(a))[0];
-          const headline = e.allDayparts ? busiest : (DAYPARTS.find((d) => d === e.daypart) ?? busiest);
-          return baseOf(headline) > 0 ? Math.round((lift / baseOf(headline)) * 1000) / 10 : null;
-        })(),
-        date: e.date,
-        // "18:40:00" -> "18:40"; null when Ticketmaster gave no time.
-        time: e.eventTime ? e.eventTime.slice(0, 5) : null,
-        distanceMiles: e.distanceMiles ?? null,
-        proximity: e.proximity,
-        // The period the event's lift lands in, from its start time. A timeless
-        // event (every Huntington Place event) has none and lifts all four.
-        daypart: e.daypart ?? null,
-        allDayparts: e.allDayparts,
-      }))
-      .sort(
-        (a, b) =>
-          a.date.localeCompare(b.date) ||
-          (a.time ?? "99:99").localeCompare(b.time ?? "99:99") ||
-          a.name.localeCompare(b.name),
-      );
-
-    // Weather's effect on each day, worked out cell by cell with the same
-    // resolveCell math the Weather page's period rows come from, so a day card
-    // and that day's rows can't disagree.
-    const inputs = await readInputs(ctx, { zone, concept, days: [] });
-    const coeffs = await readCoefficients(ctx);
-    const weatherImpactOf = (day: Day, date: string) => {
-      const record = inputs.records.find((r) => r.day === day);
-      const weather = inputs.weather.filter((w) => w.date === date);
-      if (!record || weather.length === 0) return null;
-      const eventsByCell = indexEventsByCell(inputs.events.filter((e) => e.date === date));
-      const weatherByZoneDay = indexWeatherByZoneDay(weather);
-      let score = 0;
-      let subtotal = 0;
-      for (const dp of DAYPARTS) {
-        const cell = record.dayparts.find((d) => d.daypart === dp);
-        const c = resolveCell({
-          zone,
-          concept,
-          day,
-          daypart: dp,
-          window: "",
-          base_score: cell?.base_score ?? 0,
-          base_band: cell?.base_band ?? "Minimal",
-          eventsByCell,
-          weatherByZoneDay,
-          coeffs,
-        });
-        score += c.weather?.weather_impact_score ?? 0;
-        subtotal += c.base_score + c.event_lift;
-      }
-      return {
-        // Demand-score points weather adds (+) or takes off (−) across the four periods.
-        score: Math.round(score * 10) / 10,
-        // The same as a percent of the day's pre-weather demand (the page's daily figure).
-        percent: subtotal > 0 ? Math.round((score / subtotal) * 1000) / 10 : 0,
-      };
-    };
-
-    const days = DAYS.map((day) => {
-      const date = dates[day];
-      const demand = demandRows.find((r) => r.day === day);
-      const weather = weatherRows.find((w) => w.date === date);
-      const base = baseRows.find((r) => r.day === day);
-      // Warmest and coolest of the four service periods; null when there is no reading.
-      const periodTemps = weather
-        ? [weather.morning.tempF, weather.midday.tempF, weather.dinner.tempF, weather.late.tempF]
-        : [];
-      return {
-        day,
-        date,
-        // Normal demand per period for this day of the week (null if unseeded).
-        base: base
-          ? {
-              morning: base.morningBaseScore,
-              midday: base.middayBaseScore,
-              dinner: base.dinnerBaseScore,
-              late: base.lateBaseScore,
-            }
-          : null,
-        demand: demand
-          ? {
-              peakScore: demand.peakScore,
-              peakBand: demand.peakBand,
-              peakDaypart: demand.peakDaypart,
-              morningScore: demand.morningScore,
-              middayScore: demand.middayScore,
-              dinnerScore: demand.dinnerScore,
-              lateScore: demand.lateScore,
-            }
-          : null,
-        weather: weather
-          ? {
-              condition: weather.condition,
-              tempF: weather.tempF,
-              highF: Math.max(...periodTemps),
-              lowF: Math.min(...periodTemps),
-              severity: weather.severity,
-              precipChance: weather.precipChance,
-            }
-          : null,
-        // null without a weather reading or base demand for the day.
-        weatherImpact: weatherImpactOf(day, date),
-      };
-    });
-
-    return { zone, concept, weekStart: dates.Mon, weekEnd: dates.Sun, today: detroitDate(), syncedAt, days, events };
+    return buildWeek(ctx, zone, concept);
   },
 });
+
+export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
+  const dates = currentWeekDates(new Date());
+
+  const demandRows = await ctx.db
+    .query("resolvedDemand")
+    .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept))
+    .collect();
+  // How much each event may add: magnitude (per class) x the concept's affinity x
+  // proximity — the same inputs getEventImpact uses. Only the resulting percent
+  // is returned, never the raw coefficients.
+  const magnitudeRows = await ctx.db.query("eventMagnitude").collect();
+  const affinityRow = await ctx.db
+    .query("eventAffinity")
+    .withIndex("by_concept", (q) => q.eq("concept", concept))
+    .unique();
+  const liftOf = (eventClass: string, proximity: number) =>
+    (magnitudeRows.find((m) => m.eventClass === eventClass)?.magnitude ?? 0) * (affinityRow?.affinity ?? 0) * proximity;
+  // When the forecast numbers were last recomputed: the latest successful sync run.
+  const syncRuns = await ctx.db.query("bubbleSyncLog").order("desc").take(10);
+  const syncedAt = syncRuns.find((r) => r.status === "success")?.finishedAt ?? null;
+  // The fixed per-period baseline ("normal") the comparison percentages are
+  // measured against.
+  const baseRows = await ctx.db
+    .query("demandScores")
+    .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept))
+    .collect();
+  const weatherRows = await ctx.db
+    .query("weatherSignals")
+    .withIndex("by_zone_day", (q) => q.eq("zone", zone))
+    .collect();
+  const eventRows = await ctx.db
+    .query("eventSignals")
+    .withIndex("by_zone_day", (q) => q.eq("zone", zone))
+    .collect();
+
+  // One row per real event: Ticketmaster can list the same event under
+  // several ids, and the same identity rule is used by the outlook math.
+  const seen = new Set<string>();
+  const events = eventRows
+    .filter((e) => DAYS.some((d) => dates[d] === e.date))
+    .filter((e) => {
+      const key = `${e.date}|${e.name}|${e.venueName ?? ""}|${e.eventClass}|${e.eventTime ?? ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((e) => ({
+      eventId: e.eventId,
+      name: e.name,
+      venue: e.venueName ?? "",
+      eventClass: e.eventClass,
+      // Estimated influence: the kind of event and how close it is (not just distance).
+      influence: influenceTier(liftOf(e.eventClass, e.proximity)),
+      // Estimated extra demand in its headline period, as a percent of that
+      // period's normal; null when there is no baseline to measure against.
+      liftPercent: (() => {
+        const base = baseRows.find((r) => r.day === e.day);
+        if (!base) return null;
+        const lift =
+          (magnitudeRows.find((m) => m.eventClass === e.eventClass)?.magnitude ?? 0) *
+          (affinityRow?.affinity ?? 0) *
+          e.proximity;
+        const baseOf = (dp: (typeof DAYPARTS)[number]) => base[`${dp}BaseScore`];
+        const busiest = [...DAYPARTS].sort((a, b) => baseOf(b) - baseOf(a))[0];
+        const headline = e.allDayparts ? busiest : (DAYPARTS.find((d) => d === e.daypart) ?? busiest);
+        return baseOf(headline) > 0 ? Math.round((lift / baseOf(headline)) * 1000) / 10 : null;
+      })(),
+      date: e.date,
+      // "18:40:00" -> "18:40"; null when Ticketmaster gave no time.
+      time: e.eventTime ? e.eventTime.slice(0, 5) : null,
+      distanceMiles: e.distanceMiles ?? null,
+      proximity: e.proximity,
+      // The period the event's lift lands in, from its start time. A timeless
+      // event (every Huntington Place event) has none and lifts all four.
+      daypart: e.daypart ?? null,
+      allDayparts: e.allDayparts,
+    }))
+    .sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        (a.time ?? "99:99").localeCompare(b.time ?? "99:99") ||
+        a.name.localeCompare(b.name),
+    );
+
+  // Weather's effect on each day, worked out cell by cell with the same
+  // resolveCell math the Weather page's period rows come from, so a day card
+  // and that day's rows can't disagree.
+  const inputs = await readInputs(ctx, { zone, concept, days: [] });
+  const coeffs = await readCoefficients(ctx);
+  const weatherImpactOf = (day: Day, date: string) => {
+    const record = inputs.records.find((r) => r.day === day);
+    const weather = inputs.weather.filter((w) => w.date === date);
+    if (!record || weather.length === 0) return null;
+    const eventsByCell = indexEventsByCell(inputs.events.filter((e) => e.date === date));
+    const weatherByZoneDay = indexWeatherByZoneDay(weather);
+    let score = 0;
+    let subtotal = 0;
+    for (const dp of DAYPARTS) {
+      const cell = record.dayparts.find((d) => d.daypart === dp);
+      const c = resolveCell({
+        zone,
+        concept,
+        day,
+        daypart: dp,
+        window: "",
+        base_score: cell?.base_score ?? 0,
+        base_band: cell?.base_band ?? "Minimal",
+        eventsByCell,
+        weatherByZoneDay,
+        coeffs,
+      });
+      score += c.weather?.weather_impact_score ?? 0;
+      subtotal += c.base_score + c.event_lift;
+    }
+    return {
+      // Demand-score points weather adds (+) or takes off (−) across the four periods.
+      score: Math.round(score * 10) / 10,
+      // The same as a percent of the day's pre-weather demand (the page's daily figure).
+      percent: subtotal > 0 ? Math.round((score / subtotal) * 1000) / 10 : 0,
+    };
+  };
+
+  const days = DAYS.map((day) => {
+    const date = dates[day];
+    const demand = demandRows.find((r) => r.day === day);
+    const weather = weatherRows.find((w) => w.date === date);
+    const base = baseRows.find((r) => r.day === day);
+    // Warmest and coolest of the four service periods; null when there is no reading.
+    const periodTemps = weather
+      ? [weather.morning.tempF, weather.midday.tempF, weather.dinner.tempF, weather.late.tempF]
+      : [];
+    return {
+      day,
+      date,
+      // Normal demand per period for this day of the week (null if unseeded).
+      base: base
+        ? {
+            morning: base.morningBaseScore,
+            midday: base.middayBaseScore,
+            dinner: base.dinnerBaseScore,
+            late: base.lateBaseScore,
+          }
+        : null,
+      demand: demand
+        ? {
+            peakScore: demand.peakScore,
+            peakBand: demand.peakBand,
+            peakDaypart: demand.peakDaypart,
+            morningScore: demand.morningScore,
+            middayScore: demand.middayScore,
+            dinnerScore: demand.dinnerScore,
+            lateScore: demand.lateScore,
+          }
+        : null,
+      weather: weather
+        ? {
+            condition: weather.condition,
+            tempF: weather.tempF,
+            highF: Math.max(...periodTemps),
+            lowF: Math.min(...periodTemps),
+            severity: weather.severity,
+            precipChance: weather.precipChance,
+          }
+        : null,
+      // null without a weather reading or base demand for the day.
+      weatherImpact: weatherImpactOf(day, date),
+    };
+  });
+
+  return { zone, concept, weekStart: dates.Mon, weekEnd: dates.Sun, today: detroitDate(), syncedAt, days, events };
+}
 
 /** One event's isolated effect on the caller's demand — the "Event Outlook"
  * detail page. Same math as POST /event/impact (eventImpact.ts): the event's
@@ -450,82 +454,86 @@ export const getEventImpact = query({
   args: { eventId: v.string(), date: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const { zone, concept } = await operatorFor(ctx);
-
-    const rows = await ctx.db
-      .query("eventSignals")
-      .withIndex("by_zone_day", (q) => q.eq("zone", zone))
-      .collect();
-    const event = rows.find(
-      (r) => r.eventId === args.eventId && (!args.date || r.date === args.date),
-    );
-    if (!event) return null;
-
-    const day = dayFromLocalDate(event.date);
-    if (!day) return null;
-
-    const magnitudeRow = await ctx.db
-      .query("eventMagnitude")
-      .withIndex("by_eventClass", (q) => q.eq("eventClass", event.eventClass))
-      .unique();
-    const affinityRow = await ctx.db
-      .query("eventAffinity")
-      .withIndex("by_concept", (q) => q.eq("concept", concept))
-      .unique();
-    const base = await ctx.db
-      .query("demandScores")
-      .withIndex("by_zone_concept_day", (q) =>
-        q.eq("zone", zone).eq("concept", concept).eq("day", day),
-      )
-      .unique();
-    if (!base) return null;
-    const resolved = await ctx.db
-      .query("resolvedDemand")
-      .withIndex("by_zone_concept_day", (q) =>
-        q.eq("zone", zone).eq("concept", concept).eq("day", day),
-      )
-      .unique();
-
-    const lift = (magnitudeRow?.magnitude ?? 0) * (affinityRow?.affinity ?? 0) * event.proximity;
-    const baseOf = (dp: (typeof DAYPARTS)[number]) => base[`${dp}BaseScore`];
-
-    // An all-dayparts event (every Huntington Place event) lifts all four; its
-    // headline daypart is the busiest one. A timed event lifts only its own.
-    const busiest = [...DAYPARTS].sort((a, b) => baseOf(b) - baseOf(a))[0];
-    const headline = event.allDayparts
-      ? busiest
-      : (DAYPARTS.find((d) => d === event.daypart) ?? busiest);
-
-    const dayparts = DAYPARTS.map((dp) => {
-      const applies = baseOf(dp) > 0 && (event.allDayparts || dp === headline);
-      return {
-        daypart: dp,
-        percent: applies ? Math.round((lift / baseOf(dp)) * 1000) / 10 : 0,
-        score: resolved ? resolved[`${dp}Score`] : null,
-        band: resolved ? resolved[`${dp}Band`] : null,
-      };
-    });
-
-    return {
-      event: {
-        eventId: event.eventId,
-        name: event.name,
-        venue: event.venueName ?? "",
-        eventClass: event.eventClass,
-        date: event.date,
-        time: event.eventTime ? event.eventTime.slice(0, 5) : null,
-        headlineDaypart: headline,
-        proximity: event.proximity,
-        influence: influenceTier(lift),
-        distanceMiles: event.distanceMiles ?? null,
-      },
-      // Band of the headline daypart once this event's lift lands (event only —
-      // no weather, no other events), on the same 150 cap and thresholds.
-      impactBand: scoreToBand(Math.min(baseOf(headline) + lift, SCORE_CAP)),
-      headlinePercent: dayparts.find((d) => d.daypart === headline)?.percent ?? 0,
-      dayparts,
-    };
+    return buildEventImpact(ctx, zone, concept, args);
   },
 });
+
+export async function buildEventImpact(ctx: QueryCtx, zone: string, concept: string, args: { eventId: string; date?: string }) {
+
+  const rows = await ctx.db
+    .query("eventSignals")
+    .withIndex("by_zone_day", (q) => q.eq("zone", zone))
+    .collect();
+  const event = rows.find(
+    (r) => r.eventId === args.eventId && (!args.date || r.date === args.date),
+  );
+  if (!event) return null;
+
+  const day = dayFromLocalDate(event.date);
+  if (!day) return null;
+
+  const magnitudeRow = await ctx.db
+    .query("eventMagnitude")
+    .withIndex("by_eventClass", (q) => q.eq("eventClass", event.eventClass))
+    .unique();
+  const affinityRow = await ctx.db
+    .query("eventAffinity")
+    .withIndex("by_concept", (q) => q.eq("concept", concept))
+    .unique();
+  const base = await ctx.db
+    .query("demandScores")
+    .withIndex("by_zone_concept_day", (q) =>
+      q.eq("zone", zone).eq("concept", concept).eq("day", day),
+    )
+    .unique();
+  if (!base) return null;
+  const resolved = await ctx.db
+    .query("resolvedDemand")
+    .withIndex("by_zone_concept_day", (q) =>
+      q.eq("zone", zone).eq("concept", concept).eq("day", day),
+    )
+    .unique();
+
+  const lift = (magnitudeRow?.magnitude ?? 0) * (affinityRow?.affinity ?? 0) * event.proximity;
+  const baseOf = (dp: (typeof DAYPARTS)[number]) => base[`${dp}BaseScore`];
+
+  // An all-dayparts event (every Huntington Place event) lifts all four; its
+  // headline daypart is the busiest one. A timed event lifts only its own.
+  const busiest = [...DAYPARTS].sort((a, b) => baseOf(b) - baseOf(a))[0];
+  const headline = event.allDayparts
+    ? busiest
+    : (DAYPARTS.find((d) => d === event.daypart) ?? busiest);
+
+  const dayparts = DAYPARTS.map((dp) => {
+    const applies = baseOf(dp) > 0 && (event.allDayparts || dp === headline);
+    return {
+      daypart: dp,
+      percent: applies ? Math.round((lift / baseOf(dp)) * 1000) / 10 : 0,
+      score: resolved ? resolved[`${dp}Score`] : null,
+      band: resolved ? resolved[`${dp}Band`] : null,
+    };
+  });
+
+  return {
+    event: {
+      eventId: event.eventId,
+      name: event.name,
+      venue: event.venueName ?? "",
+      eventClass: event.eventClass,
+      date: event.date,
+      time: event.eventTime ? event.eventTime.slice(0, 5) : null,
+      headlineDaypart: headline,
+      proximity: event.proximity,
+      influence: influenceTier(lift),
+      distanceMiles: event.distanceMiles ?? null,
+    },
+    // Band of the headline daypart once this event's lift lands (event only —
+    // no weather, no other events), on the same 150 cap and thresholds.
+    impactBand: scoreToBand(Math.min(baseOf(headline) + lift, SCORE_CAP)),
+    headlinePercent: dayparts.find((d) => d.daypart === headline)?.percent ?? 0,
+    dayparts,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Generation
@@ -539,7 +547,7 @@ export const loadInputs = internalQuery({
 });
 
 // loadInputs' body, also used directly by getWeek. `days: []` = every day.
-async function readInputs(
+export async function readInputs(
   ctx: QueryCtx,
   args: { zone: string; concept: string; days: string[] },
 ): Promise<OutlookInputs> {

@@ -328,7 +328,7 @@ function collapseWeekDrivers(list: WeekDemandDriver[]): WeekDemandDriver[] {
 // Resolve all 4 dayparts for one zone×concept×day, plus that day's peak and
 // its named event/weather drivers (union of each daypart's events; weather is
 // one value per zone|day, same across all 4 dayparts of that day).
-function resolveDayOutlook(args: {
+export function resolveDayOutlook(args: {
   zone: string;
   concept: string;
   day: Day;

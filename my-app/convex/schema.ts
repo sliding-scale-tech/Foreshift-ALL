@@ -244,6 +244,44 @@ export default defineSchema(
       deleted: v.number(),
       error: v.optional(v.string()),
     }).index("by_trigger_and_finishedAt", ["trigger", "finishedAt"]),
+
+    // --- AI Pass (web app chat) --- one row per chat thread. The messages live
+    // in the Agent component (convex.config.ts); this row is the app's own
+    // record: who owns the thread, its title, and the scope the agent answers
+    // about. Only the owner can read or change it (convex/aiPass.ts).
+    aiPassThreads: defineTable({
+      threadId: v.string(), // the Agent component's thread id
+      clerkId: v.string(), // owner
+      title: v.string(),
+      // The pinned scope: starts as the operator's own zone + concept, changed
+      // only by the "Add context" chips.
+      zone: v.string(),
+      concept: v.string(),
+      // Pinned day (YYYY-MM-DD, inside the current week); null = today.
+      date: v.union(v.string(), v.null()),
+      // Set when a question names another zone/concept ("what about Midtown?")
+      // so follow-ups stay on it. Cleared by the chips or "back to my zone".
+      focusZone: v.optional(v.string()),
+      focusConcept: v.optional(v.string()),
+      // ms epoch while a reply is being generated; a crashed run stops
+      // blocking the thread after RUN_LOCK_MS (convex/aiPass.ts).
+      runningSince: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_threadId", ["threadId"])
+      .index("by_clerkId_and_updatedAt", ["clerkId", "updatedAt"]),
+
+    // Token accounting per user per Detroit day (no cap in v1 — logging only).
+    aiPassUsage: defineTable({
+      clerkId: v.string(),
+      day: v.string(), // YYYY-MM-DD
+      questions: v.number(),
+      inputTokens: v.number(),
+      outputTokens: v.number(),
+      cachedInputTokens: v.number(),
+      reasoningTokens: v.number(),
+    }).index("by_clerkId_and_day", ["clerkId", "day"]),
   },
   { schemaValidation: true }
 );
