@@ -8,6 +8,7 @@ import {
   IconCard,
   IconFaq,
   IconFeedback,
+  IconSparkle,
 } from "./dashboard-icons";
 
 export type NavItem = {
@@ -34,6 +35,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Weekly Outlook", href: "/weekly-outlook", icon: IconGridLayout },
       { label: "Events Overview", href: "/events-overview", icon: IconEventPin },
       { label: "Weather Outlook", href: "/weather-outlook", icon: IconWeatherCycle },
+      { label: "AI Pass", href: "/ai-pass", icon: IconSparkle },
     ],
   },
   {

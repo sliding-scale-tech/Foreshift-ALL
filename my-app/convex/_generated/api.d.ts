@@ -9,6 +9,8 @@
  */
 
 import type * as ai from "../ai.js";
+import type * as aiPass from "../aiPass.js";
+import type * as aiPassData from "../aiPassData.js";
 import type * as coefficients from "../coefficients.js";
 import type * as crons from "../crons.js";
 import type * as demand from "../demand.js";
@@ -18,12 +20,21 @@ import type * as feedback from "../feedback.js";
 import type * as http from "../http.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_aggregate from "../lib/aggregate.js";
+import type * as lib_aiPass_agent from "../lib/aiPass/agent.js";
+import type * as lib_aiPass_grounding from "../lib/aiPass/grounding.js";
+import type * as lib_aiPass_history from "../lib/aiPass/history.js";
+import type * as lib_aiPass_model from "../lib/aiPass/model.js";
+import type * as lib_aiPass_prompt from "../lib/aiPass/prompt.js";
+import type * as lib_aiPass_retry from "../lib/aiPass/retry.js";
+import type * as lib_aiPass_scope from "../lib/aiPass/scope.js";
+import type * as lib_aiPass_tools from "../lib/aiPass/tools.js";
 import type * as lib_bubble from "../lib/bubble.js";
 import type * as lib_classify from "../lib/classify.js";
 import type * as lib_formula from "../lib/formula.js";
 import type * as lib_gemini from "../lib/gemini.js";
 import type * as lib_geo from "../lib/geo.js";
 import type * as lib_geocode from "../lib/geocode.js";
+import type * as lib_hours from "../lib/hours.js";
 import type * as lib_huntingtonPlace from "../lib/huntingtonPlace.js";
 import type * as lib_orchestrator from "../lib/orchestrator.js";
 import type * as lib_outlook from "../lib/outlook.js";
@@ -59,6 +70,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
+  aiPass: typeof aiPass;
+  aiPassData: typeof aiPassData;
   coefficients: typeof coefficients;
   crons: typeof crons;
   demand: typeof demand;
@@ -68,12 +81,21 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/access": typeof lib_access;
   "lib/aggregate": typeof lib_aggregate;
+  "lib/aiPass/agent": typeof lib_aiPass_agent;
+  "lib/aiPass/grounding": typeof lib_aiPass_grounding;
+  "lib/aiPass/history": typeof lib_aiPass_history;
+  "lib/aiPass/model": typeof lib_aiPass_model;
+  "lib/aiPass/prompt": typeof lib_aiPass_prompt;
+  "lib/aiPass/retry": typeof lib_aiPass_retry;
+  "lib/aiPass/scope": typeof lib_aiPass_scope;
+  "lib/aiPass/tools": typeof lib_aiPass_tools;
   "lib/bubble": typeof lib_bubble;
   "lib/classify": typeof lib_classify;
   "lib/formula": typeof lib_formula;
   "lib/gemini": typeof lib_gemini;
   "lib/geo": typeof lib_geo;
   "lib/geocode": typeof lib_geocode;
+  "lib/hours": typeof lib_hours;
   "lib/huntingtonPlace": typeof lib_huntingtonPlace;
   "lib/orchestrator": typeof lib_orchestrator;
   "lib/outlook": typeof lib_outlook;
@@ -128,4 +150,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+};
