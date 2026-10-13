@@ -11,7 +11,7 @@ Read these first, in this order:
 5. `foreshift-new/web/AGENTS.md` — "This is NOT the Next.js you know" (Next 16.3.5): read `node_modules/next/dist/docs/` before writing Next code.
 6. `foreshift-new/my-app/convex/_generated/ai/guidelines.md` — mandatory Convex rules.
 
----
+------
 
 ## 1. What the product is
 
