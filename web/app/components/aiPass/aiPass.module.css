@@ -208,6 +208,16 @@
   border-radius: 20px 20px 20px 4px;
 }
 
+.thinkingDetail {
+  font-size: 12px;
+  color: var(--color-gray-60, var(--color-gray-70));
+  opacity: 0.8;
+}
+
+.thinkingDetail::before {
+  content: "· ";
+}
+
 .dots {
   display: inline-flex;
   gap: 4px;
@@ -301,6 +311,17 @@
   border-radius: 14px;
 }
 
+/* One driver: no list box, just a compact row under the answer. */
+.factorsSolo {
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.factorsSolo .factor {
+  padding: 10px 0 0;
+}
+
 .factor {
   display: flex;
   align-items: flex-start;
@@ -340,7 +361,9 @@
 }
 
 .icon_pattern,
-.icon_week {
+.icon_week,
+.icon_area,
+.icon_concept {
   color: var(--color-shift-cobalt);
   background: var(--color-primary-20);
 }

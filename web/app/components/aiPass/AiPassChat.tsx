@@ -180,6 +180,7 @@ export function AiPassChat({ threadId }: { threadId: string | null }) {
             stuck={stuck && i === turns.length - 1}
             disabled={working}
             onAsk={ask}
+            currentScope={scope}
           />
         ))}
         <div ref={bottomRef} />
@@ -246,12 +247,14 @@ function TurnView({
   stuck,
   disabled,
   onAsk,
+  currentScope,
 }: {
   turn: Turn;
   isLast: boolean;
   stuck: boolean;
   disabled: boolean;
   onAsk: (q: string) => void;
+  currentScope: Scope;
 }) {
   const failed = turn.failed || stuck;
   return (
@@ -271,7 +274,13 @@ function TurnView({
         <AiAvatar />
         <div className={styles.aiBody}>
           {turn.card ? (
-            <ReplyCardView card={turn.card} isLast={isLast && !disabled} onAsk={onAsk} retryQuestion={turn.question} />
+            <ReplyCardView
+              card={turn.card}
+              isLast={isLast && !disabled}
+              onAsk={onAsk}
+              retryQuestion={turn.question}
+              currentScope={currentScope}
+            />
           ) : failed ? (
             <ReplyCardView card={SOFT_ERROR} isLast={false} onAsk={onAsk} retryQuestion={turn.question} />
           ) : (
@@ -281,7 +290,10 @@ function TurnView({
                 <i />
                 <i />
               </span>
-              <span>{turn.progress.length > 0 ? `${turn.progress[turn.progress.length - 1]}…` : "Reading your forecast…"}</span>
+              <span>Thinking…</span>
+              {turn.progress.length > 0 && (
+                <span className={styles.thinkingDetail}>{turn.progress[turn.progress.length - 1]}</span>
+              )}
             </div>
           )}
           {turn.card && <div className={styles.timeLeft}>{time(turn.answeredAt)}</div>}

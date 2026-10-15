@@ -29,31 +29,31 @@ export function normalizeText(s: string): string {
 
 // What people actually type for each zone. The full name always matches too.
 const ZONE_ALIASES: Record<Zone, string[]> = {
-  "Core City / Woodbridge": ["core city", "woodbridge"],
-  Corktown: ["corktown"],
-  "Downtown Detroit (Core)": ["downtown detroit", "downtown"],
-  "Eastern Market": ["eastern market"],
+  "Core City / Woodbridge": ["core city", "woodbridge", "wood bridge"],
+  Corktown: ["corktown", "cork town"],
+  "Downtown Detroit (Core)": ["downtown detroit", "downtown", "downtown core", "detroit downtown"],
+  "Eastern Market": ["eastern market", "east market"],
   "Financial District": ["financial district"],
-  "Foxtown / Stadium District": ["foxtown", "stadium district"],
-  "Greektown / Casino District": ["greektown", "casino district"],
-  Mexicantown: ["mexicantown"],
-  Midtown: ["midtown"],
-  "New Center / North End": ["new center", "north end"],
-  "Riverfront / RiverWalk": ["riverfront", "riverwalk"],
-  "Southwest Detroit": ["southwest detroit", "southwest"],
-  "Woodward Core": ["woodward core", "woodward"],
+  "Foxtown / Stadium District": ["foxtown", "fox town", "stadium district", "stadium area"],
+  "Greektown / Casino District": ["greektown", "greek town", "casino district", "casino area"],
+  Mexicantown: ["mexicantown", "mexican town"],
+  Midtown: ["midtown", "mid town"],
+  "New Center / North End": ["new center", "new centre", "north end"],
+  "Riverfront / RiverWalk": ["riverfront", "riverwalk", "river walk", "river front"],
+  "Southwest Detroit": ["southwest detroit", "southwest", "south west"],
+  "Woodward Core": ["woodward core", "woodward", "woodward avenue"],
 };
 
 // Multi-word on purpose where a bare word is ambiguous ("casual" alone matches three types).
 const CONCEPT_ALIASES: Record<Concept, string[]> = {
-  "Breakfast / Brunch Cafe": ["breakfast", "brunch", "breakfast cafe", "brunch cafe"],
-  "Casual Dining": ["casual dining"],
-  "Cocktail Lounge": ["cocktail lounge", "cocktail bar", "cocktails"],
-  "Coffee Shop": ["coffee shop", "coffee"],
-  "Fast Casual": ["fast casual"],
-  "Fine Dining": ["fine dining"],
+  "Breakfast / Brunch Cafe": ["breakfast", "brunch", "breakfast cafe", "brunch cafe", "breakfast spot"],
+  "Casual Dining": ["casual dining", "casual restaurant"],
+  "Cocktail Lounge": ["cocktail lounge", "cocktail bar", "cocktails", "lounge"],
+  "Coffee Shop": ["coffee shop", "coffee", "coffeeshop", "coffee house"],
+  "Fast Casual": ["fast casual", "fast food"],
+  "Fine Dining": ["fine dining", "fancy restaurant"],
   "Neighborhood / Casual Bar": ["neighborhood bar", "casual bar", "neighborhood casual bar", "neighborhood"],
-  "Sports Bar": ["sports bar"],
+  "Sports Bar": ["sports bar", "sportsbar"],
   "Upscale Casual": ["upscale casual", "upscale"],
 };
 
@@ -63,13 +63,72 @@ function namedIn<T extends string>(text: string, all: readonly T[], aliases: Rec
   for (const value of all) {
     const names = [normalizeText(value), ...aliases[value].map(normalizeText)];
     // Whole-word / whole-phrase match: " midtown " inside " about midtown friday ".
-    if (names.some((n) => hay.includes(n))) found.push(value);
+    // A plural counts too ("sports bars").
+    if (names.some((n) => hay.includes(n) || hay.includes(`${n.slice(0, -1)}s `))) found.push(value);
   }
   return found;
 }
 
 export const zonesNamedIn = (text: string): Zone[] => namedIn(text, ZONES, ZONE_ALIASES);
 export const conceptsNamedIn = (text: string): Concept[] => namedIn(text, CONCEPTS, CONCEPT_ALIASES);
+
+// ---------------------------------------------------------------------------
+// Names that are almost right
+// ---------------------------------------------------------------------------
+
+export type NearMiss = { heard: string; value: string; kind: "zone" | "concept" };
+
+/** Edit distance, for spotting typos. */
+function distance(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return prev[b.length];
+}
+
+const compact = (s: string) => normalizeText(s).replace(/ /g, "");
+
+/**
+ * Words in the message that look like a zone or restaurant type but are not one:
+ * a typo ("midtwn"), a cut-off name ("greek") or a split one. These must be
+ * confirmed with the person, never assumed. A name that already matches
+ * exactly is not a near miss.
+ */
+export function nearMisses(text: string): NearMiss[] {
+  const words = normalizeText(text).trim().split(" ").filter(Boolean);
+  const already = new Set<string>([...zonesNamedIn(text), ...conceptsNamedIn(text)]);
+  const targets = [
+    ...ZONES.map((value) => ({ value, kind: "zone" as const, forms: [value, ...ZONE_ALIASES[value]] })),
+    ...CONCEPTS.map((value) => ({ value, kind: "concept" as const, forms: [value, ...CONCEPT_ALIASES[value]] })),
+  ].map((t) => ({ ...t, forms: t.forms.map(compact).filter((f) => f.length >= 5) }));
+  const exact = new Set(targets.flatMap((t) => t.forms));
+
+  const found = new Map<string, NearMiss>();
+  for (let size = 1; size <= 3; size++) {
+    for (let i = 0; i + size <= words.length; i++) {
+      const heard = words.slice(i, i + size).join(" ");
+      const gram = words.slice(i, i + size).join("");
+      if (gram.length < 5 || exact.has(gram) || exact.has(gram.replace(/s$/, ""))) continue;
+      for (const t of targets) {
+        if (already.has(t.value) || found.has(t.value)) continue;
+        const close = t.forms.some(
+          (f) =>
+            (f.startsWith(gram) && f.length - gram.length <= 6) || // cut off: "greek", "mexican"
+            distance(gram, f) <= (gram.length <= 7 ? 1 : 2), // a typo
+        );
+        if (close) found.set(t.value, { heard, value: t.value, kind: t.kind });
+      }
+    }
+  }
+  return [...found.values()];
+}
 
 // ---------------------------------------------------------------------------
 // The thread's scope

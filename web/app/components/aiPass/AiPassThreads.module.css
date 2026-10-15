@@ -16,7 +16,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 260px;
+  /* Four chats show at a time (4 rows of 32px + gaps); the rest scroll. */
+  max-height: 140px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
@@ -41,6 +42,13 @@
   color: rgba(255, 255, 255, 0.86);
   border-radius: 8px;
   transition: background var(--duration-fast) ease;
+}
+
+/* The New Chat button is the main action here, so it is taller than a chat row. */
+.newChat {
+  flex: none;
+  height: 42px;
+  font-size: 14px;
 }
 
 .link svg {

@@ -8,7 +8,7 @@
 //     built from the data itself.
 // Nothing here calls the model; it only compares text with data.
 
-export type FactorType = "event" | "weather" | "pattern" | "demand" | "week";
+export type FactorType = "event" | "weather" | "pattern" | "demand" | "week" | "area" | "concept";
 
 export type FactorRef = { ref: string; type: FactorType; title: string; fact: string };
 
@@ -106,7 +106,13 @@ export function isGrounded(text: string, bag: FactBag): boolean {
 
 export function typeOfRef(ref: string): FactorType | null {
   const prefix = ref.split(":", 1)[0];
-  return prefix === "event" || prefix === "weather" || prefix === "pattern" || prefix === "demand" || prefix === "week"
+  return prefix === "event" ||
+    prefix === "weather" ||
+    prefix === "pattern" ||
+    prefix === "demand" ||
+    prefix === "week" ||
+    prefix === "area" ||
+    prefix === "concept"
     ? prefix
     : null;
 }
@@ -116,7 +122,7 @@ export function typeOfRef(ref: string): FactorType | null {
 // ---------------------------------------------------------------------------
 
 export type ReplyInput = {
-  kind: "answer" | "no_data" | "refusal";
+  kind: "answer" | "no_data" | "refusal" | "clarify";
   intro: string;
   factors: { title: string; detail: string; ref: string }[];
   netImpact: string | null;
@@ -136,6 +142,18 @@ export type ReplyCard = {
   usedFallback: boolean;
 };
 
+const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]+/g) ?? []);
+
+/** Mostly the same words? (a Net impact that only restates the answer above it) */
+export function mostlyRepeats(text: string, other: string): boolean {
+  const a = words(text);
+  const b = words(other);
+  if (a.size === 0) return true;
+  let shared = 0;
+  for (const w of a) if (b.has(w)) shared++;
+  return shared / a.size >= 0.6;
+}
+
 const clip = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1).trimEnd()}…`);
 
 const NO_DATA_TEXT = "I couldn't pull forecast data for that. Try asking about a day this week, such as today or Friday.";
@@ -148,7 +166,7 @@ export function buildCard(input: ReplyInput, bag: FactBag): ReplyCard {
   // plain explanation, but any figure in it has nothing to stand on (isGrounded).
   const intro = (() => {
     const text = clip(input.intro.trim(), 400);
-    if (input.kind === "refusal") return text;
+    if (input.kind === "refusal" || input.kind === "clarify") return text;
     if (isGrounded(text, bag)) return text;
     usedFallback = true;
     return bag.hasData ? bag.summaryText() : NO_DATA_TEXT;
@@ -175,7 +193,8 @@ export function buildCard(input: ReplyInput, bag: FactBag): ReplyCard {
   let netImpact: string | null = null;
   if (input.netImpact && input.netImpact.trim()) {
     const text = clip(input.netImpact.trim(), 320);
-    if (isGrounded(text, bag)) netImpact = text;
+    if (mostlyRepeats(text, intro) || factors.some((f) => mostlyRepeats(text, f.detail))) netImpact = null;
+    else if (isGrounded(text, bag)) netImpact = text;
     else {
       usedFallback = true;
       netImpact = bag.hasData ? bag.summaryText(240) : null;
@@ -195,7 +214,7 @@ export function buildCard(input: ReplyInput, bag: FactBag): ReplyCard {
     followUps: input.followUps
       .map((q) => clip(q.trim(), 70))
       .filter(Boolean)
-      .slice(0, 3),
+      .slice(0, kind === "clarify" ? 4 : 3),
     usedFallback,
   };
 }

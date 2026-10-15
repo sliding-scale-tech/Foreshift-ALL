@@ -38,6 +38,11 @@ export function AiPassThreads({ onNavigate }: { onNavigate: () => void }) {
 
   const activeId = pathname.startsWith("/ai-pass/") ? pathname.slice("/ai-pass/".length) : null;
 
+  // Only four chats show at once, so bring the open one into view.
+  useEffect(() => {
+    listRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" });
+  }, [activeId, threads?.length]);
+
   async function save(t: AiThreadSummary, title: string) {
     setRenaming(null);
     const next = title.trim();
@@ -63,7 +68,7 @@ export function AiPassThreads({ onNavigate }: { onNavigate: () => void }) {
     <div className={styles.wrap}>
       <Link
         href="/ai-pass"
-        className={`${styles.link} ${pathname === "/ai-pass" ? styles.active : ""}`}
+        className={`${styles.link} ${styles.newChat} ${pathname === "/ai-pass" ? styles.active : ""}`}
         onClick={onNavigate}
       >
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
