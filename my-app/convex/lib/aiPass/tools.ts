@@ -162,7 +162,7 @@ export function makeTools(args: {
     }),
 
     reply: createTool({
-      description: "Deliver the final answer to the operator. Call exactly once, after the data tools.",
+      description: "Deliver the final answer to the operator. Call exactly once. Call it after the data tools for a forecast question. For a greeting with no question, call it alone, with no data tools.",
       inputSchema: z.object({
         kind: z.enum(["answer", "no_data", "refusal", "clarify"]),
         intro: z.string().max(600),
