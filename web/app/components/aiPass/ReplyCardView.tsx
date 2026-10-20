@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { IconCalendarCheck, IconCloud, IconEventPin, IconGridLayout, IconSparkle } from "@/app/components/dashboard-icons";
+import {
+  IconCalendarCheck,
+  IconCloud,
+  IconEventPin,
+  IconGridLayout,
+  IconSparkle,
+  IconUtensils,
+} from "@/app/components/dashboard-icons";
 import { IconTrendUp } from "@/app/components/icons";
 import type { ReplyCard } from "@/app/lib/aiPassTurns";
 import styles from "./aiPass.module.css";
@@ -13,6 +20,8 @@ const FACTOR_ICON: Record<ReplyCard["factors"][number]["type"], ComponentType> =
   pattern: IconCalendarCheck,
   demand: IconTrendUp,
   week: IconGridLayout,
+  area: IconEventPin,
+  concept: IconUtensils,
 };
 
 /** "2026-10-12" -> "Mon, Oct 12" (read at noon UTC so the date can't shift). */
@@ -42,6 +51,7 @@ export function ReplyCardView({
   isLast,
   onAsk,
   retryQuestion,
+  currentScope,
 }: {
   card: ReplyCard;
   /** Follow-up suggestions only on the newest reply. */
@@ -49,13 +59,24 @@ export function ReplyCardView({
   onAsk: (question: string) => void;
   /** The question to send again from a "Try again" button (data-only replies). */
   retryQuestion?: string;
+  /** The chat's own scope (shown in the chips under the input); not repeated on every card. */
+  currentScope?: { zone: string; concept: string; date: string };
 }) {
   const degraded = card.kind === "degraded";
+  // A pill only when this answer is about something other than the chat's current scope.
+  const pills = card.scopes.filter(
+    (s) =>
+      !currentScope ||
+      s.zone !== currentScope.zone ||
+      s.concept !== currentScope.concept ||
+      (s.date !== null && s.date !== currentScope.date),
+  );
+  const solo = card.factors.length === 1;
   return (
     <div className={`${styles.card} ${degraded ? styles.cardSoft : ""}`}>
-      {card.scopes.length > 0 && (
+      {pills.length > 0 && (
         <div className={styles.cardScopes} aria-label="This answer is about">
-          {card.scopes.map((s) => (
+          {pills.map((s) => (
             <span key={`${s.zone}|${s.concept}|${s.date ?? ""}`} className={styles.scopePill}>
               {s.zone} · {s.concept}
               {s.date ? ` · ${shortDate(s.date)}` : ""}
@@ -67,7 +88,7 @@ export function ReplyCardView({
       <p className={styles.intro}>{card.intro}</p>
 
       {card.factors.length > 0 && (
-        <ol className={styles.factors}>
+        <ol className={`${styles.factors} ${solo ? styles.factorsSolo : ""}`}>
           {card.factors.map((f, i) => {
             const Icon = FACTOR_ICON[f.type] ?? IconSparkle;
             return (
@@ -77,7 +98,8 @@ export function ReplyCardView({
                 </span>
                 <div>
                   <div className={styles.factorTitle}>
-                    {i + 1}. {f.title}
+                    {solo ? "" : `${i + 1}. `}
+                    {f.title}
                   </div>
                   <div className={styles.factorDetail}>{f.detail}</div>
                 </div>

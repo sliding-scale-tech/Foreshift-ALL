@@ -37,6 +37,7 @@ import { FactBag, degradedCard, type ReplyCard } from "./lib/aiPass/grounding";
 import { makeTools } from "./lib/aiPass/tools";
 import {
   conceptsNamedIn,
+  nearMisses,
   effectiveDate,
   effectiveScope,
   weekCalendar,
@@ -366,7 +367,13 @@ async function attemptReply(ctx: ActionCtx, a: ReplyArgs, modelName: string): Pr
   });
   const system =
     SYSTEM_PROMPT +
-    contextBlock({ restaurantName: a.restaurantName, homeZone: a.homeZone, homeConcept: a.homeConcept, scope: a.scope });
+    contextBlock({
+      restaurantName: a.restaurantName,
+      homeZone: a.homeZone,
+      homeConcept: a.homeConcept,
+      scope: a.scope,
+      unconfirmed: nearMisses(a.prompt),
+    });
 
   // The stream reports failures through onError instead of throwing; keep the real
   // error so runReply can tell a transient failure (retry) from a permanent one (move on).

@@ -15,6 +15,7 @@ import { readCoefficients } from "./coefficients";
 import { resolveDayOutlook } from "./lib/outlook";
 import { indexEventsByCell, indexWeatherByZoneDay } from "./lib/resolve";
 import { DAYPART_MINUTES, openDuring } from "./lib/hours";
+import type { Doc } from "./_generated/dataModel";
 import { currentWeekDates, DAYS, ZONES, CONCEPTS, keepKnown, scoreToBand, type Daypart, type Day } from "./lib/vocab";
 import type { FactorRef, ScopeUsed } from "./lib/aiPass/grounding";
 
@@ -459,6 +460,119 @@ export const eventImpactData = internalQuery({
         dayparts: r.dayparts,
       },
       bag: { refs: [{ ref, type: "event", title: name, fact }], summary: fact, scope: { ...scope, date: r.event.date } },
+    };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Comparing areas and restaurant types (any zone, any type)
+// ---------------------------------------------------------------------------
+
+const daypartArg = v.optional(
+  v.union(v.literal("morning"), v.literal("midday"), v.literal("dinner"), v.literal("late")),
+);
+
+/** One resolved row as the period asked about, or its busiest period when none is given. */
+function periodOf(r: Doc<"resolvedDemand">, daypart: Daypart | undefined) {
+  if (!daypart) return { daypart: r.peakDaypart as Daypart, score: r.peakScore, band: r.peakBand };
+  return { daypart, score: r[`${daypart}Score`], band: r[`${daypart}Band`] };
+}
+
+/** "Midtown: busiest dinner, High (92.4)." or "Midtown, dinner: High (92.4)." */
+function rankFact(name: string, p: { daypart: Daypart; score: number; band: string }, filtered: boolean) {
+  return filtered
+    ? `${name}, ${DP_LABEL[p.daypart]}: ${p.band} (${num(p.score)}).`
+    : `${name}: busiest ${DP_LABEL[p.daypart]}, ${p.band} (${num(p.score)}).`;
+}
+
+/** Every zone for one restaurant type on one day, ranked. */
+export const compareAreas = internalQuery({
+  args: { concept: v.string(), date: v.string(), daypart: daypartArg },
+  handler: async (ctx, args): Promise<ToolPayload> => {
+    const [concept] = keepKnown([args.concept], CONCEPTS);
+    if (!concept) return { model: { ok: false, error: "unknown_scope" } };
+    const day = dayOfWeekDate(args.date);
+    if (!day) return outsideWeek(args.date);
+
+    const rows: Doc<"resolvedDemand">[] = [];
+    for (const zone of ZONES) {
+      const r = await ctx.db
+        .query("resolvedDemand")
+        .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept).eq("day", day))
+        .unique();
+      if (r && r.date === args.date) rows.push(r);
+    }
+    if (rows.length === 0) return { model: { ok: false, error: "no_data" } };
+
+    const filtered = args.daypart !== undefined;
+    const areas = rows
+      .map((r) => ({ zone: r.zone, ...periodOf(r, args.daypart) }))
+      .sort((a, b) => b.score - a.score);
+    const refs: FactorRef[] = areas.map((a) => ({
+      ref: `area:${a.zone}:${args.date}`,
+      type: "area",
+      title: a.zone,
+      fact: rankFact(a.zone, a, filtered),
+    }));
+    const top = areas[0];
+    return {
+      model: {
+        ok: true,
+        scope: { zone: "All zones", concept, date: args.date, day },
+        period: args.daypart ?? "each zone's busiest period",
+        areas: areas.map((a) => ({ ref: `area:${a.zone}:${args.date}`, zone: a.zone, daypart: a.daypart, score: a.score, band: a.band })),
+      },
+      bag: {
+        refs,
+        summary: `${day} ${pretty(args.date)}, ${concept}: busiest area ${top.zone}, ${top.band} (${num(top.score)}).`,
+        scope: { zone: "All zones", concept, date: args.date },
+      },
+    };
+  },
+});
+
+/** Every restaurant type in one zone on one day, ranked. */
+export const compareConcepts = internalQuery({
+  args: { zone: v.string(), date: v.string(), daypart: daypartArg },
+  handler: async (ctx, args): Promise<ToolPayload> => {
+    const [zone] = keepKnown([args.zone], ZONES);
+    if (!zone) return { model: { ok: false, error: "unknown_scope" } };
+    const day = dayOfWeekDate(args.date);
+    if (!day) return outsideWeek(args.date);
+
+    const rows: Doc<"resolvedDemand">[] = [];
+    for (const concept of CONCEPTS) {
+      const r = await ctx.db
+        .query("resolvedDemand")
+        .withIndex("by_zone_concept_day", (q) => q.eq("zone", zone).eq("concept", concept).eq("day", day))
+        .unique();
+      if (r && r.date === args.date) rows.push(r);
+    }
+    if (rows.length === 0) return { model: { ok: false, error: "no_data" } };
+
+    const filtered = args.daypart !== undefined;
+    const types = rows
+      .map((r) => ({ concept: r.concept, ...periodOf(r, args.daypart) }))
+      .sort((a, b) => b.score - a.score);
+    const refs: FactorRef[] = types.map((t) => ({
+      ref: `concept:${t.concept}:${args.date}`,
+      type: "concept",
+      title: t.concept,
+      fact: rankFact(t.concept, t, filtered),
+    }));
+    const top = types[0];
+    return {
+      model: {
+        ok: true,
+        scope: { zone, concept: "All restaurant types", date: args.date, day },
+        period: args.daypart ?? "each type's busiest period",
+        types: types.map((t) => ({ ref: `concept:${t.concept}:${args.date}`, concept: t.concept, daypart: t.daypart, score: t.score, band: t.band })),
+      },
+      bag: {
+        refs,
+        summary: `${day} ${pretty(args.date)}, ${zone}: strongest restaurant type ${top.concept}, ${top.band} (${num(top.score)}).`,
+        scope: { zone, concept: "All restaurant types", date: args.date },
+      },
     };
   },
 });

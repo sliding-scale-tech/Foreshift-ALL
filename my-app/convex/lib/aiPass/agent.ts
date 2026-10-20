@@ -12,8 +12,12 @@ import { components, internal } from "../../_generated/api";
 import { aiPassModel } from "./model";
 import { compactHistory } from "./history";
 
-// How many earlier messages the model gets. Each is small once tool data is stripped.
-export const RECENT_MESSAGES = 10;
+// How many stored messages are loaded before compaction. One question and its answer
+// is about 5 stored messages (question, tool call, tool result, reply, reply result),
+// so 10 held only 2 turns and the chat forgot things. 120 is enough to find 20 chat
+// messages even when answers used several tools; compactHistory then keeps the last
+// MAX_HISTORY_MESSAGES of them and caps the size (HISTORY_CHAR_BUDGET).
+export const RECENT_MESSAGES = 120;
 
 export function aiPassAgent() {
   return new Agent(components.agent, {

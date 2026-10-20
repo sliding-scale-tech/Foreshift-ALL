@@ -38,6 +38,19 @@ export function makeTools(args: {
     bag.calls.push(name);
     const zone = resolveScopeArg(zoneIn as EffectiveScope["zone"] | undefined, scope.zone, named.zones);
     const concept = resolveScopeArg(conceptIn as EffectiveScope["concept"] | undefined, scope.concept, named.concepts);
+    // The model reached for a zone or restaurant type the person never named (a guess from a
+    // typo, a hint, or its own idea). Never answer for it: have it confirm first.
+    const guessed = [
+      zone.overridden && zoneIn ? `zone "${zoneIn}"` : null,
+      concept.overridden && conceptIn ? `restaurant type "${conceptIn}"` : null,
+    ].filter(Boolean);
+    if (guessed.length > 0) {
+      return {
+        ok: false,
+        error: "needs_confirmation",
+        message: `The user did not name ${guessed.join(" or ")}. Do not assume it and do not call more data tools. Ask which they mean with reply kind "clarify": a short question such as "Did you mean ${zoneIn ?? conceptIn}?" and options that contain the exact name, such as "Yes, ${zoneIn ?? conceptIn}" and "No, ${scope.zone}".`,
+      };
+    }
     const res = await read(zone.value, concept.value);
 
     if (res.bag) {
@@ -47,10 +60,7 @@ export function makeTools(args: {
     }
     bag.addResult(res.model);
 
-    const notes: string[] = [];
-    if (zone.overridden) notes.push(`zone argument ignored: the user didn't name it, so ${zone.value} was used`);
-    if (concept.overridden) notes.push(`restaurant type argument ignored: the user didn't name it, so ${concept.value} was used`);
-    return notes.length ? { ...res.model, scopeNote: notes.join("; ") } : res.model;
+    return res.model;
   }
 
   return {
@@ -115,10 +125,46 @@ export function makeTools(args: {
         ),
     }),
 
-    reply: createTool({
-      description: "Deliver the final answer to the operator. Call exactly once, after the data tools.",
+    compare_areas: createTool({
+      description:
+        "Rank ALL zones (areas) for one restaurant type on one day, optionally for one period. Use for 'which area is busiest', 'where is dinner highest', 'how does Midtown compare'.",
       inputSchema: z.object({
-        kind: z.enum(["answer", "no_data", "refusal"]),
+        date: dateArg,
+        daypart: z.enum(["morning", "midday", "dinner", "late"]).optional().describe("One period. Omit for each zone's busiest."),
+        concept: conceptArg,
+      }),
+      execute: (ctx, input) =>
+        run("compare_areas", undefined, input.concept, (_zone, concept) =>
+          ctx.runQuery(internal.aiPassData.compareAreas, {
+            concept,
+            date: input.date ?? scope.date,
+            ...(input.daypart ? { daypart: input.daypart } : {}),
+          }),
+        ),
+    }),
+
+    compare_restaurant_types: createTool({
+      description:
+        "Rank ALL restaurant types in one zone on one day, optionally for one period. Use for 'which type does best here', 'is a sports bar better than a cafe here'.",
+      inputSchema: z.object({
+        date: dateArg,
+        daypart: z.enum(["morning", "midday", "dinner", "late"]).optional().describe("One period. Omit for each type's busiest."),
+        zone: zoneArg,
+      }),
+      execute: (ctx, input) =>
+        run("compare_restaurant_types", input.zone, undefined, (zone) =>
+          ctx.runQuery(internal.aiPassData.compareConcepts, {
+            zone,
+            date: input.date ?? scope.date,
+            ...(input.daypart ? { daypart: input.daypart } : {}),
+          }),
+        ),
+    }),
+
+    reply: createTool({
+      description: "Deliver the final answer to the operator. Call exactly once. Call it after the data tools for a forecast question. For a greeting with no question, call it alone, with no data tools.",
+      inputSchema: z.object({
+        kind: z.enum(["answer", "no_data", "refusal", "clarify"]),
         intro: z.string().max(600),
         factors: z
           .array(z.object({ title: z.string().max(80), detail: z.string().max(300), ref: z.string().max(120) }))
@@ -134,4 +180,12 @@ export function makeTools(args: {
   };
 }
 
-export const DATA_TOOL_NAMES = ["get_day_outlook", "get_week_overview", "list_events", "get_event_impact", "get_weather"] as const;
+export const DATA_TOOL_NAMES = [
+  "get_day_outlook",
+  "get_week_overview",
+  "list_events",
+  "get_event_impact",
+  "get_weather",
+  "compare_areas",
+  "compare_restaurant_types",
+] as const;
