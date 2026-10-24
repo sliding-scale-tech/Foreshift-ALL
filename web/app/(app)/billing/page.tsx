@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAction } from "convex/react";
 import { api } from "my-app/convex/_generated/api";
@@ -21,6 +22,7 @@ const TIERS = [
       "Thirty seconds to start — zone and type only",
     ],
     buyable: true,
+    plan: null,
   },
   {
     name: "Dynamic Scheduling",
@@ -34,6 +36,7 @@ const TIERS = [
       "Revenue estimate per shift",
     ],
     buyable: false,
+    plan: "dynamic-scheduling",
   },
   {
     name: "Sales Forecasting",
@@ -47,6 +50,7 @@ const TIERS = [
       "Market intelligence for expansion",
     ],
     buyable: false,
+    plan: "sales-forecasting",
   },
 ];
 
@@ -200,9 +204,10 @@ function BillingContent() {
                     {isCurrent ? "Current plan" : busy === "checkout" ? "Redirecting…" : "Upgrade"}
                   </button>
                 ) : (
-                  <button type="button" className={styles.cta} disabled>
+                  // Not self-serve yet: opens the Contact Sales form with this plan chosen.
+                  <Link href={`/contact-sales?plan=${t.plan}`} className={`${styles.cta} ${styles.ctaLink}`}>
                     Contact Sales
-                  </button>
+                  </Link>
                 )}
               </div>
             </section>

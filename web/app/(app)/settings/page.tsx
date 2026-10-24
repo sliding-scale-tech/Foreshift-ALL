@@ -11,6 +11,7 @@ import { HoursEditor } from "@/app/components/HoursEditor";
 import { PageLoading } from "@/app/components/PageLoading";
 import { Select } from "@/app/components/Select";
 import { useMyOperator } from "@/app/hooks/useMyOperator";
+import { hasRestaurant } from "@/app/lib/displayName";
 import { addressError, useAreaDetection } from "@/app/hooks/useAreaDetection";
 import { fromSavedHours, isScheduleComplete, toSavedHours, type DayHours } from "@/app/lib/hours";
 import shared from "../shared.module.css";
@@ -54,7 +55,8 @@ export default function SettingsPage() {
         <AccountCard />
         <PasswordCard />
         <RestaurantCard operator={operator} />
-        <HoursCard operator={operator} />
+        {/* Someone just trying it out (the "I'm exploring" onboarding branch) has no restaurant, so no hours. */}
+        {hasRestaurant(operator) && <HoursCard operator={operator} />}
       </div>
     </>
   );

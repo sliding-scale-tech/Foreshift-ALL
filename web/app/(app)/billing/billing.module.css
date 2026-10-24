@@ -178,6 +178,14 @@
   background: var(--color-shift-cobalt);
 }
 
+/* The Contact Sales button is a link, styled like the other buttons. */
+.ctaLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .cta:disabled {
   opacity: 0.6;
   cursor: not-allowed;

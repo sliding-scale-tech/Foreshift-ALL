@@ -272,6 +272,23 @@ export default defineSchema(
       .index("by_threadId", ["threadId"])
       .index("by_clerkId_and_updatedAt", ["clerkId", "updatedAt"]),
 
+    // "Contact Sales" enquiries from the web app's Billing page. Every submission
+    // is saved first and then emailed (convex/contactSales.ts), so a lead is never
+    // lost if the email fails. Also what the per-user rate limit counts. Not
+    // readable from the browser: there is no public query on this table.
+    contactRequests: defineTable({
+      clerkId: v.string(),
+      name: v.string(),
+      email: v.string(),
+      restaurant: v.string(),
+      phone: v.string(),
+      plan: v.string(),
+      message: v.string(),
+      status: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
+      error: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_clerkId_and_createdAt", ["clerkId", "createdAt"]),
+
     // Token accounting per user per Detroit day (no cap in v1 — logging only).
     aiPassUsage: defineTable({
       clerkId: v.string(),

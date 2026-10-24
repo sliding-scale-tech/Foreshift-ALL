@@ -1,0 +1,284 @@
+/* Contact Sales form. Tokens come from app/globals.css. */
+
+/* One centered column, however wide the screen. */
+.page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.head {
+  text-align: center;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-shift-cobalt);
+}
+
+.form {
+  width: 100%;
+  margin-top: 28px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--color-gray-70);
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-40, #cbd5e1);
+  border-radius: var(--radius-control);
+  outline: none;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+textarea.input {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input:focus {
+  border-color: var(--color-shift-electric-blue);
+  box-shadow: 0 0 0 3px rgba(2, 127, 252, 0.15);
+}
+
+.invalid {
+  border-color: var(--color-destructive-70);
+}
+
+.fieldError {
+  font-size: 13px;
+  color: var(--color-destructive-70);
+}
+
+.counter {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+/* Plan choice */
+
+.plans {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.planRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.plan {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-gray-40, #cbd5e1);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+
+.plan input {
+  grid-row: span 2;
+  accent-color: var(--color-shift-electric-blue);
+}
+
+.planOn {
+  border-color: var(--color-shift-electric-blue);
+  background: var(--color-primary-10);
+}
+
+.planName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.planPrice {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+/* Honeypot: off-screen, not display:none (some bots skip hidden fields). */
+.trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.formError {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--color-destructive-80);
+  background: var(--color-destructive-10);
+  border: 1px solid var(--color-destructive-30);
+  border-radius: 10px;
+}
+
+.primary {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 24px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--duration-fast) ease;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-shift-cobalt);
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fine {
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+/* Thank-you screen: centered on the page, horizontally and vertically. */
+.sent {
+  min-height: calc(100dvh - 64px);
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.sentIcon {
+  width: 72px;
+  height: 72px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--color-shift-electric-blue);
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(2, 127, 252, 0.3);
+}
+
+.sentIcon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.sentTitle {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-text);
+}
+
+.thanks {
+  color: var(--color-shift-electric-blue);
+}
+
+.sentText {
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.sentNote {
+  font-size: 15px;
+  color: var(--color-gray-70);
+}
+
+.sentNote a {
+  color: var(--color-shift-cobalt);
+  text-decoration: underline;
+}
+
+.sent .primary {
+  align-self: center;
+  margin-top: 8px;
+}
+
+@media (max-width: 700px) {
+  .form {
+    padding: 20px 16px;
+  }
+  .sent {
+    /* <main> is padded 76px top / 24px bottom on small screens. */
+    min-height: calc(100dvh - 100px);
+  }
+  .sentTitle {
+    font-size: 32px;
+  }
+  .sentText {
+    font-size: 16px;
+  }
+  .sentIcon {
+    width: 60px;
+    height: 60px;
+  }
+  .row2,
+  .planRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
