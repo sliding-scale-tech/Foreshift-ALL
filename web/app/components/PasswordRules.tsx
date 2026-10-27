@@ -1,7 +1,6 @@
 "use client";
 
 import { useClerk } from "@clerk/nextjs";
-import type { PasswordSettingsData } from "@clerk/shared/types";
 import formStyles from "./AuthForm.module.css";
 
 // The password rules come from Clerk, never from this app: they are the
@@ -10,6 +9,20 @@ import formStyles from "./AuthForm.module.css";
 // drift from what Clerk accepts. Clerk loads them into the page as part of its
 // environment; if they aren't available, no hint is shown and Clerk's own error
 // message on submit is the guide.
+
+// The fields used here from Clerk's password settings (Clerk's own type is
+// PasswordSettingsData in @clerk/shared, which isn't a direct dependency of this
+// app, so a strict install like pnpm on Vercel can't import it).
+type PasswordSettingsData = {
+  min_length: number;
+  max_length: number;
+  require_lowercase: boolean;
+  require_uppercase: boolean;
+  require_numbers: boolean;
+  require_special_char: boolean;
+  allowed_special_characters: string;
+  disable_hibp: boolean;
+};
 
 type ClerkWithEnvironment = {
   __internal_environment?: { userSettings?: { passwordSettings?: PasswordSettingsData } } | null;
