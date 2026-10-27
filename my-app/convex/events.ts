@@ -1,5 +1,14 @@
 import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "./_generated/server";
+import { sendEmail } from "./lib/resend";
+import {
+  RETRY_DELAY_MS,
+  SYNC_ALERT_RECIPIENTS,
+  alertsEnabled,
+  buildSyncAlert,
+  planAfterTry,
+  type SyncOutcome,
+} from "./lib/syncAlerts";
 import { api, internal } from "./_generated/api";
 import { type Doc } from "./_generated/dataModel";
 import {
@@ -469,15 +478,33 @@ export const fetchHuntingtonEventsRaw = internalAction({
 // waiting on a separately-scheduled cron — the `finally` runs whether this sync
 // succeeded or threw, so a failure here still lets the weather sync attempt its
 // run rather than blocking the rest of the daily chain. See crons.ts.
+//
+// A failed run (an error, or no events at all) emails the team and retries once
+// after 5 minutes; the retry emails whether it worked (see lib/syncAlerts.ts).
 export const syncEventSignalsToBubble = internalAction({
-  args: { days: v.optional(v.number()), deleteStale: v.optional(v.boolean()) },
+  args: {
+    days: v.optional(v.number()),
+    deleteStale: v.optional(v.boolean()),
+    // 1 = the cron's run, 2 = the one automatic retry.
+    attempt: v.optional(v.number()),
+    // The first try's error, carried into the retry's email.
+    firstFailure: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    let outcome: SyncOutcome | null = null;
     try {
       const now = new Date();
       // Fetch window: today through the upcoming Monday (exclusive) — never
       // reaches into next week, and shrinks through the week as days elapse.
       const days = args.days ?? daysUntilNextMonday(now);
       const { summary, rows: tmRows } = await computeEventSignalRows(ctx, days);
+
+      // No events at all over several days means the fetch broke (key, quota,
+      // outage), not a quiet week. Stop before writing anything so the last good
+      // data stays in place; the alert and retry below take it from here.
+      if (tmRows.length === 0 && days >= 3) {
+        throw new Error(`Ticketmaster returned no events for the next ${days} days.`);
+      }
 
       // Second source: scrape Huntington Place Detroit's calendar and merge its
       // rows into the SAME pass, so one `seen` set drives the windowed
@@ -613,15 +640,102 @@ export const syncEventSignalsToBubble = internalAction({
         deleteKeys: convexDeleteKeys,
       });
 
+      outcome = {
+        ok: true,
+        ticketmasterEvents: summary.fetchedEvents,
+        signalRows: rows.length,
+        huntington: huntington
+          ? `${huntington.summary.fetched} of ${huntington.summary.discovered} pages read, ${huntington.summary.failed} failed`
+          : "scrape failed",
+      };
       return {
         computed: summary,
         huntington: huntington?.summary ?? { skipped: true },
         bubble: { created, updated, deleted, existingBefore: existing.size },
       };
+    } catch (err) {
+      outcome = { ok: false, reason: err instanceof Error ? err.message : String(err) };
+      throw err;
     } finally {
       await ctx.scheduler.runAfter(0, internal.weather.syncWeatherSignalsToBubble, {
         deleteStale: true,
       });
+      await afterSyncTry(ctx, args, outcome);
     }
+  },
+});
+
+/**
+ * After each try: schedule the one retry and send the right email (lib/syncAlerts.ts).
+ * Never throws, so it can't break the sync or the weather chain above.
+ */
+async function afterSyncTry(
+  ctx: ActionCtx,
+  args: { days?: number; deleteStale?: boolean; attempt?: number; firstFailure?: string },
+  outcome: SyncOutcome | null,
+) {
+  try {
+    const attempt = args.attempt ?? 1;
+    const result: SyncOutcome = outcome ?? { ok: false, reason: "The sync stopped before it finished." };
+    const plan = planAfterTry(attempt, result.ok);
+
+    if (plan.retry) {
+      await ctx.scheduler.runAfter(RETRY_DELAY_MS, internal.events.syncEventSignalsToBubble, {
+        ...(args.days !== undefined ? { days: args.days } : {}),
+        ...(args.deleteStale !== undefined ? { deleteStale: args.deleteStale } : {}),
+        attempt: 2,
+        ...(result.ok ? {} : { firstFailure: result.reason.slice(0, 500) }),
+      });
+    }
+
+    if (
+      plan.email &&
+      alertsEnabled({ SYNC_ALERTS: process.env.SYNC_ALERTS, CONVEX_CLOUD_URL: process.env.CONVEX_CLOUD_URL })
+    ) {
+      const mail = buildSyncAlert(plan.email, {
+        outcome: result,
+        firstFailure: args.firstFailure,
+        deployment: process.env.CONVEX_CLOUD_URL ?? "unknown",
+        when: new Date(),
+      });
+      const sent = await sendEmail({
+        to: SYNC_ALERT_RECIPIENTS,
+        ...mail,
+        // One email of each kind per day, even if the sync is run again by hand.
+        idempotencyKey: `event-sync-${plan.email}-${detroitDate()}`,
+      });
+      if (!sent.ok) console.error("[events] alert email failed:", sent.reason);
+    }
+  } catch (e) {
+    console.error("[events] alert/retry step failed:", e instanceof Error ? e.message : e);
+  }
+}
+
+/**
+ * Sends all three sync-alert emails to Resend's test address (delivered@resend.dev),
+ * which accepts and discards them, to check the key and the layout without
+ * emailing the team. Internal: only the CLI or another function can call it.
+ *   npx convex run events:previewSyncAlerts
+ */
+export const previewSyncAlerts = internalAction({
+  args: {},
+  handler: async () => {
+    const when = new Date();
+    const failure: SyncOutcome = { ok: false, reason: "Ticketmaster returned no events for the next 7 days. <script>x</script>" };
+    const success: SyncOutcome = { ok: true, ticketmasterEvents: 25, signalRows: 175, huntington: "0 of 13 pages read, 13 failed" };
+    const results: Record<string, unknown> = {};
+    for (const [kind, outcome] of [
+      ["retrying", failure],
+      ["recovered", success],
+      ["failedAgain", failure],
+    ] as const) {
+      const mail = buildSyncAlert(kind, { outcome, firstFailure: "Bubble delete EventSignal 404", deployment: "preview", when });
+      results[kind] = {
+        subject: mail.subject,
+        escaped: !mail.html.includes("<script>"),
+        sent: await sendEmail({ to: ["delivered@resend.dev"], ...mail, idempotencyKey: `sync-alert-preview-${kind}-${when.getTime()}` }),
+      };
+    }
+    return results;
   },
 });

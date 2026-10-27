@@ -294,6 +294,10 @@ export async function deleteEventSignal(bubbleId: string): Promise<void> {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
+  // 404 = the row is already gone (for example the other deployment's sync, which
+  // writes to the same Bubble data, deleted it a moment earlier). That is the
+  // outcome we wanted, so it is not an error.
+  if (res.status === 404) return;
   if (!res.ok) {
     throw new Error(
       `Bubble delete EventSignal ${res.status}: ${(await res.text()).slice(0, 300)}`,
@@ -440,6 +444,10 @@ export async function deleteWeatherSignal(bubbleId: string): Promise<void> {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
+  // 404 = the row is already gone (for example the other deployment's sync, which
+  // writes to the same Bubble data, deleted it a moment earlier). That is the
+  // outcome we wanted, so it is not an error.
+  if (res.status === 404) return;
   if (!res.ok) {
     throw new Error(
       `Bubble delete WeatherSignal ${res.status}: ${(await res.text()).slice(0, 300)}`,

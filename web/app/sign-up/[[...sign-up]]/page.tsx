@@ -7,6 +7,7 @@ import { useSignUp } from "@clerk/nextjs/legacy";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { useRedirectIfSignedIn } from "@/app/hooks/useRedirectIfSignedIn";
 import { AuthShell } from "@/app/components/AuthShell";
+import { PasswordRules } from "@/app/components/PasswordRules";
 import { IconMail, IconEye, IconArrowRight, IconGoogle } from "@/app/components/icons";
 import formStyles from "@/app/components/AuthForm.module.css";
 import { TERMS_URL, PRIVACY_URL } from "@/app/lib/legalLinks";
@@ -211,7 +212,6 @@ export default function SignUpPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={8}
               aria-describedby="password-rules"
             />
             <button
@@ -223,10 +223,7 @@ export default function SignUpPage() {
               <IconEye off={showPassword} />
             </button>
           </div>
-          <ul id="password-rules" className={formStyles.hints}>
-            <li>At least 8 characters</li>
-            <li>Not a common or previously breached password</li>
-          </ul>
+          <PasswordRules id="password-rules" password={password} />
         </div>
 
         {error && <p className={formStyles.error}>{error}</p>}

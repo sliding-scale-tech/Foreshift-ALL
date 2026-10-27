@@ -129,6 +129,18 @@ function BillingContent() {
       <h1 className={shared.title}>Billing</h1>
       <p className={shared.subtitle}>Manage your subscription and payment details</p>
 
+      {/* Sent here by the Intelligence pages' gate (or arrived with no access). */}
+      {access && !access.hasAccess && (
+        <div className={styles.accessEnded} role="alert">
+          <strong>
+            {access.isSubscribed ? "Your subscription is paused." : "Your 7-day free trial has ended."}
+          </strong>{" "}
+          {access.isSubscribed
+            ? "Your last payment didn't go through. Update your billing to get Daily, Weekly, Events, Weather Outlook and AI Pass back."
+            : "Choose a plan below to keep using Daily, Weekly, Events, Weather Outlook and AI Pass."}
+        </div>
+      )}
+
       {access && (
         <div className={styles.status}>
           <span>

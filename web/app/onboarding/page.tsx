@@ -62,6 +62,11 @@ const STEPS = ["Restaurant details", "Operating hours"] as const;
 const ZONE_CHOICES = [{ value: "", label: "Choose an option..." }, ...ZONES.map((z) => ({ value: z, label: z }))];
 
 type Mode = "restaurant" | "explorer";
+
+// Temporarily off: everyone goes straight to restaurant setup. The "How will you
+// use ForeShift?" choice screen (StepChoice) and the "I'm exploring" branch are
+// kept exactly as they are; set this back to true to show them again.
+const SHOW_USAGE_CHOICE = false;
 type ZoneNote = { kind: "ok" | "warn"; text: string } | null;
 
 export default function OnboardingPage() {
@@ -100,7 +105,7 @@ function OnboardingWizard({ onFinishing }: { onFinishing: (finishing: boolean) =
 
   // 1 is the choice screen; the last number (4 for the restaurant branch, 3
   // for the shorter explorer one) is the "You're all set!" success screen.
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(SHOW_USAGE_CHOICE ? 1 : 2);
   const [mode, setMode] = useState<Mode>("restaurant");
 
   // Everything lives here, not in the steps, so Back/Continue keep it.

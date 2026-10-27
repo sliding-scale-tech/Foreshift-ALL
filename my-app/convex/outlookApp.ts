@@ -46,6 +46,7 @@ import {
   type CoefficientBundle,
 } from "./lib/resolve";
 import { readCoefficients } from "./coefficients";
+import { computeAccess } from "./lib/access";
 import { SCORE_CAP } from "./lib/formula";
 import {
   ZONES,
@@ -173,6 +174,10 @@ async function operatorFor(ctx: QueryCtx) {
     .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
     .unique();
   if (!op) throw new Error("Finish onboarding first.");
+  // The trial / plan gate, enforced here too: the page redirects to Billing, but
+  // the data must not be readable by calling these functions directly.
+  const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus });
+  if (!access.hasAccess) throw new Error("Your free trial has ended. Choose a plan on the Billing page to continue.");
   const [zone] = keepKnown([op.zone], ZONES);
   const [concept] = keepKnown([op.conceptType], CONCEPTS);
   if (!zone || !concept) {
@@ -209,7 +214,7 @@ async function readOutlook(
     .query("weatherSignals")
     .withIndex("by_zone_day", (q) => q.eq("zone", zone).eq("day", days[0]))
     .collect();
-  const w = weatherRows[0];
+  const w = weatherRows.find((r) => r.date === date);
 
   return {
     date,
@@ -394,7 +399,8 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
 
   const days = DAYS.map((day) => {
     const date = dates[day];
-    const demand = demandRows.find((r) => r.day === day);
+    // Same weekday is not enough: an earlier week's row (left by a failed sync) is not this week's demand.
+    const demand = demandRows.find((r) => r.day === day && r.date === date);
     const weather = weatherRows.find((w) => w.date === date);
     const base = baseRows.find((r) => r.day === day);
     // Warmest and coolest of the four service periods; null when there is no reading.
@@ -487,12 +493,13 @@ export async function buildEventImpact(ctx: QueryCtx, zone: string, concept: str
     )
     .unique();
   if (!base) return null;
-  const resolved = await ctx.db
+  const resolvedRow = await ctx.db
     .query("resolvedDemand")
     .withIndex("by_zone_concept_day", (q) =>
       q.eq("zone", zone).eq("concept", concept).eq("day", day),
     )
     .unique();
+  const resolved = resolvedRow && resolvedRow.date === event.date ? resolvedRow : null;
 
   const lift = (magnitudeRow?.magnitude ?? 0) * (affinityRow?.affinity ?? 0) * event.proximity;
   const baseOf = (dp: (typeof DAYPARTS)[number]) => base[`${dp}BaseScore`];
@@ -552,6 +559,11 @@ export async function readInputs(
   args: { zone: string; concept: string; days: string[] },
 ): Promise<OutlookInputs> {
   const inDays = (d: string | undefined) => args.days.length === 0 || args.days.includes(d ?? "");
+  // Signals are joined by weekday ("Mon"), so a row left over from an earlier week
+  // would pass for this week's. Only rows dated inside the current Mon..Sun week count:
+  // if a sync fails, the week shows no events rather than last week's.
+  const thisWeek = new Set(Object.values(currentWeekDates(new Date())));
+  const inThisWeek = (date: string | undefined) => date !== undefined && thisWeek.has(date);
 
   const base = await ctx.db
     .query("demandScores")
@@ -578,7 +590,7 @@ export async function readInputs(
     .withIndex("by_zone_day", (q) => q.eq("zone", args.zone))
     .collect();
   const events: EventSignalRead[] = eventRows
-    .filter((e) => inDays(e.day))
+    .filter((e) => inDays(e.day) && inThisWeek(e.date))
     .map((e) => ({
       event_id: e.eventId,
       zone: e.zone,
@@ -606,7 +618,7 @@ export async function readInputs(
     precip_chance: s.precipChance,
   });
   const weather: WeatherSignalRead[] = weatherRows
-    .filter((w) => inDays(w.day))
+    .filter((w) => inDays(w.day) && inThisWeek(w.date))
     .map((w) => ({
       zone: w.zone,
       day: w.day ?? "",

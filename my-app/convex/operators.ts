@@ -114,4 +114,3 @@ export const updateHours = mutation({
     await ctx.db.patch("operators", op._id, { operatingHours: args.operatingHours });
   },
 });
-

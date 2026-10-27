@@ -211,6 +211,11 @@
   color: var(--color-grey-text);
 }
 
+/* A password rule the typed password already meets. */
+.hintMet {
+  color: var(--color-success-70, #1e6c30);
+}
+
 .verifyNote {
   font-size: 14px;
   color: var(--color-grey-text);
