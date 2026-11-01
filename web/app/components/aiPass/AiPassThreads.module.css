@@ -98,16 +98,28 @@
   display: inline-flex;
 }
 
+/* Keep the title (and its "…") clear of the "..." button, so the two never overlap. */
+.row:hover .link,
+.row:focus-within .link {
+  padding-right: 32px;
+}
+
+/* No "…" next to the "..." button: the title just fades out instead. */
+.row:hover .title,
+.row:focus-within .title {
+  text-overflow: clip;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 16px), transparent);
+}
+
 .more:hover {
   background: rgba(255, 255, 255, 0.14);
 }
 
 .menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 30;
-  min-width: 120px;
+  position: fixed; /* top/left set inline, next to the "..." button */
+  z-index: 1000;
+  width: 140px;
   display: flex;
   flex-direction: column;
   padding: 4px;

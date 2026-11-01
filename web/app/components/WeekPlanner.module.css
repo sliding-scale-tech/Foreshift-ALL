@@ -411,6 +411,13 @@
   gap: 6px;
 }
 
+.legend .legendLead {
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .legendSwatch {
   display: inline-block;
   padding: 4px 8px;

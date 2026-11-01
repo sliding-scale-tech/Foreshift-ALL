@@ -278,6 +278,16 @@
   margin-bottom: 22px;
 }
 
+.labelWithTip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.labelWithTip .label {
+  margin-bottom: 0;
+}
+
 .fieldRow {
   display: flex;
   justify-content: space-between;

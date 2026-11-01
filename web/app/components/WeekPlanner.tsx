@@ -209,6 +209,12 @@ export function WeekGrid({
       </table>
 
       <ul className={styles.legend} aria-label="Legend">
+        <li className={styles.legendLead}>
+          Labels:
+          <span className={styles.noPrintTip}>
+            <BandLevelsTip align="start" />
+          </span>
+        </li>
         {BANDS.map((b) => (
           <li key={b.name}>
             <BandPill band={b.name} />
@@ -221,9 +227,6 @@ export function WeekGrid({
         <li>
           <span className={`${styles.legendSwatch} ${styles.cellNone}`}>Unavailable</span>
           <span className={styles.legendText}>no forecast</span>
-        </li>
-        <li className={styles.noPrintTip}>
-          <BandLevelsTip align="end" />
         </li>
       </ul>
     </div>

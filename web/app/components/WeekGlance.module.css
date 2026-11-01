@@ -1,7 +1,7 @@
 /* "This week at a glance": three equal tiles on the navy banner. */
 
 .glanceBanner {
-  margin-top: 16px;
+  margin-top: 24px;
   padding: 20px 24px;
   border-radius: var(--radius-card);
   border: 1px solid #c7c4d7;

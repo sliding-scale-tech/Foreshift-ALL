@@ -11,6 +11,7 @@ import { useMyOperator } from "@/app/hooks/useMyOperator";
 import { AddressInput } from "@/app/components/AddressInput";
 import { DetectedArea } from "@/app/components/DetectedArea";
 import { HoursEditor } from "@/app/components/HoursEditor";
+import { InfoTip } from "@/app/components/InfoTip";
 import { Select } from "@/app/components/Select";
 import { ZoneFinderModal } from "@/app/components/ZoneFinderModal";
 import { addressError, useAreaDetection, type AreaDetection } from "@/app/hooks/useAreaDetection";
@@ -490,9 +491,15 @@ function StepRestaurantInfo(props: {
 
       <div className={styles.field}>
         <div className={styles.fieldRow}>
-          <label className={styles.label} htmlFor="restaurant-address">
-            Address<span className={styles.req}>*</span>
-          </label>
+          <span className={styles.labelWithTip}>
+            <label className={styles.label} htmlFor="restaurant-address">
+              Address<span className={styles.req}>*</span>
+            </label>
+            <InfoTip label="the areas we cover" align="start">
+              ForeShift currently covers these Detroit areas: {ZONES.join(", ")}. Pick your address from the
+              suggestions and we&apos;ll detect your area.
+            </InfoTip>
+          </span>
         </div>
         <AddressInput
           id="restaurant-address"

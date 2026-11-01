@@ -292,9 +292,19 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
     .unique();
   const liftOf = (eventClass: string, proximity: number) =>
     (magnitudeRows.find((m) => m.eventClass === eventClass)?.magnitude ?? 0) * (affinityRow?.affinity ?? 0) * proximity;
-  // When the forecast numbers were last recomputed: the latest successful sync run.
+  // When the forecast numbers were last recomputed: the latest sync run that
+  // wrote the data. A run is logged as "error" (with zero counts) when even a
+  // few of its ~1,600 Bubble writes hit Bubble's rate limit (429), though the
+  // rest were written. The error text says how many failed ("9 of 1638 Bubble
+  // write(s) failed"), so a run where under 5% failed counts too. Otherwise
+  // "Last updated" and the out-of-date notice point at the last clean run.
   const syncRuns = await ctx.db.query("bubbleSyncLog").order("desc").take(10);
-  const syncedAt = syncRuns.find((r) => r.status === "success")?.finishedAt ?? null;
+  const mostlyWritten = (error: string | undefined) => {
+    const m = /^(\d+) of (\d+) Bubble write\(s\) failed/.exec(error ?? "");
+    return m !== null && Number(m[2]) > 0 && Number(m[1]) / Number(m[2]) < 0.05;
+  };
+  const syncedAt =
+    syncRuns.find((r) => r.status === "success" || mostlyWritten(r.error))?.finishedAt ?? null;
   // The fixed per-period baseline ("normal") the comparison percentages are
   // measured against.
   const baseRows = await ctx.db

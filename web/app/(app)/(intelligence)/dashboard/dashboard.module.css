@@ -4,7 +4,7 @@
 /* ---- Operations brief (two columns: text + score) ---- */
 
 .brief {
-  margin-top: 16px;
+  margin-top: 24px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 506px);
   gap: 28px;
