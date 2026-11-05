@@ -1,0 +1,205 @@
+/* "Demand throughout the day" columns (Daily Outlook). Band colours come from
+   lib/bands.ts, the same ones the pills and the weekly grid use. */
+
+.card {
+  margin-top: 16px;
+  padding: 20px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-borders);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 24px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.sub {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--color-gray-70);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--color-gray-70);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 8px 14px;
+  font: inherit;
+  color: var(--color-text);
+  text-align: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+
+.col:hover {
+  background: var(--color-gray-20);
+}
+
+.col:focus-visible {
+  outline: 2px solid var(--color-primary-50);
+  outline-offset: 2px;
+}
+
+.busiest,
+.busiest:hover {
+  background: var(--color-primary-10);
+}
+
+.selected,
+.selected:hover {
+  border-color: var(--color-shift-electric-blue);
+}
+
+/* The bar area: level text on top of a bar that grows from the baseline. */
+.plot {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--color-gray-40);
+}
+
+.busiestTag {
+  position: absolute;
+  top: 0;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-60);
+  background: var(--color-primary-20);
+  border-radius: 999px;
+}
+
+.level {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.bar {
+  /* Height is set inline as a share of the plot (below the tag and level). */
+  width: min(96px, 70%);
+  max-height: calc(100% - 64px);
+  border-radius: 6px 6px 0 0;
+}
+
+.name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.window {
+  font-size: 13px;
+  color: var(--color-gray-70);
+}
+
+.closed {
+  margin-top: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border: 1px solid var(--color-gray-30);
+  border-radius: 999px;
+}
+
+.weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.wxIcon {
+  width: 24px;
+  height: 24px;
+}
+
+.hint {
+  margin-top: 12px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--color-gray-70);
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 16px;
+  }
+  .columns {
+    gap: 4px;
+  }
+  .col {
+    padding: 10px 2px 12px;
+  }
+  .plot {
+    height: 140px;
+  }
+  .busiestTag {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+  .level {
+    font-size: 12px;
+  }
+  .name {
+    font-size: 13px;
+  }
+  .window {
+    font-size: 11px;
+  }
+}

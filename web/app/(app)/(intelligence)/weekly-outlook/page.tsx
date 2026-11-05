@@ -110,7 +110,13 @@ export default function WeeklyOutlookPage() {
         <strong>ForeShift</strong> · {operatorLabel(operator)} · Generated <span ref={stamp} /> (Detroit time)
       </div>
 
-      <WeekGlance busiest={busiest} quietest={quietest} drivers={topDrivers} />
+      <WeekGlance
+        summary={outlook.result.narration}
+        summaryIsFactual={(outlook.result as { narration_source?: string }).narration_source === "facts"}
+        busiest={busiest}
+        quietest={quietest}
+        drivers={topDrivers}
+      />
 
       {hoursMissing && (
         <p className={`${styles.hoursPrompt} ${styles.noPrint}`}>
@@ -122,8 +128,7 @@ export default function WeeklyOutlookPage() {
       <h2 className={`${shared.sectionTitle} ${styles.titleWithTip}`}>
         Plan your week
         <InfoTip label="the planning grid" align="start">
-          Each cell is one service period. The label is its demand level; point at a cell to see the exact score, or
-          select a day for the details. Striped cells are outside your hours and dashed cells have no forecast.
+          Each cell is one service period. The label is its demand level; select a day for the details. Striped cells are outside your hours and dashed cells have no forecast.
         </InfoTip>
       </h2>
 

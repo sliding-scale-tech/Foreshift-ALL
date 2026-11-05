@@ -2,6 +2,7 @@
 // explained, and the plain-language summary for the selected day. Pure (no
 // React), so it can be tested with plain `node`. Every sentence is built from
 // the same per-period data the table shows, so the summary can't disagree.
+import { SHOW_NUMBERS } from "@/app/lib/display";
 
 export type WeatherPeriod = {
   key: string;
@@ -83,9 +84,9 @@ export function describePeriod(p: WeatherPeriod, past = false): string {
   const e = effectOf(p.pct, p.severity);
   if (e.kind === "none") parts.push(past ? "Weather had no material effect." : "No material weather effect is expected.");
   else if (e.kind === "lower")
-    parts.push(`May ${past ? "have lowered" : "lower"} demand by ${fmtPct(Math.abs(p.pct ?? 0)).slice(1)} compared with a normal ${p.label.toLowerCase()} period.`);
+    parts.push(`May ${past ? "have lowered" : "lower"} demand${SHOW_NUMBERS ? ` by ${fmtPct(Math.abs(p.pct ?? 0)).slice(1)}` : ""} compared with a normal ${p.label.toLowerCase()} period.`);
   else if (e.kind === "raise")
-    parts.push(`May ${past ? "have raised" : "raise"} demand by ${fmtPct(p.pct ?? 0).slice(1)} compared with a normal ${p.label.toLowerCase()} period.`);
+    parts.push(`May ${past ? "have raised" : "raise"} demand${SHOW_NUMBERS ? ` by ${fmtPct(p.pct ?? 0).slice(1)}` : ""} compared with a normal ${p.label.toLowerCase()} period.`);
   if (rainBehindLabel(p)) {
     parts.push(
       `The condition is labelled ${p.condition}, but the ${Math.round(p.precip ?? 0)}% chance of precipitation is what ${past ? "lowered" : "lowers"} demand.`,
@@ -169,7 +170,7 @@ export function buildWeatherSummary(args: {
     out.push(past ? `Weather didn't materially affect demand on ${dayName}.` : `Weather isn't expected to materially affect demand on ${dayName}.`);
   else
     out.push(
-      `Weather may ${past ? "have " : ""}${effect.kind === "lower" ? (past ? "lowered" : "lower") : past ? "raised" : "raise"} demand by ${fmtPct(Math.abs(dayPct ?? 0)).slice(1)} on ${dayName}${where}.`,
+      `Weather may ${past ? "have " : ""}${effect.kind === "lower" ? (past ? "lowered" : "lower") : past ? "raised" : "raise"} demand${SHOW_NUMBERS ? ` by ${fmtPct(Math.abs(dayPct ?? 0)).slice(1)}` : ""} on ${dayName}${where}.`,
     );
 
   out.push(`Conditions: ${conditionRuns(forecast)}.`);

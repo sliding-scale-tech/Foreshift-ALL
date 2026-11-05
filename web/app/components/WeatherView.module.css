@@ -245,6 +245,13 @@
   line-height: 1.1;
 }
 
+/* The day's effect in words (no percentages on the dashboard). */
+.metricWord {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .metricNone {
   font-size: 18px;
   font-weight: 700;
@@ -426,6 +433,11 @@
 
 .pctRaise {
   color: var(--color-success-70);
+}
+
+.effectWord {
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .effectLabel {

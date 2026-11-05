@@ -77,7 +77,9 @@ export function EventsOverviewView({
   const dataGap =
     week.syncedAt === null ? "unavailable" : now !== null && now - week.syncedAt > 36 * 60 * 60 * 1000 ? "stale" : null;
 
-  const scope = picked ?? week.today;
+  // On the last day of the week there is no "rest of the week": fall back to today.
+  const lastDay = week.today >= week.weekEnd;
+  const scope = picked === REST_OF_WEEK && lastDay ? week.today : (picked ?? week.today);
   const range = scope === REST_OF_WEEK;
 
   // Events for the chosen scope, with ticket packages folded into their show.

@@ -25,6 +25,20 @@
   height: 24px;
 }
 
+.summary {
+  margin-top: 8px;
+  max-width: 860px;
+  font-size: 17px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.factualNote {
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

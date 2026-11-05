@@ -6,16 +6,19 @@ import { BandLevelsTip } from "@/app/components/BandTip";
 import { EventIcon } from "@/app/components/EventIcon";
 import { InfoTip } from "@/app/components/InfoTip";
 import { WeatherIcon } from "@/app/components/WeatherIcon";
-import { BANDS } from "@/app/lib/bands";
+import { BANDS, bandLabel } from "@/app/lib/bands";
 import type { WeekDay, WeekEvent } from "@/app/hooks/useWeek";
 import { eventPeriod, vsNormal, type PlanCell, type PlanDay } from "@/app/lib/weekPlan";
 import { FULL_DAY, formatClock, monthDay, trimNumber, type DayKey } from "@/app/lib/week";
 import styles from "./WeekPlanner.module.css";
+import { SHOW_NUMBERS } from "@/app/lib/display";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// "+19% vs. normal" / "-9% vs. normal" / "0% vs. normal"; "" when there is no baseline.
+// "+19% vs. normal" / "-9% vs. normal" / "0% vs. normal"; "" when there is no
+// baseline, and always "" unless SHOW_NUMBERS (lib/display.ts) is on.
 function vsText(score: number | null, base: number | null): string {
+  if (!SHOW_NUMBERS) return "";
   const p = vsNormal(score, base);
   if (p === null) return "";
   const r = Math.round(p);
@@ -26,7 +29,9 @@ function cellTip(day: PlanDay, c: PlanCell): string {
   const name = `${FULL_DAY[day.day as DayKey]} ${c.label.toLowerCase()}`;
   if (c.score === null) return `${name}: no forecast available`;
   const range = BANDS.find((b) => b.name === c.band);
-  const area = `${c.band}${range ? ` (${range.min}–${range.max})` : ""}, score ${trimNumber(c.score, 1)}`;
+  const area = SHOW_NUMBERS
+    ? `${bandLabel(c.band)}${range ? ` (${range.min}–${range.max})` : ""}, score ${trimNumber(c.score, 1)}`
+    : bandLabel(c.band);
   return c.closed ? `${name}: closed. Area demand ${area}` : `${name}: ${area}`;
 }
 
@@ -117,7 +122,7 @@ export function WeekGrid({
                     <span className={styles.dow}>{d.day}</span>
                     <span className={styles.dateText}>{monthDay(d.date)}</span>
                     {d.isToday && <span className={styles.todayTag}>Today</span>}
-                    {d.date === peakDate && <span className={styles.peakTag}>Peak day</span>}
+                    {d.date === peakDate && <span className={styles.peakTag}>Busiest day</span>}
                     {d.isPast && <span className={styles.dayNote}>Earlier</span>}
                   </button>
                   {(n > 0 ? (
@@ -163,7 +168,7 @@ export function WeekGrid({
                       aria-label={`${tip}. Show details`}
                       onClick={() => onSelect(d.date)}
                     >
-                      {c.score === null ? "Unavailable" : c.closed ? "Closed" : c.band}
+                      {c.score === null ? "Unavailable" : c.closed ? "Closed" : bandLabel(c.band)}
                     </button>
                   </td>
                 );
@@ -259,7 +264,7 @@ export function DayDetail({
           </h2>
           <p className={styles.detailSub}>
             {peak && peak.score !== null
-              ? `Demand peaks at ${peak.label.toLowerCase()} (${peak.band}, ${trimNumber(peak.score, 1)}).`
+              ? `Demand peaks at ${peak.label.toLowerCase()} (${bandLabel(peak.band)}${SHOW_NUMBERS ? `, ${trimNumber(peak.score, 1)}` : ""}).`
               : "No forecast is available for this day."}
             {events.length > 0 && ` ${plural(events.length, "nearby event")} may add to demand.`}
           </p>
@@ -272,18 +277,17 @@ export function DayDetail({
       <div className={styles.detailCols}>
         <div>
           <h3 className={styles.blockTitle}>
-            Demand score
-            <InfoTip label="the day's demand score" align="start">
-              The day&apos;s score is its busiest period&apos;s score, on a 0–150 scale. It describes your area, not
-              your restaurant&apos;s own sales. &ldquo;vs. normal&rdquo; compares a period with its usual demand for
-              your area, concept and day of the week; events and weather are included in the change.
+            Demand level
+            <InfoTip label="the day's demand level" align="start">
+              The day&apos;s level is its busiest period&apos;s level, from Very quiet to Exceptional. It describes
+              your area, not your restaurant&apos;s own sales.
             </InfoTip>
           </h3>
           <div className={styles.bigScore}>
             {peak && peak.score !== null ? (
               <>
                 <BandPill band={peak.band ?? "Minimal"} />
-                <span>{trimNumber(peak.score, 1)}</span>
+                {SHOW_NUMBERS && <span>{trimNumber(peak.score, 1)}</span>}
                 {vsText(peak.score, peak.base) && <span className={styles.vsNormal}>{vsText(peak.score, peak.base)}</span>}
               </>
             ) : (
@@ -305,7 +309,7 @@ export function DayDetail({
                     {c.closed && <span className={styles.closedTag}>Closed</span>}
                     {vsText(c.score, c.base) && <span className={styles.vsSmall}>{vsText(c.score, c.base)}</span>}
                     <BandPill band={c.band ?? "Minimal"} />
-                    <span className={styles.periodScore}>{trimNumber(c.score, 1)}</span>
+                    {SHOW_NUMBERS && <span className={styles.periodScore}>{trimNumber(c.score, 1)}</span>}
                   </span>
                 )}
               </li>

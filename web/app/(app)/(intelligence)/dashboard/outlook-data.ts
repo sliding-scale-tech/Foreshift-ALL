@@ -22,8 +22,13 @@ export type DaypartOutlook = {
   band: Band | null;
   liftPct: number | null; // vs. normal; null = not available (never shown as 0%)
   weather: { condition: string; tempF: number } | null;
+  /** Weather's own effect on this period, in whole percent (0 = none). */
+  weatherPct: number;
   eventNote: string;
 };
+
+/** A nearby event for "What's influencing today": its name and the period it falls in. */
+export type DayEvent = { name: string; daypart: DaypartKey };
 
 export type DailyOutlook = {
   brief: string;
@@ -33,6 +38,7 @@ export type DailyOutlook = {
   peakLabel: string; // that daypart, e.g. "Dinner"
   dayparts: DaypartOutlook[];
   drivers: Driver[];
+  events: DayEvent[];
 };
 
 export function toDailyOutlook(
@@ -45,6 +51,7 @@ export function toDailyOutlook(
     const dp = byKey.get(meta.key);
     const w = weather?.[meta.key];
     const pct = dp ? parseFloat(dp.combined_percent) : NaN;
+    const wxPct = dp ? parseFloat(dp.weather_percent) : NaN;
     return {
       key: meta.key,
       label: meta.label,
@@ -55,6 +62,7 @@ export function toDailyOutlook(
       band: dp ? (dp.band as Band) : null,
       liftPct: Number.isFinite(pct) ? pct : null,
       weather: w ? { condition: w.condition, tempF: w.tempF } : null,
+      weatherPct: Number.isFinite(wxPct) ? Math.round(wxPct) : 0,
       eventNote: dp?.event_note ?? "",
     };
   });
@@ -67,5 +75,10 @@ export function toDailyOutlook(
     peakLabel: DAYPARTS.find((m) => m.key === result.peak.daypart)?.label ?? result.peak.daypart,
     dayparts,
     drivers: toDrivers(result.drivers),
+    // Once per event, in the order the backend ranks them (biggest effect first).
+    events: result.drivers
+      .filter((d) => d.type === "event")
+      .filter((d, i, all) => all.findIndex((x) => x.name === d.name) === i)
+      .map((d) => ({ name: d.name, daypart: d.daypart as DaypartKey })),
   };
 }

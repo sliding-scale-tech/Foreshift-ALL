@@ -73,6 +73,28 @@
   color: var(--color-gray-70);
 }
 
+.text {
+  min-width: 0;
+}
+
+/* "Low impact" / "No effect" under the driver's name (when numbers are hidden). */
+.tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--color-gray-70);
+  background: var(--color-gray-20);
+  border-radius: 999px;
+}
+
+.tagUp {
+  color: var(--color-success-70);
+  background: var(--color-success-20);
+}
+
 .name {
   font-size: 14px;
   font-weight: 600;

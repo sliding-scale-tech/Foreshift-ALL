@@ -5,11 +5,7 @@
 
 .brief {
   margin-top: 24px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 506px);
-  gap: 28px;
-  align-items: start;
-  padding: 20px 24px;
+  padding: 22px 24px 24px;
   border: 1px solid #c7c4d7;
   border-radius: var(--radius-card);
   background: linear-gradient(90deg, #0b1d57 0%, #172a63 100%);
@@ -325,6 +321,143 @@
 
 .chartTitle {
   margin-bottom: 12px;
+}
+
+/* ---- Today at a glance (inside .brief) ---- */
+
+.glanceLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary-40);
+}
+
+.glanceLabel svg {
+  width: 18px;
+  height: 18px;
+}
+
+.glanceHeadline {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.glanceText {
+  margin-top: 8px;
+  max-width: 860px;
+  font-size: 17px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* The demand score box, shown only with SHOW_NUMBERS (lib/display.ts). */
+.glanceScore {
+  margin-top: 16px;
+  max-width: 506px;
+}
+
+/* ---- What's influencing today ---- */
+
+.influence {
+  padding: 20px 24px;
+}
+
+.influenceTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.influenceCols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.influenceItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-right: 20px;
+}
+
+.influenceItem + .influenceItem {
+  padding: 0 0 0 20px;
+  border-left: 1px solid var(--color-gray-30);
+}
+
+.influenceIcon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: var(--color-shift-electric-blue);
+  background: var(--color-primary-20);
+  border-radius: 50%;
+}
+
+.influenceIcon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.influenceItem h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.influenceItem p {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-gray-70);
+}
+
+.influenceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-shift-electric-blue);
+}
+
+.influenceLink svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 720px) {
+  .influenceCols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .influenceItem,
+  .influenceItem + .influenceItem {
+    padding: 0;
+    border-left: none;
+  }
+  .influenceItem + .influenceItem {
+    padding-top: 16px;
+    border-top: 1px solid var(--color-gray-30);
+  }
+  .glanceHeadline {
+    font-size: 22px;
+  }
+  .glanceText {
+    font-size: 16px;
+  }
 }
 
 /* ---- How this forecast works ---- */

@@ -4,7 +4,7 @@
 export const FAQS: { q: string; a: string }[] = [
   {
     q: "What does ForeShift actually tell me?",
-    a: "How busy demand is likely to be for a restaurant like yours, in your part of Detroit, for every day of the week and every part of the day. You get a simple label — from Minimal up to Exceptional — for each slot, so you can see at a glance when your area runs hot and when it's quiet.",
+    a: "How busy demand is likely to be for a restaurant like yours, in your part of Detroit, for every day of the week and every part of the day. You get a simple label — from Very quiet up to Exceptional — for each slot, so you can see at a glance when your area runs hot and when it's quiet.",
   },
   {
     q: "Is this a prediction of my restaurant's exact sales?",
@@ -28,7 +28,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What do the demand bands mean?",
-    a: "Six levels, low to high: Minimal, Light, Moderate, High, Peak, Exceptional. They're shown on a color scale in a days‑by‑dayparts grid. \"Exceptional\" is rare — you'll usually only see it when a major event or perfect weather is stacked on top of an already‑busy slot.",
+    a: "Six levels, low to high: Very quiet, Quiet, Moderate, Busy, Very busy, Exceptional. They're shown on a color scale in a days‑by‑dayparts grid. \"Exceptional\" is rare — you'll usually only see it when a major event or perfect weather is stacked on top of an already‑busy slot.",
   },
   {
     q: "How do I get my report?",

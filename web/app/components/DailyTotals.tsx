@@ -23,8 +23,7 @@ export function DailyTotals({
       <summary>
         Daily totals
         <InfoTip label="daily totals" align="start">
-          One bar per day. A day&apos;s score is its busiest period&apos;s score on the 0–150 scale, rounded to one
-          decimal. Select a bar to see that day above.
+          One bar per day, showing the demand level of its busiest period. Select a bar to see that day above.
         </InfoTip>
         <span className={styles.totalsToggle}>
           {open ? "Hide" : "Show"}

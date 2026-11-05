@@ -23,14 +23,23 @@ import {
   mostAffected,
   tempSummary,
   type WeatherPeriod,
+  type Effect,
 } from "@/app/lib/weather";
 import { FULL_DAY, longDate, monthDay, trimNumber, weekLabel, type DayKey } from "@/app/lib/week";
 import shared from "@/app/(app)/shared.module.css";
 import styles from "./WeatherView.module.css";
+import { SHOW_NUMBERS } from "@/app/lib/display";
 
 type Operator = ReturnType<typeof useMyOperator>["operator"];
 
 // ---- Compact date selector ---------------------------------------------------
+
+/** A day card's short effect line: "Moderate impact", "May raise demand", "No effect". */
+function dayImpactWord(e: Effect): string {
+  if (e.kind === "lower") return `${e.size} impact`;
+  if (e.kind === "raise") return "May raise demand";
+  return "No effect";
+}
 
 function DaySelector({
   week,
@@ -51,7 +60,11 @@ function DaySelector({
         const label = `${FULL_DAY[d.day as DayKey]}, ${monthDay(d.date)}${isToday ? ", today" : ""}. ${
           w
             ? `${past ? "Earlier day, recorded weather: " : ""}${w.condition}, high ${Math.round(w.highF)}°F, low ${Math.round(w.lowF)}°F, ${Math.round(w.precipChance)}% chance of precipitation${
-                impact ? `, estimated weather effect on demand ${fmtPct(impact.percent)}` : ""
+                impact
+                  ? SHOW_NUMBERS
+                    ? `, estimated weather effect on demand ${fmtPct(impact.percent)}`
+                    : `, ${effectOf(impact.percent, w.severity).text.toLowerCase()}`
+                  : ""
               }`
             : past
               ? "Earlier day, no weather recorded"
@@ -76,7 +89,7 @@ function DaySelector({
                   {Math.round(w.highF)}°<span className={styles.dayLow}> / {Math.round(w.lowF)}°</span>
                 </span>
                 <span className={styles.dayNote}>{Math.round(w.precipChance)}% rain</span>
-                {/* Percent, the same figure the summary's "Estimated weather effect" shows for this day. */}
+                {/* The same effect the summary's "Estimated weather effect" shows for this day, in words. */}
                 {impact && (
                   <span
                     className={`${styles.dayImpact} ${
@@ -87,7 +100,7 @@ function DaySelector({
                           : ""
                     }`}
                   >
-                    Impact {fmtPct(impact.percent)}
+                    {SHOW_NUMBERS ? `Impact ${fmtPct(impact.percent)}` : dayImpactWord(effectOf(impact.percent, w.severity))}
                   </span>
                 )}
               </>
@@ -149,13 +162,21 @@ function PeriodRow({ p, open, onToggle, past }: { p: WeatherPeriod; open: boolea
           {effect.kind === "none" && <span className={styles.effectNone}>{effect.text}</span>}
           {(effect.kind === "lower" || effect.kind === "raise") && (
             <>
-              <span className={`${styles.pct} ${effect.kind === "lower" ? styles.pctLower : styles.pctRaise}`}>
-                {fmtPct(p.pct ?? 0)}
-              </span>
-              <span className={styles.effectLabel}>{effect.text}</span>
+              {SHOW_NUMBERS ? (
+                <>
+                  <span className={`${styles.pct} ${effect.kind === "lower" ? styles.pctLower : styles.pctRaise}`}>
+                    {fmtPct(p.pct ?? 0)}
+                  </span>
+                  <span className={styles.effectLabel}>{effect.text}</span>
+                </>
+              ) : (
+                <span className={`${styles.effectWord} ${effect.kind === "lower" ? styles.pctLower : styles.pctRaise}`}>
+                  {effect.text}
+                </span>
+              )}
             </>
           )}
-          {effect.kind !== "unavailable" && p.impactScore !== null && (
+          {SHOW_NUMBERS && effect.kind !== "unavailable" && p.impactScore !== null && (
             <span className={styles.impactScore}>Impact score {fmtPoints(p.impactScore)}</span>
           )}
         </span>
@@ -305,10 +326,18 @@ export function WeatherView({
             <div className={styles.metricNone}>{past ? "No material weather effect" : "No material weather effect expected"}</div>
           ) : (
             <>
-              <div className={`${styles.metricValue} ${dayEffect.kind === "lower" ? styles.pctLowerOnLight : styles.pctRaise}`}>
-                {fmtPct(dayPct ?? 0)}
-              </div>
-              <div className={styles.metricSub}>{dayEffect.text}</div>
+              {SHOW_NUMBERS ? (
+                <>
+                  <div className={`${styles.metricValue} ${dayEffect.kind === "lower" ? styles.pctLowerOnLight : styles.pctRaise}`}>
+                    {fmtPct(dayPct ?? 0)}
+                  </div>
+                  <div className={styles.metricSub}>{dayEffect.text}</div>
+                </>
+              ) : (
+                <div className={`${styles.metricWord} ${dayEffect.kind === "lower" ? styles.pctLowerOnLight : styles.pctRaise}`}>
+                  {dayEffect.text}
+                </div>
+              )}
             </>
           )}
           <div className={styles.metricNote}>For the whole day</div>
@@ -317,8 +346,8 @@ export function WeatherView({
         {day?.demand && (
           <p className={styles.overall}>
             Overall demand that day: <BandPill band={day.demand.peakBand} />
-            <span className={styles.overallScore}>{trimNumber(day.demand.peakScore, 1)}</span> (busiest period; it
-            includes events as well as weather).{" "}
+            {SHOW_NUMBERS && <span className={styles.overallScore}>{trimNumber(day.demand.peakScore, 1)}</span>} (busiest
+            period; it includes events as well as weather).{" "}
             <Link href={`/dashboard?date=${selected}`}>View demand outlook for this date</Link>
           </p>
         )}

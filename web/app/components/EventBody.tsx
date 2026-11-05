@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { impactWord } from "@/app/lib/drivers";
 import type { useQuery } from "convex/react";
 import type { api } from "my-app/convex/_generated/api";
 import { BandPill } from "@/app/components/BandPill";
@@ -14,6 +15,7 @@ import { formatClock, trimNumber } from "@/app/lib/week";
 import { eventPeriod } from "@/app/lib/weekPlan";
 import shared from "@/app/(app)/shared.module.css";
 import styles from "@/app/(app)/(intelligence)/events-overview/[eventId]/event.module.css";
+import { SHOW_NUMBERS } from "@/app/lib/display";
 
 const SUPPORT_EMAIL = "support@foreshift.ai";
 
@@ -95,7 +97,11 @@ export function EventBody({ impact, zone, source }: { impact: EventImpact; zone?
             <div className={styles.impactBandRow}>
               <BandPill band={impact.impactBand} />
               <span className={impact.headlinePercent > 0 ? styles.impactPct : styles.impactNone}>
-                {impact.headlinePercent > 0 ? `+${Math.round(impact.headlinePercent)}%` : "No effect"}
+                {SHOW_NUMBERS
+                  ? impact.headlinePercent > 0
+                    ? `+${Math.round(impact.headlinePercent)}%`
+                    : "No effect"
+                  : impactWord(impact.headlinePercent)}
               </span>
             </div>
           </div>
@@ -199,7 +205,7 @@ export function EventBody({ impact, zone, source }: { impact: EventImpact; zone?
           Impact by service period
           <InfoTip label="impact by service period" align="start">
             This event&apos;s estimated effect in each period, as a change from that period&apos;s normal demand. The
-            score is the day&apos;s forecast for the period, including weather and other events.
+            level is the day&apos;s forecast for the period, including weather and other events.
           </InfoTip>
         </h2>
         <div className={styles.grid}>
@@ -218,12 +224,15 @@ export function EventBody({ impact, zone, source }: { impact: EventImpact; zone?
                 <div className={styles.dpBottom}>
                   {d && d.percent > 0 ? (
                     <span className={styles.dpPct}>
-                      <TrendUp />+{Math.round(d.percent)}%
+                      <TrendUp />
+                      {SHOW_NUMBERS ? `+${Math.round(d.percent)}%` : impactWord(d.percent)}
                     </span>
                   ) : (
                     <span className={styles.dpNone}>No effect</span>
                   )}
-                  <span className={styles.dpScore}>{d?.score == null ? "—" : d.score.toFixed(1)}</span>
+                  {SHOW_NUMBERS && (
+                    <span className={styles.dpScore}>{d?.score == null ? "—" : d.score.toFixed(1)}</span>
+                  )}
                 </div>
               </div>
             );

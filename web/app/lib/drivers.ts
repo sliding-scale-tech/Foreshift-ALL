@@ -18,6 +18,25 @@ export type Driver = {
   liftUnknown?: boolean;
 };
 
+/**
+ * How much an event or weather may add, in words: the dashboard shows no
+ * percentages. Same three tiers the Events page uses for influence.
+ */
+export function impactWord(pct: number): "High impact" | "Moderate impact" | "Low impact" | "No effect" {
+  if (pct >= 25) return "High impact";
+  if (pct >= 10) return "Moderate impact";
+  if (pct > 0) return "Low impact";
+  return "No effect";
+}
+
+/** A period compared with its normal, in words ("Busier than normal"). */
+export function vsNormalWord(pct: number | null): string {
+  if (pct === null) return "";
+  if (pct >= 10) return "Busier than normal";
+  if (pct <= -10) return "Quieter than normal";
+  return "About normal";
+}
+
 const PERIOD_LABEL: Record<string, string> = Object.fromEntries(DAYPARTS.map((d) => [d.key, d.label]));
 
 /**

@@ -32,6 +32,9 @@ export function EventDaySelector({
   onChange: (value: string) => void;
 }) {
   const today = days.find((d) => d.isToday);
+  // "Rest of this week" only means something while days after today are left:
+  // on Sunday it would be just today again ("Nov 1 – Nov 1"), so it's hidden.
+  const hasLaterDays = days.some((d) => !d.isPast && !d.isToday);
   return (
     <div className={styles.wrap}>
       <div className={styles.quick} role="group" aria-label="Quick ranges">
@@ -44,14 +47,16 @@ export function EventDaySelector({
         >
           Today
         </button>
-        <button
-          type="button"
-          className={`${styles.chip} ${value === REST_OF_WEEK ? styles.chipOn : ""}`}
-          aria-pressed={value === REST_OF_WEEK}
-          onClick={() => onChange(REST_OF_WEEK)}
-        >
-          Rest of this week
-        </button>
+        {hasLaterDays && (
+          <button
+            type="button"
+            className={`${styles.chip} ${value === REST_OF_WEEK ? styles.chipOn : ""}`}
+            aria-pressed={value === REST_OF_WEEK}
+            onClick={() => onChange(REST_OF_WEEK)}
+          >
+            Rest of this week
+          </button>
+        )}
       </div>
 
       <div className={styles.days} role="group" aria-label="Choose a day">
