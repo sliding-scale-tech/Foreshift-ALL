@@ -12,8 +12,9 @@
 // keeps calling Gemini directly, exactly as before.
 
 import {
-  narrateTodayOutlook,
-  narrateWeeklyOutlook,
+  BAND_LEVEL,
+  narrateTodayGlance,
+  narrateWeekGlance,
   narrateEventImpact,
   narrateWeatherImpact,
   narrateDaypartEventNotes,
@@ -112,6 +113,25 @@ function todayText(context: unknown): string {
   return parts.join(" ");
 }
 
+/** "Dinner looks quiet. Doja Cat may bring more people at dinner." No numbers. */
+function todayGlanceText(context: unknown): string {
+  const c = obj(context);
+  const peak = obj(c.peak);
+  const peakName = str(peak.daypart);
+  const level = BAND_LEVEL[str(peak.band)] ?? str(peak.band).toLowerCase();
+  const events = arr(obj(c.drivers).events);
+  const parts = [`${cap(name(peakName))} looks ${level}.`];
+  if (events.length > 0) {
+    const atPeak = events.filter((e) => str(e.daypart) === peakName);
+    const shown = atPeak.length > 0 ? atPeak : events;
+    const where = atPeak.length > 0 ? name(peakName) : name(str(shown[0].daypart));
+    parts.push(`${eventList(shown.map((e) => str(e.name)))} may bring more people at ${where}.`);
+  } else {
+    parts.push("It looks like a normal day, with no big events nearby.");
+  }
+  return parts.join(" ");
+}
+
 function eventsText(events: Ctx[]): string {
   if (events.length === 0) {
     return "No notable nearby events today; demand reflects baseline conditions.";
@@ -149,12 +169,41 @@ function weeklyText(context: unknown): string {
   return parts.join(" ");
 }
 
+/** "Saturday dinner looks moderate. Doja Cat may bring more people that day." No numbers. */
+function weekGlanceText(context: unknown): string {
+  const days = arr(obj(context).days);
+  if (days.length === 0) return "No forecast is available for this week yet.";
+  const best = days.reduce((a, b) => (num(obj(b.peak).score) > num(obj(a.peak).score) ? b : a));
+  const peak = obj(best.peak);
+  const level = BAND_LEVEL[str(peak.band)] ?? str(peak.band).toLowerCase();
+  const parts = [`${FULL_DAY[str(best.day)] ?? str(best.day)} ${name(str(peak.daypart))} looks busiest, at ${level}.`];
+  const events = arr(obj(best.drivers).events).map((e) => str(e.name));
+  if (events.length > 0) parts.push(`${eventList(events)} may bring more people that day.`);
+  return parts.join(" ");
+}
+
+const FULL_DAY: Record<string, string> = {
+  Mon: "Monday",
+  Tue: "Tuesday",
+  Wed: "Wednesday",
+  Thu: "Thursday",
+  Fri: "Friday",
+  Sat: "Saturday",
+  Sun: "Sunday",
+};
+
 // ---------------------------------------------------------------------------
 
 const factsNarrators = {
   today: async (context: unknown) => ({ text: todayText(context), usage: NO_USAGE }),
 
+  // "Today at a glance" without Gemini: the busiest period's level and its events, in plain words.
+  todayGlance: async (context: unknown) => ({ text: todayGlanceText(context), usage: NO_USAGE }),
+
   weekly: async (context: unknown) => ({ text: weeklyText(context), usage: NO_USAGE }),
+
+  // "This week at a glance" without Gemini, in the same plain words as the daily line.
+  weekGlance: async (context: unknown) => ({ text: weekGlanceText(context), usage: NO_USAGE }),
 
   event: async (context: unknown) => ({
     text: eventsText(arr(obj(context).events)),
@@ -213,8 +262,10 @@ export function withFactsFallback(onFallback: () => void): Narrators {
     };
   }
   return {
-    today: guard(narrateTodayOutlook, factsNarrators.today),
-    weekly: guard(narrateWeeklyOutlook, factsNarrators.weekly),
+    // The web Daily page's "Today at a glance" (the simpler, web-only narrator).
+    today: guard(narrateTodayGlance, factsNarrators.todayGlance),
+    // The web Weekly page's "This week at a glance" (the simpler, web-only narrator).
+    weekly: guard(narrateWeekGlance, factsNarrators.weekGlance),
     event: guard(narrateEventImpact, factsNarrators.event),
     weather: guard(narrateWeatherImpact, factsNarrators.weather),
     daypartNotes: guard(narrateDaypartEventNotes, factsNarrators.daypartNotes),

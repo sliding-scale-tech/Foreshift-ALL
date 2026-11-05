@@ -100,6 +100,11 @@ function daysFor(type: OutlookType, date: string): Day[] {
   return type === "weekly" ? [...DAYS] : [dayFromLocalDate(date) as Day];
 }
 
+// Part of every fingerprint: change it to regenerate all cached narration.
+// "glance-1" = the simpler "Today at a glance" summary (gemini.ts narrateTodayGlance);
+// "glance-2" adds the weekly one (narrateWeekGlance).
+const NARRATION_VERSION = "glance-2";
+
 // Small stable string hash — the fingerprint only needs "did anything change".
 function hash(s: string): string {
   let h = 5381;
@@ -157,6 +162,8 @@ async function fingerprint(
       events.map((e) => e.signalKey).sort(),
     ]);
   }
+  // Bumped when the narration itself changes (prompt or style), so cached text is rewritten.
+  parts.push(NARRATION_VERSION);
   return hash(JSON.stringify(parts));
 }
 

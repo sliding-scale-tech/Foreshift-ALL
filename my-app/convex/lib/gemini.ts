@@ -354,6 +354,139 @@ Write the weekly outlook per your instructions.`;
 }
 
 // ---------------------------------------------------------------------------
+// AI #2b (web) — "Today at a glance" on the web app's Daily Outlook. Web only:
+// it is reached through withFactsFallback (lib/outlookFacts.ts), which
+// /demand/outlook (Bubble) never uses, so Bubble keeps TODAY_OUTLOOK_SYSTEM
+// above unchanged. Written for a 3rd-grade reading level, no numbers, and in
+// the web app's level words (Very quiet … Exceptional), not the band names.
+// ---------------------------------------------------------------------------
+
+/** The band names the backend uses -> the words the web app shows (web/app/lib/bands.ts). */
+export const BAND_LEVEL: Record<string, string> = {
+  Minimal: "very quiet",
+  Light: "quiet",
+  Moderate: "moderate",
+  High: "busy",
+  Peak: "very busy",
+  Exceptional: "exceptional",
+};
+
+const TODAY_GLANCE_SYSTEM = `You write the "Today at a glance" line for a Detroit restaurant or bar owner. It says how busy their area may be today and why.
+
+You get today's data: each period of the day (morning, midday, dinner, late night) with its demand level, the nearby events in each period, and the weather in each period.
+
+Write 1 or 2 short sentences. Plain text only.
+- Use very simple words, at a 3rd-grade reading level. Short sentences. No hard words.
+- Say which period looks busiest, using its level word.
+- If there are events, name them in a short, friendly way and say which period they may help. Example: "The Lions game may bring more people at lunch, and evening concerts could bring diners before the shows."
+- If there are no events, say what the weather may do, or that it looks like a normal day.
+
+STRICT RULES:
+- Use ONLY the levels, events and weather given. Never invent an event, venue, time or weather.
+- The demand levels are, from low to high: very quiet, quiet, moderate, busy, very busy, exceptional. Use only these words for a level.
+- No numbers at all: no scores, no percentages, no temperatures, no times, no distances.
+- Say "may" or "could": this is a forecast, not a promise.
+- No preamble ("Certainly", "Here's"), no lists, no markdown.`;
+
+/** Only what the glance line may use: levels (not band names or scores), event names and weather words. */
+function glanceContext(context: unknown) {
+  const c = (context ?? {}) as Record<string, unknown>;
+  const level = (band: unknown) => (typeof band === "string" ? (BAND_LEVEL[band] ?? band) : "");
+  const list = (v: unknown) => (Array.isArray(v) ? (v as Record<string, unknown>[]) : []);
+  const peak = (c.peak ?? {}) as Record<string, unknown>;
+  const drivers = (c.drivers ?? {}) as Record<string, unknown>;
+  return {
+    day: c.day,
+    busiest_period: peak.daypart,
+    periods: list(c.dayparts).map((d) => ({ period: d.daypart, level: level(d.band) })),
+    events: list(drivers.events).map((e) => ({ name: e.name, venue: e.venue, kind: e.class, period: e.daypart })),
+    weather: list(drivers.weather).map((w) => ({
+      period: w.daypart,
+      condition: w.condition,
+      // Words, not numbers: whether this period's weather moves demand.
+      effect:
+        typeof w.weather_impact_score !== "number" || Math.abs(w.weather_impact_score) < 1
+          ? "none"
+          : w.weather_impact_score < 0
+            ? "may keep some people home"
+            : "may bring more people out",
+    })),
+  };
+}
+
+export async function narrateTodayGlance(
+  context: unknown,
+): Promise<{ text: string; usage: TokenUsage }> {
+  const user = `Today's data (JSON):
+${JSON.stringify(glanceContext(context), null, 2)}
+
+Write the "Today at a glance" line per your instructions.`;
+
+  return generate({
+    system: TODAY_GLANCE_SYSTEM,
+    user,
+    maxOutputTokens: 160,
+    temperature: 0.3,
+    disableThinking: true,
+  });
+}
+
+// "This week at a glance" on the web app's Weekly Outlook: same rules as the
+// daily glance line (web only, 3rd-grade words, no numbers, level words).
+const WEEK_GLANCE_SYSTEM = `You write the "This week at a glance" line for a Detroit restaurant or bar owner. It says how busy their area may be this week and why.
+
+You get each day of this week (Monday to Sunday): the busiest period that day with its demand level, and the nearby events that day.
+
+Write 1 or 2 short sentences. Plain text only.
+- Use very simple words, at a 3rd-grade reading level. Short sentences. No hard words.
+- Say which day and period looks busiest, using its level word.
+- If there are events, name one or two of the biggest in a short, friendly way and say which day they may help. Example: "Saturday dinner looks busiest, and the Lions game may bring more people that day."
+- You can say in a few words how the rest of the week looks (for example "most other days look quiet").
+
+STRICT RULES:
+- Use ONLY the days, levels and events given. Never invent an event, venue, day or weather.
+- The demand levels are, from low to high: very quiet, quiet, moderate, busy, very busy, exceptional. Use only these words for a level.
+- No numbers at all: no scores, no percentages, no dates, no times, no temperatures.
+- Say "may" or "could": this is a forecast, not a promise.
+- No preamble ("Certainly", "Here's"), no lists, no markdown.`;
+
+/** Only what the weekly glance line may use: each day's busiest period and level, and that day's events. */
+function weekGlanceContext(context: unknown) {
+  const c = (context ?? {}) as Record<string, unknown>;
+  const list = (v: unknown) => (Array.isArray(v) ? (v as Record<string, unknown>[]) : []);
+  const level = (band: unknown) => (typeof band === "string" ? (BAND_LEVEL[band] ?? band) : "");
+  return {
+    days: list(c.days).map((d) => {
+      const peak = (d.peak ?? {}) as Record<string, unknown>;
+      const drivers = (d.drivers ?? {}) as Record<string, unknown>;
+      return {
+        day: d.day,
+        busiest_period: peak.daypart,
+        level: level(peak.band),
+        events: list(drivers.events).map((e) => ({ name: e.name, venue: e.venue, kind: e.class, period: e.daypart })),
+      };
+    }),
+  };
+}
+
+export async function narrateWeekGlance(
+  context: unknown,
+): Promise<{ text: string; usage: TokenUsage }> {
+  const user = `This week's data (JSON):
+${JSON.stringify(weekGlanceContext(context), null, 2)}
+
+Write the "This week at a glance" line per your instructions.`;
+
+  return generate({
+    system: WEEK_GLANCE_SYSTEM,
+    user,
+    maxOutputTokens: 160,
+    temperature: 0.3,
+    disableThinking: true,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // AI #2c — Event-only and weather-only narration ("Event Demand Impact" /
 // "Weather Demand Impact" cards). Same family as the outlook narrators above,
 // but each isolates ONE driver so the two cards never talk about the other's
