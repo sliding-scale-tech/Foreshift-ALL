@@ -70,7 +70,7 @@ async function requireOperator(ctx: QueryCtx) {
 }
 
 function requireAccess(op: Doc<"operators">) {
-  const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus });
+  const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus, freeAccess: op.freeAccess });
   if (!access.hasAccess) throw new Error("Your free trial has ended. Upgrade to keep using AI Pass.");
 }
 

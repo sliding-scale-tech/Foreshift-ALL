@@ -4,7 +4,7 @@ import { useMyOperator } from "./useMyOperator";
 
 export type AccessInfo = {
   hasAccess: boolean;
-  reason: "trial" | "subscribed" | "expired";
+  reason: "trial" | "subscribed" | "free" | "expired";
   trialEndsAt: number;
   isSubscribed: boolean;
 };

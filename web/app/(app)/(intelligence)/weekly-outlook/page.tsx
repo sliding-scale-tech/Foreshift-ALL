@@ -93,7 +93,7 @@ export default function WeeklyOutlookPage() {
         </div>
 
         {/* Paid plans only; everyone else is pointed at Billing. */}
-        {access?.isSubscribed ? (
+        {access?.isSubscribed || access?.reason === "free" ? (
           <button type="button" className={`${styles.exportBtn} ${styles.noPrint}`} onClick={exportPdf}>
             Export weekly outlook
           </button>

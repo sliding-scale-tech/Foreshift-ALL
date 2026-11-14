@@ -3,7 +3,7 @@
 // table; see the comment on the `operators` table in schema.ts.
 
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { ZONES, CONCEPTS } from "./lib/vocab";
 import { computeAccess } from "./lib/access";
 
@@ -19,8 +19,30 @@ export const getMine = query({
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!op) return null;
-    const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus });
+    const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus, freeAccess: op.freeAccess });
     return { ...op, access };
+  },
+});
+
+/**
+ * Give one account full access with no subscription (or take it away). Internal:
+ * run from the CLI only, e.g.
+ *   npx convex run --prod operators:setFreeAccess '{"email":"name@example.com","on":true}'
+ */
+export const setFreeAccess = internalMutation({
+  args: { email: v.string(), on: v.boolean() },
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+    const users = await ctx.db.query("users").collect();
+    const user = users.find((u) => (u.email ?? "").toLowerCase() === email);
+    if (!user) throw new Error(`No user with email ${email}.`);
+    const op = await ctx.db
+      .query("operators")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", user.clerkId))
+      .unique();
+    if (!op) throw new Error(`${email} hasn't finished onboarding yet.`);
+    await ctx.db.patch("operators", op._id, { freeAccess: args.on ? true : undefined });
+    return { email, operator: op.restaurantName, freeAccess: args.on };
   },
 });
 

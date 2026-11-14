@@ -151,6 +151,8 @@ function BillingContent() {
                 </span>
                 {access.hasAccess && ` · renews ${formatDate(access.trialEndsAt)}`}
               </>
+            ) : access.reason === "free" ? (
+              <span className={styles.statusLabel}>Full access · no subscription needed</span>
             ) : access.hasAccess ? (
               <>
                 <span className={styles.statusLabel}>Free trial</span> · ends {formatDate(access.trialEndsAt)}

@@ -19,7 +19,7 @@ export function isPaidStatus(status: string | undefined): boolean {
 
 export interface AccessInfo {
   hasAccess: boolean;
-  reason: "trial" | "subscribed" | "expired";
+  reason: "trial" | "subscribed" | "free" | "expired";
   trialEndsAt: number;
   isSubscribed: boolean;
 }
@@ -27,10 +27,13 @@ export interface AccessInfo {
 export function computeAccess(args: {
   createdAt: number;
   subscriptionStatus: string | undefined;
+  /** operators.freeAccess: the team gave this account full access, no paywall. */
+  freeAccess?: boolean;
 }): AccessInfo {
   const trialEndsAt = args.createdAt + TRIAL_MS;
   const isSubscribed = isPaidStatus(args.subscriptionStatus);
   if (isSubscribed) return { hasAccess: true, reason: "subscribed", trialEndsAt, isSubscribed };
+  if (args.freeAccess === true) return { hasAccess: true, reason: "free", trialEndsAt, isSubscribed };
   if (Date.now() < trialEndsAt) return { hasAccess: true, reason: "trial", trialEndsAt, isSubscribed };
   return { hasAccess: false, reason: "expired", trialEndsAt, isSubscribed };
 }

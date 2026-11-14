@@ -183,7 +183,7 @@ async function operatorFor(ctx: QueryCtx) {
   if (!op) throw new Error("Finish onboarding first.");
   // The trial / plan gate, enforced here too: the page redirects to Billing, but
   // the data must not be readable by calling these functions directly.
-  const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus });
+  const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus, freeAccess: op.freeAccess });
   if (!access.hasAccess) throw new Error("Your free trial has ended. Choose a plan on the Billing page to continue.");
   const [zone] = keepKnown([op.zone], ZONES);
   const [concept] = keepKnown([op.conceptType], CONCEPTS);

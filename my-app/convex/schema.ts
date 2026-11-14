@@ -102,6 +102,10 @@ export default defineSchema(
       // before applying — an out-of-order "was active" event arriving after a
       // newer "canceled" event must not resurrect access. See stripe.ts setSubscription.
       subscriptionEventAt: v.optional(v.number()),
+      // Full access without a subscription, granted by the team (internal
+      // operators:setFreeAccess, run from the CLI). Separate from the Stripe
+      // fields above, so no webhook can overwrite it. Unset = normal paywall.
+      freeAccess: v.optional(v.boolean()),
     })
       .index("by_clerkId", ["clerkId"])
       .index("by_stripeCustomerId", ["stripeCustomerId"]),
