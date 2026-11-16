@@ -95,17 +95,23 @@ const RETRYABLE_STATUS = new Set([429, 503]);
 async function bubbleFetch(
   url: string,
   init: RequestInit,
-  maxRetries = 5,
+  maxRetries = 6,
 ): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
     await waitForRateLimitSlot();
     const res = await fetch(url, init);
     if (!RETRYABLE_STATUS.has(res.status) || attempt >= maxRetries) return res;
     const retryAfterSec = Number(res.headers.get("Retry-After"));
+    // The pacer above only sees THIS deployment's calls. Dev and prod share one
+    // Bubble app and run the same cron, so a 429 usually means the other
+    // deployment is mid-burst: wait long enough for Bubble's per-minute window
+    // to roll (10s, 20s, ... ~3.5 min in total) instead of a few seconds.
     const delayMs =
       Number.isFinite(retryAfterSec) && retryAfterSec > 0
         ? retryAfterSec * 1000
-        : 400 * 2 ** attempt;
+        : res.status === 429
+          ? 10_000 * (attempt + 1)
+          : 400 * 2 ** attempt;
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 }
