@@ -386,21 +386,13 @@ async function doSync(
       errors.push(...deleteResult.errors);
     }
 
-    if (errors.length > 0) {
-      const first = errors[0];
-      const firstMessage = first instanceof Error ? first.message : String(first);
-      throw new Error(
-        `${errors.length} of ${rows.length + (args.deleteStale ? existing.size : 0)} Bubble ` +
-          `write(s) failed after retries (${created} created, ${updated} updated, ${deleted} ` +
-          `removed succeeded). First error: ${firstMessage}`,
-      );
-    }
-
     // Mirror the same rows into Convex's own resolvedDemand table (see
-    // signalsStore.ts) — additive, only runs once the Bubble write above has
-    // fully succeeded (no errors thrown). No windowing nuance here: this
-    // always recomputes the full zone×concept×day table, so "stale" is just
-    // "anything stored that isn't in this run's key set."
+    // signalsStore.ts). Runs even when some Bubble writes failed: the rows are
+    // computed here, not read back from Bubble, so they're correct either way —
+    // previously a handful of Bubble 429s left the web app on last week's data.
+    // Bubble errors are still thrown (and logged) right after. No windowing
+    // nuance here: this always recomputes the full zone×concept×day table, so
+    // "stale" is just "anything stored that isn't in this run's key set."
     const convexUpserts = rows.map((r) => ({
       signalKey: r.signal_key,
       zone: r.zone,
@@ -431,6 +423,16 @@ async function doSync(
       upserts: convexUpserts,
       deleteKeys: convexDeleteKeys,
     });
+
+    if (errors.length > 0) {
+      const first = errors[0];
+      const firstMessage = first instanceof Error ? first.message : String(first);
+      throw new Error(
+        `${errors.length} of ${rows.length + (args.deleteStale ? existing.size : 0)} Bubble ` +
+          `write(s) failed after retries (${created} created, ${updated} updated, ${deleted} ` +
+          `removed succeeded). First error: ${firstMessage}`,
+      );
+    }
 
     return { total: rows.length, created, updated, deleted, existingBefore: existing.size };
 }

@@ -31,7 +31,7 @@ export const FAQS: { q: string; a: string }[] = [
     a: "Six levels, low to high: Very quiet, Quiet, Moderate, Busy, Very busy, Exceptional. They're shown on a color scale in a days‑by‑dayparts grid. \"Exceptional\" is rare — you'll usually only see it when a major event or perfect weather is stacked on top of an already‑busy slot.",
   },
   {
-    q: "How do I get my report?",
+    q: "How do I get my demand insight?",
     a: "Sign up, enter your venue and address, confirm your zone and concept, then purchase your zone's Location Demand Report at checkout. Once bought, the report is available on your dashboard whenever you log in.",
   },
   {
