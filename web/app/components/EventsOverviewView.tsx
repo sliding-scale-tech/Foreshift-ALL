@@ -8,7 +8,6 @@ import { EventDaySelector, REST_OF_WEEK } from "@/app/components/EventDaySelecto
 import { EventsList, type EmptyKind } from "@/app/components/EventsList";
 import { BriefcaseIcon, BuildingIcon, GlobeIcon, MusicIcon, PeopleIcon, RefreshIcon, TagIcon } from "@/app/components/event-icons";
 import { InfoTip } from "@/app/components/InfoTip";
-import { KeyEvents } from "@/app/components/KeyEvents";
 import { LastUpdated } from "@/app/components/LastUpdated";
 import { Select } from "@/app/components/Select";
 import { StaleNotice } from "@/app/components/StaleNotice";
@@ -22,7 +21,6 @@ import {
   filterEvents,
   groupListings,
   keyEventIds,
-  rankEvents,
   sortEvents,
   topInfluence,
   weekdayName,
@@ -69,7 +67,6 @@ export function EventsOverviewView({
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [sort, setSort] = useState<SortKey>("time");
   const [page, setPage] = useState(1);
-  const [explainerOpen, setExplainerOpen] = useState(false);
   // Event data is refreshed once a day. If the last successful refresh is over 36 hours old (or there
   // never was one) "no events" can't be trusted, so say so instead of showing an empty list as fact.
   // Read the clock after mount so the server and browser render the same thing.
@@ -105,17 +102,11 @@ export function EventsOverviewView({
 
   const results = useMemo(() => sortEvents(filterEvents(scoped, filters), sort), [scoped, filters, sort]);
   const keyIds = useMemo(() => keyEventIds(scoped), [scoped]);
-  const topEvents = useMemo(() => rankEvents(scoped).slice(0, 3), [scoped]);
 
   const earlier = !range && scope < week.today;
   // In range mode `scope` isn't a date, so only a single day gets a weekday name.
   const label = range ? "the rest of this week" : scope === week.today ? "today" : weekdayName(scope);
   const summary = buildSummary({ events: scoped, label, range, earlier });
-  const keyTitle = range
-    ? "Key events for the rest of this week"
-    : scope === week.today
-      ? "Top events today"
-      : `Key events for ${weekdayName(scope)}, ${monthDay(scope)}`;
 
   const filterCount = activeFilterCount(filters);
   const pageCount = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
@@ -295,23 +286,9 @@ export function EventsOverviewView({
           />
         </div>
 
-        <aside className={styles.side} aria-label="Key events and how events shape demand">
-          <KeyEvents
-            title={keyTitle}
-            events={topEvents}
-            note={earlier ? "No nearby events were recorded for this day." : "No nearby events to highlight for this day."}
-          />
-
-          <details className={styles.explainer} open={explainerOpen} onToggle={(e) => setExplainerOpen(e.currentTarget.open)}>
-            <summary>
-              How events shape demand
-              <span className={styles.explainerToggle}>
-                {explainerOpen ? "Hide" : "Show"}
-                <svg className={styles.chevron} viewBox="0 0 10 6" aria-hidden="true">
-                  <path d="m1 1 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            </summary>
+        <aside className={styles.side} aria-label="How events shape demand">
+          <section className={styles.explainer}>
+            <h2 className={styles.explainerTitle}>How events shape demand</h2>
             <div className={styles.explainerBody}>
               <ul className={styles.shapes}>
                 {SHAPES.map((s) => (
@@ -328,7 +305,7 @@ export function EventsOverviewView({
                 it is. Open an event to see its estimated effect on your demand, period by period.
               </p>
             </div>
-          </details>
+          </section>
         </aside>
       </div>
     </>

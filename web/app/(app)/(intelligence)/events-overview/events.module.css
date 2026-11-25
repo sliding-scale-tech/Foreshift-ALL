@@ -179,7 +179,7 @@
   margin-top: 20px;
 }
 
-/* ---- List on the left, key events and the explainer on the right ---- */
+/* ---- List on the left, the explainer on the right ---- */
 
 .layout {
   display: grid;
@@ -199,7 +199,7 @@
   min-width: 0;
 }
 
-/* ---- Expandable explainer ---- */
+/* ---- How events shape demand (always open) ---- */
 
 .explainer {
   background: var(--color-surface);
@@ -208,45 +208,12 @@
   box-shadow: var(--shadow-card);
 }
 
-.explainer summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 20px;
+.explainerTitle {
+  margin: 0;
+  padding: 16px 20px 12px;
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
-  cursor: pointer;
-}
-
-.explainer summary::-webkit-details-marker {
-  display: none;
-}
-
-.explainer summary:focus-visible {
-  outline: 2px solid var(--color-primary-50);
-  outline-offset: 2px;
-  border-radius: var(--radius-card);
-}
-
-.explainerToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-shift-electric-blue);
-}
-
-.chevron {
-  width: 10px;
-  height: 6px;
-  transition: transform var(--duration-fast);
-}
-
-.explainer:not([open]) .chevron {
-  transform: rotate(-90deg);
 }
 
 .explainerBody {

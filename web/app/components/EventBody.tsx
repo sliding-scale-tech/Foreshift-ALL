@@ -100,7 +100,7 @@ export function EventBody({ impact, zone, source }: { impact: EventImpact; zone?
                 {SHOW_NUMBERS
                   ? impact.headlinePercent > 0
                     ? `+${Math.round(impact.headlinePercent)}%`
-                    : "No effect"
+                    : "No impact"
                   : impactWord(impact.headlinePercent)}
               </span>
             </div>
@@ -228,7 +228,7 @@ export function EventBody({ impact, zone, source }: { impact: EventImpact; zone?
                       {SHOW_NUMBERS ? `+${Math.round(d.percent)}%` : impactWord(d.percent)}
                     </span>
                   ) : (
-                    <span className={styles.dpNone}>No effect</span>
+                    <span className={styles.dpNone}>No impact</span>
                   )}
                   {SHOW_NUMBERS && (
                     <span className={styles.dpScore}>{d?.score == null ? "—" : d.score.toFixed(1)}</span>
