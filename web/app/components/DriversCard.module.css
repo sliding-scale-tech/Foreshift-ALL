@@ -77,7 +77,7 @@
   min-width: 0;
 }
 
-/* "Low impact" / "No effect" under the driver's name (when numbers are hidden). */
+/* "Low impact" / "No impact" under the driver's name (when numbers are hidden). */
 .tag {
   display: inline-block;
   margin-top: 4px;

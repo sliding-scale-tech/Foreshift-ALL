@@ -22,11 +22,11 @@ export type Driver = {
  * How much an event or weather may add, in words: the dashboard shows no
  * percentages. Same three tiers the Events page uses for influence.
  */
-export function impactWord(pct: number): "High impact" | "Moderate impact" | "Low impact" | "No effect" {
+export function impactWord(pct: number): "High impact" | "Moderate impact" | "Low impact" | "No impact" {
   if (pct >= 25) return "High impact";
   if (pct >= 10) return "Moderate impact";
   if (pct > 0) return "Low impact";
-  return "No effect";
+  return "No impact";
 }
 
 /** A period compared with its normal, in words ("Busier than normal"). */

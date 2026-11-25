@@ -6,7 +6,7 @@ import { BandLevelsTip } from "@/app/components/BandTip";
 import { EventIcon } from "@/app/components/EventIcon";
 import { InfoTip } from "@/app/components/InfoTip";
 import { WeatherIcon } from "@/app/components/WeatherIcon";
-import { BANDS, bandLabel } from "@/app/lib/bands";
+import { BANDS, bandLabel, isHighDemand } from "@/app/lib/bands";
 import type { WeekDay, WeekEvent } from "@/app/hooks/useWeek";
 import { eventPeriod, vsNormal, type PlanCell, type PlanDay } from "@/app/lib/weekPlan";
 import { FULL_DAY, formatClock, monthDay, trimNumber, type DayKey } from "@/app/lib/week";
@@ -317,6 +317,16 @@ export function DayDetail({
           </ul>
           {plan.cells.some((c) => c.closed) && (
             <p className={styles.footnote}>Closed periods still show the area&apos;s demand.</p>
+          )}
+          {plan.cells.some((c) => c.closed && isHighDemand(c.band)) && (
+            <p className={styles.footnote}>
+              You are closed during a high-demand period. Consider adjusting your operating hours.{" "}
+              <Link href="/settings#operating-hours">
+                <span className={styles.hoursLink} style={{ color: "#027ffc", fontWeight: 600, textDecoration: "underline" }}>
+                  Edit hours
+                </span>
+              </Link>
+            </p>
           )}
         </div>
 

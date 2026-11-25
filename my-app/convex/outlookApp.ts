@@ -103,7 +103,7 @@ function daysFor(type: OutlookType, date: string): Day[] {
 // Part of every fingerprint: change it to regenerate all cached narration.
 // "glance-1" = the simpler "Today at a glance" summary (gemini.ts narrateTodayGlance);
 // "glance-2" adds the weekly one (narrateWeekGlance).
-const NARRATION_VERSION = "glance-2";
+const NARRATION_VERSION = "drivers-3";
 
 // Small stable string hash — the fingerprint only needs "did anything change".
 function hash(s: string): string {

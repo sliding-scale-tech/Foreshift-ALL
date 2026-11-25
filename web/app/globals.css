@@ -39,6 +39,11 @@
   --color-secondary-70: #401fc1;
   --color-secondary-80: #341a9e;
 
+  /* Quiet band only. Separate from primary blue so it doesn't sit next to Exceptional's purple. */
+  --color-quiet-20: #e7f6ff;
+  --color-quiet-30: #b6e6fb;
+  --color-quiet-70: #0b6f96;
+
   /* Destructive scale */
   --color-destructive-10: #fef6f5;
   --color-destructive-20: #fdeae7;

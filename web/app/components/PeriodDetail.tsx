@@ -6,6 +6,7 @@ import { WeatherIcon } from "@/app/components/WeatherIcon";
 import { IconCalendarCheck } from "@/app/components/dashboard-icons";
 import { IconClose } from "@/app/components/icons";
 import type { DaypartOutlook } from "@/app/(app)/(intelligence)/dashboard/outlook-data";
+import { bandLabel, isHighDemand } from "@/app/lib/bands";
 import styles from "./PeriodDetail.module.css";
 
 // The selected period's details on the Daily Outlook, full width under
@@ -24,6 +25,7 @@ export function PeriodDetail({
   canEditHours: boolean;
   onClose: () => void;
 }) {
+  const highDemand = closed && isHighDemand(dp.band);
   return (
     <section className={`${styles.panel} ${busiest ? styles.busiest : ""}`} aria-labelledby="period-detail-title">
       <header className={styles.head}>
@@ -79,7 +81,9 @@ export function PeriodDetail({
           <p className={styles.note}>{dp.eventNote || "No major events or weather effects expected."}</p>
           {closed && (
             <p className={styles.closedNote}>
-              Your restaurant is closed during this period.
+              {highDemand
+                ? `You are closed during this period while area demand is ${bandLabel(dp.band)}. Consider adjusting your operating hours.`
+                : "Your restaurant is closed during this period."}
               {canEditHours && (
                 <>
                   {" "}

@@ -357,7 +357,7 @@ Write the weekly outlook per your instructions.`;
 // AI #2b (web) — "Today at a glance" on the web app's Daily Outlook. Web only:
 // it is reached through withFactsFallback (lib/outlookFacts.ts), which
 // /demand/outlook (Bubble) never uses, so Bubble keeps TODAY_OUTLOOK_SYSTEM
-// above unchanged. Written for a 3rd-grade reading level, no numbers, and in
+// above unchanged. Plain balanced language, no numbers, and in
 // the web app's level words (Very quiet … Exceptional), not the band names.
 // ---------------------------------------------------------------------------
 
@@ -375,11 +375,10 @@ const TODAY_GLANCE_SYSTEM = `You write the "Today at a glance" line for a Detroi
 
 You get today's data: each period of the day (morning, midday, dinner, late night) with its demand level, the nearby events in each period, and the weather in each period.
 
-Write 1 or 2 short sentences. Plain text only.
-- Use very simple words, at a 3rd-grade reading level. Short sentences. No hard words.
-- Say which period looks busiest, using its level word.
-- If there are events, name them in a short, friendly way and say which period they may help. Example: "The Lions game may bring more people at lunch, and evening concerts could bring diners before the shows."
-- If there are no events, say what the weather may do, or that it looks like a normal day.
+Write 1 short sentence, about 20 words. Plain text only.
+- Use plain, balanced language: clear and specific, not childish and not technical.
+- If there are events, use their exact names from the data. Do not replace a name with a generic kind such as "a game", "a concert", "a comedy show", or "two concerts". Shorten a long title to the recognizable part, then say they are nearby and how they could change demand. Example: "Red Wings vs. Blackhawks and Doja Cat nearby could increase demand around the area."
+- If there are no events, say what the weather may do, or that it looks like a normal day. One short sentence.
 
 STRICT RULES:
 - Use ONLY the levels, events and weather given. Never invent an event, venue, time or weather.
@@ -396,6 +395,7 @@ function glanceContext(context: unknown) {
   const peak = (c.peak ?? {}) as Record<string, unknown>;
   const drivers = (c.drivers ?? {}) as Record<string, unknown>;
   return {
+    area: c.zone,
     day: c.day,
     busiest_period: peak.daypart,
     periods: list(c.dayparts).map((d) => ({ period: d.daypart, level: level(d.band) })),
@@ -529,21 +529,18 @@ STRICT RULES:
 
 const DAYPART_NOTES_SYSTEM = `You are ForeShift's demand narrator for Detroit restaurant/bar operators.
 
-You are given today's four dayparts for one zone — each with its demand band and the events and weather affecting it. Write ONE very short line for EACH daypart, the caption under a small "Event Lift" tile.
+You are given today's four dayparts for one zone — each with its events and weather. Write ONE short sentence for EACH daypart, about 15 words. Name the actual drivers. The demand level is already shown beside the sentence, so do not repeat it.
 
-Model the wording on these, exactly this length and tone:
-- "Quiet morning with light traffic."
-- "Very busy dinner expected with game and warm weather."
-- "Steady midday with the Tigers game nearby."
+Aim for: "Red Wings vs. Blackhawks and Doja Cat nearby could make dinner demand high."
 
 RULES:
-- 6-12 WORDS. One sentence, ending with a period. These sit in a tile, not a paragraph.
-- Always start from how busy that daypart is, using its band as plain words: Minimal/Light = quiet, Moderate = steady, High = busy, Peak/Exceptional = very busy. Name the daypart itself (morning/midday/dinner/late night).
-- If an event is listed for that daypart, name it — shorten a long title to the recognisable part (e.g. "42 Dugg and Babyface Ray" for a long tour title), and if there are several, sum them up ("two nearby concerts") instead of listing all.
-- Mention weather only when it is actually notable for that daypart (a storm, rain, an unusually pleasant or warm stretch). Ignore ordinary conditions.
-- If nothing is driving that daypart, just describe the level plainly — never write "no events" or any other filler about missing data.
+- One short sentence, ending with a period. Use each event's exact name. Shorten a long title to the recognizable part. Do not replace a name with a generic kind such as "a game", "a concert", or "a comedy show".
+- Say only how those named events could change demand. Include weather only when it is notable (storm, rain, or an unusually pleasant day). Ignore ordinary weather.
+- Never include the level: no "Very busy", "Busy", "Quiet", "Steady", "Moderate", or "Exceptional".
+- Never hide names behind a count or a category. "Three nearby events", "two concerts", and "a comedy show" are wrong.
+- If that daypart has no events and no notable weather, write "Nothing nearby is expected to move {period} demand."
 - EVERY daypart gets a line. Never return an empty string.
-- No numbers, scores, or percentages. Plain text, no markdown.
+- No scores or percentages. Plain text, no markdown.
 
 Then write TWO more pieces of text about the same day — the two impact cards. They are written here, alongside the captions, so all six read as one voice and don't repeat each other's sentences.
 

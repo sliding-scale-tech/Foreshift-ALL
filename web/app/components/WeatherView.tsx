@@ -34,11 +34,11 @@ type Operator = ReturnType<typeof useMyOperator>["operator"];
 
 // ---- Compact date selector ---------------------------------------------------
 
-/** A day card's short effect line: "Moderate impact", "May raise demand", "No effect". */
+/** A day card's short effect line: "Moderate impact", "May raise demand", "No impact". */
 function dayImpactWord(e: Effect): string {
   if (e.kind === "lower") return `${e.size} impact`;
   if (e.kind === "raise") return "May raise demand";
-  return "No effect";
+  return "No impact";
 }
 
 function DaySelector({
@@ -358,7 +358,7 @@ export function WeatherView({
           Weather during service
           <InfoTip label="the period comparison" align="start">
             Each row is one service period. Select a row for the explanation. Closed periods still show the weather,
-            but your restaurant isn&apos;t open then. A missing forecast is shown as Unavailable, never as no effect.
+            but your restaurant isn&apos;t open then. A missing forecast is shown as Unavailable, never as no impact.
           </InfoTip>
         </h2>
 

@@ -463,7 +463,7 @@ function HowItWorks() {
         <h3>Events and weather</h3>
         <p>
           Event impact and weather effects are estimates. An event counts toward
-          the period it falls in. &ldquo;No effect&rdquo; means no material
+          the period it falls in. &ldquo;No impact&rdquo; means no material
           change is expected.
         </p>
       </div>

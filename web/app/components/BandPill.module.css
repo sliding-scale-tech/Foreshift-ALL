@@ -15,9 +15,9 @@
   color: var(--color-gray-70);
 }
 .Light {
-  background: var(--color-primary-20);
-  border-color: var(--color-primary-30);
-  color: var(--color-primary-60);
+  background: var(--color-quiet-20);
+  border-color: var(--color-quiet-30);
+  color: var(--color-quiet-70);
 }
 .Moderate {
   background: var(--color-alert-20);

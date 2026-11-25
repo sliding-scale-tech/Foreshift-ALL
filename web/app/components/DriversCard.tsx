@@ -23,7 +23,7 @@ export function DriversCard({
         <InfoTip label="demand drivers" align="end">
           How much each event or weather condition may add to demand, compared with normal: high, moderate or
           low impact. Each event is counted in the period named under it (&ldquo;All day&rdquo; = no start time
-          listed). &ldquo;No effect&rdquo; means no material change.
+          listed). &ldquo;No impact&rdquo; means no material change.
         </InfoTip>
       </h2>
       <p className={styles.sub}>{subtitle}</p>
@@ -49,7 +49,7 @@ export function DriversCard({
               ) : d.liftPct > 0 ? (
                 <span className={styles.pct}>+{d.liftPct}%</span>
               ) : (
-                <span className={styles.pctNeutral}>No effect</span>
+                <span className={styles.pctNeutral}>No impact</span>
               ))}
             <div className={styles.text}>
               <div className={styles.name}>{d.title}</div>
