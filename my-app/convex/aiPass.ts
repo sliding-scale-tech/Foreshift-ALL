@@ -329,7 +329,7 @@ export const runContext = internalQuery({
       .withIndex("by_clerkId", (q) => q.eq("clerkId", thread.clerkId))
       .unique();
     if (!op) return null;
-    return { thread, restaurantName: op.restaurantName, homeZone: op.zone, homeConcept: op.conceptType };
+    return { thread, restaurantName: op.restaurantName, address: op.address, homeZone: op.zone, homeConcept: op.conceptType, operatingHours: op.operatingHours };
   },
 });
 
@@ -352,8 +352,10 @@ type ReplyArgs = {
   prompt: string;
   scope: EffectiveScope;
   restaurantName: string;
+  address: string;
   homeZone: string;
   homeConcept: string;
+  operatingHours: { day: string; isClosed: boolean; openTime?: string; closeTime?: string }[];
 };
 
 /** One try with one model: the model calls the data tools, then `reply`. Streams into the thread. */
@@ -369,8 +371,10 @@ async function attemptReply(ctx: ActionCtx, a: ReplyArgs, modelName: string): Pr
     SYSTEM_PROMPT +
     contextBlock({
       restaurantName: a.restaurantName,
+      address: a.address,
       homeZone: a.homeZone,
       homeConcept: a.homeConcept,
+      operatingHours: a.operatingHours,
       scope: a.scope,
       unconfirmed: nearMisses(a.prompt),
     });
@@ -505,8 +509,10 @@ export const generateReply = internalAction({
         prompt: args.prompt,
         scope,
         restaurantName: rc.restaurantName,
+        address: rc.address,
         homeZone: rc.homeZone,
         homeConcept: rc.homeConcept,
+        operatingHours: rc.operatingHours,
       });
     } catch (err) {
       // Not a model failure (e.g. the thread's scope is no longer valid): still end on a friendly reply.
@@ -576,8 +582,10 @@ export const evalAsk = internalAction({
         prompt: args.question,
         scope,
         restaurantName: "Eval Kitchen",
+        address: "",
         homeZone: zone,
         homeConcept: concept,
+        operatingHours: [],
       },
       { primary: args.primaryModel, fallback: args.fallbackModel },
     );
