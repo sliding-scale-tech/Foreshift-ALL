@@ -10,7 +10,7 @@ import { errorText, useAiActions, useAiThread, useAiTurns } from "@/app/hooks/us
 import type { ReplyCard, Turn } from "@/app/lib/aiPassTurns";
 import shared from "@/app/(app)/shared.module.css";
 import { AiAvatar, ReplyCardView } from "./ReplyCardView";
-import { ScopeChips, ScopeControls, type Scope } from "./ScopeControls";
+import { ScopeChips, type Scope } from "./ScopeControls";
 import styles from "./aiPass.module.css";
 
 const SUGGESTIONS = [
@@ -50,8 +50,6 @@ export function AiPassChat({ threadId }: { threadId: string | null }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  // New chat: scope picked before the chat exists, applied when the first question creates it.
-  const [pending, setPending] = useState<{ zone?: string; concept?: string; date?: string | null }>({});
   const [now, setNow] = useState(() => Date.now());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -74,12 +72,8 @@ export function AiPassChat({ threadId }: { threadId: string | null }) {
   const scope: Scope | null = useMemo(() => {
     if (!ctx) return null;
     if (thread) return { zone: thread.zone, concept: thread.concept, date: thread.date };
-    return {
-      zone: pending.zone ?? ctx.homeZone,
-      concept: pending.concept ?? ctx.homeConcept,
-      date: pending.date ?? ctx.today,
-    };
-  }, [ctx, thread, pending]);
+    return { zone: ctx.homeZone, concept: ctx.homeConcept, date: ctx.today };
+  }, [ctx, thread]);
 
   if ((threadId && thread === undefined) || (!threadId && fresh === undefined) || loading) {
     return <PageLoading label="Loading AI Pass…" />;
@@ -114,10 +108,7 @@ export function AiPassChat({ threadId }: { threadId: string | null }) {
     setDraft("");
     try {
       let id = threadId;
-      if (!id) {
-        id = (await actions.createThread({})).threadId;
-        if (Object.keys(pending).length > 0) await actions.setScope({ threadId: id, ...pending });
-      }
+      if (!id) id = (await actions.createThread({})).threadId;
       await actions.send({ threadId: id, prompt: question });
       if (!threadId) router.replace(`/ai-pass/${id}`);
     } catch (e) {
@@ -126,21 +117,6 @@ export function AiPassChat({ threadId }: { threadId: string | null }) {
     } finally {
       setBusy(false);
     }
-  }
-
-  function changeScope(patch: Partial<{ zone: string; concept: string; date: string | null }>) {
-    setError("");
-    if (threadId) {
-      actions.setScope({ threadId, ...patch }).catch((e) => setError(errorText(e, "Couldn't change that.")));
-    } else {
-      setPending((p) => ({ ...p, ...patch }));
-    }
-  }
-
-  function resetScope() {
-    setError("");
-    if (threadId) actions.resetScope({ threadId }).catch((e) => setError(errorText(e, "Couldn't change that.")));
-    else setPending({});
   }
 
   return (
@@ -201,15 +177,6 @@ export function AiPassChat({ threadId }: { threadId: string | null }) {
             ask(draft);
           }}
         >
-          <ScopeControls
-            scope={scope}
-            home={{ zone: ctx.homeZone, concept: ctx.homeConcept }}
-            today={ctx.today}
-            week={ctx.week}
-            onChange={changeScope}
-            onReset={resetScope}
-            disabled={working}
-          />
           <textarea
             ref={inputRef}
             className={styles.textarea}
