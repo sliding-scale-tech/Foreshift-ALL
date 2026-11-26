@@ -20,7 +20,8 @@ import { classifyEvent } from "./lib/classify";
 import {
   dayFromLocalDate,
   daypartFromLocalTime,
-  daysUntilNextMonday,
+  FORECAST_DAYS,
+  forecastEnd,
   mondayOfWeek,
   nextMondayDate,
   detroitDate,
@@ -451,7 +452,7 @@ export const fetchHuntingtonEventsRaw = internalAction({
   args: { days: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const now = new Date();
-    const days = args.days ?? daysUntilNextMonday(now);
+    const days = args.days ?? FORECAST_DAYS;
     const res = await gatherHuntingtonSignalRows(ctx, now, days);
     return {
       window: { start: detroitDate(now), days },
@@ -494,9 +495,9 @@ export const syncEventSignalsToBubble = internalAction({
     let outcome: SyncOutcome | null = null;
     try {
       const now = new Date();
-      // Fetch window: today through the upcoming Monday (exclusive) — never
-      // reaches into next week, and shrinks through the week as days elapse.
-      const days = args.days ?? daysUntilNextMonday(now);
+      // Fetch window: today and the next 6 days. Bubble still stores only this
+      // Monday–Sunday; dates on or after next Monday are written to Convex.
+      const days = args.days ?? FORECAST_DAYS;
       const { summary, rows: tmRows } = await computeEventSignalRows(ctx, days);
 
       // No events at all over several days means the fetch broke (key, quota,
@@ -552,6 +553,9 @@ export const syncEventSignalsToBubble = internalAction({
           all_dayparts: row.allDayparts,
         };
         seen.add(row.signal_key);
+        // Bubble keeps this Monday–Sunday only. A date on or after next Monday
+        // is stored in Convex, where the rolling forecast reads it.
+        if (row.date >= nextMondayDate(now)) continue;
         const found = existing.get(row.signal_key);
         if (found) {
           await updateEventSignal(found.id, body);
@@ -622,7 +626,7 @@ export const syncEventSignalsToBubble = internalAction({
           {},
         );
         const weekStart = mondayOfWeek(now);
-        const weekEnd = nextMondayDate(now);
+        const weekEnd = forecastEnd(now);
         const today = detroitDate(now);
         convexDeleteKeys = convexExisting
           .filter(({ signalKey, date }) => {

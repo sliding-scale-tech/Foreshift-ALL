@@ -30,6 +30,7 @@ import {
   computeWeeklyOutlook,
   computeEventOutlook,
   computeWeatherOutlook,
+  resolveDayOutlook,
   type OutlookInputs,
 } from "./lib/outlook";
 import { factsOnlyWeather, withFactsFallback } from "./lib/outlookFacts";
@@ -57,8 +58,8 @@ import {
   scoreToBand,
   detroitDate,
   dayFromLocalDate,
-  currentWeekDates,
-  mondayOfWeek,
+  forecastDates,
+  inOutlookRange,
   type Day,
 } from "./lib/vocab";
 import baseDemand from "./data/baseDemand.json";
@@ -75,19 +76,19 @@ type OutlookType = "today" | "weekly" | "events" | "weather";
 // Keys, dates, fingerprints
 // ---------------------------------------------------------------------------
 
-/** The date a cached outlook is filed under. Weekly is one row per week
- * (its Monday); the day-scoped types are one row per calendar date. */
+/** The date a cached outlook is filed under. Weekly is one row per day,
+ * because the 7-day window moves every morning. Day-scoped types are one
+ * row per calendar date. */
 function cacheDate(type: OutlookType, date: string | undefined): string {
-  if (type === "weekly") return mondayOfWeek(new Date());
+  if (type === "weekly") return detroitDate();
   if (!date) return detroitDate();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new Error(`Invalid date: "${date}". Expected format YYYY-MM-DD.`);
   }
-  // Same rule as /demand/outlook: signals are looked up by day-of-week, so only
-  // the current Mon..Sun week can be answered truthfully.
-  const week = currentWeekDates(new Date());
-  if (!DAYS.some((d) => week[d] === date)) {
-    throw new Error(`Date "${date}" is outside the current week.`);
+  if (!inOutlookRange(date)) {
+    throw new Error(
+      `Date "${date}" is outside the forecast. It covers this week so far and the next 7 days from today.`,
+    );
   }
   return date;
 }
@@ -266,10 +267,10 @@ export const getSample = query({
   },
 });
 
-/** The signed-in operator's current Mon..Sun week in one read — the raw data
- * behind the Weekly grid + curve, the Events calendar + table and the Weather
- * calendar. No AI text (that comes from getMine); reactive, so it updates the
- * moment a cron run writes new signals.
+/** The signed-in operator's next 7 days in one read — the raw data behind the
+ * Weekly grid + curve, the Events calendar + table and the Weather calendar.
+ * No AI text (that comes from getMine); reactive, so it updates the moment a
+ * cron run writes new signals.
  *
  * Earlier days of the week keep their stored signals too (the weather sync back-fills
  * them), so they carry weather and events like any other day. A day with no stored
@@ -283,7 +284,7 @@ export const getWeek = query({
 });
 
 export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
-  const dates = currentWeekDates(new Date());
+  const window = forecastDates();
 
   const demandRows = await ctx.db
     .query("resolvedDemand")
@@ -330,8 +331,9 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
   // One row per real event: Ticketmaster can list the same event under
   // several ids, and the same identity rule is used by the outlook math.
   const seen = new Set<string>();
+  const horizon = new Set(window.map((d) => d.date));
   const events = eventRows
-    .filter((e) => DAYS.some((d) => dates[d] === e.date))
+    .filter((e) => horizon.has(e.date))
     .filter((e) => {
       const key = `${e.date}|${e.name}|${e.venueName ?? ""}|${e.eventClass}|${e.eventTime ?? ""}`;
       if (seen.has(key)) return false;
@@ -395,6 +397,7 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
         zone,
         concept,
         day,
+        date,
         daypart: dp,
         window: "",
         base_score: cell?.base_score ?? 0,
@@ -414,10 +417,36 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
     };
   };
 
-  const days = DAYS.map((day) => {
-    const date = dates[day];
-    // Same weekday is not enough: an earlier week's row (left by a failed sync) is not this week's demand.
-    const demand = demandRows.find((r) => r.day === day && r.date === date);
+  // A day past this Sunday has no saved score yet. Compute it from that
+  // weekday's baseline and whatever events and weather are stored for the date.
+  const liveDemand = (day: Day, date: string) => {
+    const record = inputs.records.find((r) => r.day === day);
+    if (!record) return null;
+    const outlook = resolveDayOutlook({
+      zone,
+      concept,
+      day,
+      date,
+      dayparts: record.dayparts,
+      eventsByCell: indexEventsByCell(inputs.events.filter((e) => e.date === date)),
+      weatherByZoneDay: indexWeatherByZoneDay(inputs.weather.filter((w) => w.date === date)),
+      coeffs,
+    });
+    const scoreOf = (dp: string) => outlook.dayparts.find((d) => d.daypart === dp)?.score ?? 0;
+    return {
+      peakScore: outlook.peak.score,
+      peakBand: outlook.peak.band,
+      peakDaypart: outlook.peak.daypart,
+      morningScore: scoreOf("morning"),
+      middayScore: scoreOf("midday"),
+      dinnerScore: scoreOf("dinner"),
+      lateScore: scoreOf("late"),
+    };
+  };
+
+  const days = window.map(({ day, date }) => {
+    // Same weekday is not enough: an earlier week's row (left by a failed sync) is not this date's demand.
+    const stored = demandRows.find((r) => r.date === date);
     const weather = weatherRows.find((w) => w.date === date);
     const base = baseRows.find((r) => r.day === day);
     // Warmest and coolest of the four service periods; null when there is no reading.
@@ -436,17 +465,17 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
             late: base.lateBaseScore,
           }
         : null,
-      demand: demand
+      demand: stored
         ? {
-            peakScore: demand.peakScore,
-            peakBand: demand.peakBand,
-            peakDaypart: demand.peakDaypart,
-            morningScore: demand.morningScore,
-            middayScore: demand.middayScore,
-            dinnerScore: demand.dinnerScore,
-            lateScore: demand.lateScore,
+            peakScore: stored.peakScore,
+            peakBand: stored.peakBand,
+            peakDaypart: stored.peakDaypart,
+            morningScore: stored.morningScore,
+            middayScore: stored.middayScore,
+            dinnerScore: stored.dinnerScore,
+            lateScore: stored.lateScore,
           }
-        : null,
+        : liveDemand(day, date),
       weather: weather
         ? {
             condition: weather.condition,
@@ -462,7 +491,16 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
     };
   });
 
-  return { zone, concept, weekStart: dates.Mon, weekEnd: dates.Sun, today: detroitDate(), syncedAt, days, events };
+  return {
+    zone,
+    concept,
+    weekStart: window[0].date,
+    weekEnd: window[window.length - 1].date,
+    today: detroitDate(),
+    syncedAt,
+    days,
+    events,
+  };
 }
 
 /** One event's isolated effect on the caller's demand — the "Event Outlook"
@@ -576,11 +614,10 @@ export async function readInputs(
   args: { zone: string; concept: string; days: string[] },
 ): Promise<OutlookInputs> {
   const inDays = (d: string | undefined) => args.days.length === 0 || args.days.includes(d ?? "");
-  // Signals are joined by weekday ("Mon"), so a row left over from an earlier week
-  // would pass for this week's. Only rows dated inside the current Mon..Sun week count:
-  // if a sync fails, the week shows no events rather than last week's.
-  const thisWeek = new Set(Object.values(currentWeekDates(new Date())));
-  const inThisWeek = (date: string | undefined) => date !== undefined && thisWeek.has(date);
+  // A weekday name matches both this Wednesday and next Wednesday. Keep a row
+  // only when its calendar date is still in range: this week so far, plus the
+  // next 7 days. An older week's leftover then cannot pass for this one.
+  const inRange = (date: string | undefined) => date !== undefined && inOutlookRange(date);
 
   const base = await ctx.db
     .query("demandScores")
@@ -607,7 +644,7 @@ export async function readInputs(
     .withIndex("by_zone_day", (q) => q.eq("zone", args.zone))
     .collect();
   const events: EventSignalRead[] = eventRows
-    .filter((e) => inDays(e.day) && inThisWeek(e.date))
+    .filter((e) => inDays(e.day) && inRange(e.date))
     .map((e) => ({
       event_id: e.eventId,
       zone: e.zone,
@@ -635,7 +672,7 @@ export async function readInputs(
     precip_chance: s.precipChance,
   });
   const weather: WeatherSignalRead[] = weatherRows
-    .filter((w) => inDays(w.day) && inThisWeek(w.date))
+    .filter((w) => inDays(w.day) && inRange(w.date))
     .map((w) => ({
       zone: w.zone,
       day: w.day ?? "",

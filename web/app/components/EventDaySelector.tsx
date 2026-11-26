@@ -32,8 +32,8 @@ export function EventDaySelector({
   onChange: (value: string) => void;
 }) {
   const today = days.find((d) => d.isToday);
-  // "Rest of this week" only means something while days after today are left:
-  // on Sunday it would be just today again ("Nov 1 – Nov 1"), so it's hidden.
+  // The shortcut covers today through the last of the 7 days. Hidden only when
+  // today is already the last day shown.
   const hasLaterDays = days.some((d) => !d.isPast && !d.isToday);
   return (
     <div className={styles.wrap}>

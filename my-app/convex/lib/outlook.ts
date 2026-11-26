@@ -30,12 +30,10 @@ import {
   type CoefficientBundle,
 } from "./resolve";
 import {
-  DAYS,
   DAYPARTS,
   DAYPART_WINDOWS,
   dayFromLocalDate,
-  currentWeekDates,
-  mondayOfWeek,
+  forecastDates,
   detroitDate,
   type Zone,
   type Concept,
@@ -344,6 +342,7 @@ export function resolveDayOutlook(args: {
       zone: args.zone,
       concept: args.concept,
       day: args.day,
+      date: args.date,
       daypart: dp,
       window: DAYPART_WINDOWS[dp],
       base_score: cell?.base_score ?? 0,
@@ -404,8 +403,8 @@ async function resolveTodayDay(args: {
   const [records, events, weather] = inputs
     ? [
         inputs.records.filter((r) => r.day === day),
-        inputs.events.filter((e) => e.day === day),
-        inputs.weather.filter((w) => w.day === day),
+        inputs.events.filter((e) => e.date === date),
+        inputs.weather.filter((w) => w.date === date),
       ]
     : await Promise.all([
         fetchDemandRecords({ zones: [args.zone], concepts: [args.concept], days: [day] }),
@@ -719,8 +718,8 @@ export interface WeeklyOutlookResult {
   zone: Zone;
   concept: Concept;
   type: "weekly";
-  weekStart: string; // Monday, "YYYY-MM-DD"
-  weekEnd: string; // that week's Sunday — the card labels a date RANGE
+  weekStart: string; // first day of the rolling 7, "YYYY-MM-DD"
+  weekEnd: string; // the seventh day — the card labels a date RANGE
   days: WeekDayWeather[];
   drivers: WeekDemandDriver[];
   weekPeak: { day: Day; date: string } & DaypartOutlook;
@@ -737,9 +736,9 @@ export async function computeWeeklyOutlook(args: {
   narrators?: Narrators;
 }): Promise<WeeklyOutlookResult> {
   const now = args.now ?? new Date();
-  const weekStart = mondayOfWeek(now);
-  const weekDates = currentWeekDates(now);
-  const weekEnd = weekDates.Sun;
+  const window = forecastDates(now);
+  const weekStart = window[0].date;
+  const weekEnd = window[window.length - 1].date;
 
   const [records, events, weather] = args.inputs
     ? [args.inputs.records, args.inputs.events, args.inputs.weather]
@@ -756,12 +755,12 @@ export async function computeWeeklyOutlook(args: {
   const weatherByZoneDay = indexWeatherByZoneDay(weather);
   const byDay = new Map(records.map((r) => [r.day, r]));
 
-  const days: DayOutlook[] = DAYS.map((day) =>
+  const days: DayOutlook[] = window.map(({ day, date }) =>
     resolveDayOutlook({
       zone: args.zone,
       concept: args.concept,
       day,
-      date: weekDates[day],
+      date,
       dayparts: byDay.get(day)?.dayparts ?? [],
       eventsByCell,
       weatherByZoneDay,

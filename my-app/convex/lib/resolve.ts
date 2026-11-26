@@ -88,7 +88,8 @@ export function indexEventsByCell(
     const dayparts = e.all_dayparts ? DAYPARTS : [e.daypart];
     for (const dp of dayparts) {
       if (!dp) continue;
-      const cell = `${e.zone}|${e.day}|${dp}`;
+      // Date, not weekday: this Wednesday and next Wednesday are both "Wed".
+      const cell = `${e.zone}|${e.date}|${dp}`;
       const identity = `${cell}|${e.name}|${e.venue_name}|${e.event_class}`;
       if (taken.has(identity)) continue;
       taken.add(identity);
@@ -100,15 +101,15 @@ export function indexEventsByCell(
   return map;
 }
 
-/** Index WeatherSignal rows by `zone|day` for O(1) per-cell lookup. Still one
- * row per zone/day (wide format — see bubble.ts) even though weather is now
+/** Index WeatherSignal rows by `zone|date` for O(1) per-cell lookup. Still one
+ * row per zone/date (wide format — see bubble.ts) even though weather is now
  * daypart-aware; the daypart-specific slice is picked off that one row by
  * pickDaypartWeather below. */
 export function indexWeatherByZoneDay(
   weather: WeatherSignalRead[],
 ): Map<string, WeatherSignalRead> {
   const map = new Map<string, WeatherSignalRead>();
-  for (const w of weather) map.set(`${w.zone}|${w.day}`, w);
+  for (const w of weather) map.set(`${w.zone}|${w.date}`, w);
   return map;
 }
 
@@ -132,6 +133,8 @@ export function resolveCell(args: {
   zone: string;
   concept: string;
   day: string;
+  /** Calendar date. Events and weather are matched on this, not on `day`. */
+  date: string;
   daypart: Daypart;
   window: string;
   base_score: number;
@@ -143,7 +146,7 @@ export function resolveCell(args: {
   const {
     zone,
     concept,
-    day,
+    date,
     daypart,
     window,
     base_score,
@@ -156,8 +159,8 @@ export function resolveCell(args: {
   const event_affinity = coeffs.eventAffinity[concept] ?? 0;
   const weather_affinity = coeffs.weatherAffinity[concept] ?? 0;
 
-  const cellEvents = eventsByCell.get(`${zone}|${day}|${daypart}`) ?? [];
-  const weatherRow = weatherByZoneDay.get(`${zone}|${day}`) ?? null;
+  const cellEvents = eventsByCell.get(`${zone}|${date}|${daypart}`) ?? [];
+  const weatherRow = weatherByZoneDay.get(`${zone}|${date}`) ?? null;
   const weather = weatherRow ? pickDaypartWeather(weatherRow, daypart) : null;
 
   const resolvedEvents = cellEvents.map((e) => ({

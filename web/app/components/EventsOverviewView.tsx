@@ -159,9 +159,9 @@ export function EventsOverviewView({
       <h2 className={`${shared.sectionTitle} ${styles.titleWithTip}`}>
         Choose a day
         <InfoTip label="the day selector" align="start">
-          Pick a day, or the rest of this week. The summary and the event list below update together. The label under
-          each count is the strongest estimated influence among that day&apos;s events. Event data covers this week,
-          Monday to Sunday: earlier days show the events that were listed for them. Next week isn&apos;t covered yet.
+          Pick a day, or the rest of these 7 days. The summary and the event list below update together. The label under
+          each count is the strongest estimated influence among that day&apos;s events. Event data covers the next 7
+          days, starting today. A day past that isn&apos;t covered yet.
         </InfoTip>
       </h2>
       <EventDaySelector

@@ -11,7 +11,8 @@ import {
 import { severityFromForecast, simplifyWeatherCondition } from "./lib/weatherSeverity";
 import {
   dayFromLocalDate,
-  daysUntilNextMonday,
+  FORECAST_DAYS,
+  forecastEnd,
   mondayOfWeek,
   nextMondayDate,
   detroitDate,
@@ -124,7 +125,7 @@ export const syncWeatherSignalsToBubble = internalAction({
       // fires while Detroit is still on the previous UTC day.
       const now = new Date();
       const query = args.query ?? "Detroit";
-      const days = args.days ?? daysUntilNextMonday(now);
+      const days = args.days ?? FORECAST_DAYS;
       const forecast = await fetchWeatherForecast({ apiKey, query, days });
 
       // Backfill days already elapsed this week (Monday..yesterday) with ACTUAL
@@ -185,6 +186,8 @@ export const syncWeatherSignalsToBubble = internalAction({
 
       for (const row of rows) {
         seen.add(row.signal_key);
+        // Bubble keeps this Monday–Sunday only. Later dates stay in Convex.
+        if (row.date >= nextMondayDate(now)) continue;
         const id = existing.get(row.signal_key);
         if (id) {
           await updateWeatherSignal(id, row);
@@ -270,7 +273,7 @@ export const syncWeatherSignalsToBubble = internalAction({
           {},
         );
         const weekStart = mondayOfWeek(now);
-        const weekEnd = nextMondayDate(now);
+        const weekEnd = forecastEnd(now);
         const today = detroitDate(now);
         convexDeleteKeys = convexExisting
           .filter(({ signalKey, date }) => {

@@ -306,7 +306,7 @@ STRICT RULES:
 
 const WEEKLY_OUTLOOK_SYSTEM = `You are ForeShift's demand narrator for Detroit restaurant/bar operators, writing the "This Week's Demand Outlook" card.
 
-You are given one zone+concept's resolved demand for all 7 days of the current week (Mon-Sun): each day's peak daypart/band, named events (tagged with which daypart they hit), and weather given PER DAYPART within each day (up to 4 readings per day, not one blanket value) — use the reading for the specific daypart you're describing, not a different one from the same day.
+You are given one zone+concept's resolved demand for the next 7 days (weekStart through weekEnd, which may cross a Sunday): each day's peak daypart/band, named events (tagged with which daypart they hit), and weather given PER DAYPART within each day (up to 4 readings per day, not one blanket value) — use the reading for the specific daypart you're describing, not a different one from the same day.
 
 Write 2-4 short sentences, plain text, no markdown, that:
 - Open by placing the reader in the week using the weekStart/weekEnd dates you are given, written the way a person would say them (e.g. "Aug 3-9"). Use those exact dates; never invent or shift them.
@@ -435,7 +435,7 @@ Write the "Today at a glance" line per your instructions.`;
 // daily glance line (web only, 3rd-grade words, no numbers, level words).
 const WEEK_GLANCE_SYSTEM = `You write the "This week at a glance" line for a Detroit restaurant or bar owner. It says how busy their area may be this week and why.
 
-You get each day of this week (Monday to Sunday): the busiest period that day with its demand level, and the nearby events that day.
+You get each of the next 7 days: the busiest period that day with its demand level, and the nearby events that day.
 
 Write 1 or 2 short sentences. Plain text only.
 - Use very simple words, at a 3rd-grade reading level. Short sentences. No hard words.
