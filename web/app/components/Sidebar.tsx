@@ -101,6 +101,7 @@ export function Sidebar() {
           <div className={styles.avatar}>{name.charAt(0)}</div>
           <div className={styles.userText}>
             <div className={styles.userName}>{name}</div>
+            {operator?.access.powerUser && <span className={styles.powerUser}>Power User</span>}
             <div className={styles.userSub}>{operatorLabel(operator)}</div>
           </div>
         </div>

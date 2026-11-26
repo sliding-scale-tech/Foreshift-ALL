@@ -29,6 +29,7 @@ import { FULL_DAY, longDate, monthDay, trimNumber, weekLabel, type DayKey } from
 import shared from "@/app/(app)/shared.module.css";
 import styles from "./WeatherView.module.css";
 import { SHOW_NUMBERS } from "@/app/lib/display";
+import { WeekCarousel } from "@/app/components/WeekCarousel";
 
 type Operator = ReturnType<typeof useMyOperator>["operator"];
 
@@ -203,6 +204,9 @@ export function WeatherView({
   operator,
   result,
   periodWeather,
+  weekCount = 1,
+  weekIndex = 0,
+  onWeekIndex,
 }: {
   week: WeekData;
   selected: string;
@@ -211,6 +215,10 @@ export function WeatherView({
   /** The selected day's weather outlook; null while it's being generated. */
   result: WeatherOutlookResult | null;
   periodWeather: DaypartWeather | null;
+  /** More than one means the day row slides between weeks. */
+  weekCount?: number;
+  weekIndex?: number;
+  onWeekIndex?: (index: number) => void;
 }) {
   const day = week.days.find((d) => d.date === selected);
   // An earlier day this week: the weather shown is what was recorded, not a forecast.
@@ -261,14 +269,16 @@ export function WeatherView({
           the forecast; earlier days this week show the weather that was recorded.
         </InfoTip>
       </h2>
-      <DaySelector
-        week={week}
-        selected={selected}
-        onSelect={(d) => {
-          setOpenKey(undefined);
-          onSelect(d);
-        }}
-      />
+      <WeekCarousel count={weekCount} index={weekIndex} onIndex={onWeekIndex ?? (() => {})}>
+        <DaySelector
+          week={week}
+          selected={selected}
+          onSelect={(d) => {
+            setOpenKey(undefined);
+            onSelect(d);
+          }}
+        />
+      </WeekCarousel>
 
       <section className={styles.summary} aria-labelledby="weather-summary-title" aria-live="polite">
         <div className={styles.summaryMain}>

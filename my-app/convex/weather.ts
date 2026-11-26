@@ -11,10 +11,10 @@ import {
 import { severityFromForecast, simplifyWeatherCondition } from "./lib/weatherSeverity";
 import {
   dayFromLocalDate,
-  FORECAST_DAYS,
+  WEATHER_FETCH_DAYS,
+  bubbleWriteEnd,
   forecastEnd,
   mondayOfWeek,
-  nextMondayDate,
   detroitDate,
   addDays,
   DAYPARTS,
@@ -117,15 +117,13 @@ export const syncWeatherSignalsToBubble = internalAction({
         );
       }
 
-      // Cap at the upcoming Monday (not a flat 7) — same reasoning as the event
-      // sync: a mid-week run must stay inside this week, never spill into next
-      // week's Mon/Tue/Wed and overwrite this week's day-slots with wrong dates.
-      // All "today"/week math is anchored to Detroit's local date (see vocab.ts):
-      // WeatherAPI's forecast window starts from the local date, and the cron
-      // fires while Detroit is still on the previous UTC day.
+      // Dates are Detroit-local. The cron fires while Detroit is still on the
+      // previous UTC day, and WeatherAPI's window starts from the local date.
       const now = new Date();
       const query = args.query ?? "Detroit";
-      const days = args.days ?? FORECAST_DAYS;
+      const days = args.days ?? WEATHER_FETCH_DAYS;
+      // Weather is a rolling 7 days for every account, including Power Users.
+      const bubbleEnd = bubbleWriteEnd(now, WEATHER_FETCH_DAYS);
       const forecast = await fetchWeatherForecast({ apiKey, query, days });
 
       // Backfill days already elapsed this week (Monday..yesterday) with ACTUAL
@@ -186,8 +184,8 @@ export const syncWeatherSignalsToBubble = internalAction({
 
       for (const row of rows) {
         seen.add(row.signal_key);
-        // Bubble keeps this Monday–Sunday only. Later dates stay in Convex.
-        if (row.date >= nextMondayDate(now)) continue;
+        // Dates on or after the plan's rolling end stay in Convex only.
+        if (row.date >= bubbleEnd) continue;
         const id = existing.get(row.signal_key);
         if (id) {
           await updateWeatherSignal(id, row);
@@ -200,7 +198,7 @@ export const syncWeatherSignalsToBubble = internalAction({
 
       if (args.deleteStale) {
         // Same bounded-window rule as the event sync (see events.ts). Retained
-        // window is [mondayOfThisWeek, nextMonday); the WeatherSignal key is
+        // window is [mondayOfThisWeek, bubbleEnd); the WeatherSignal key is
         // `${zone}__${YYYY-MM-DD}`, so the date is the last 10 chars. Delete a
         // stored row only when it is either:
         //   (a) OUTSIDE the window — a previous week's leftover. Replaces the
@@ -214,7 +212,7 @@ export const syncWeatherSignalsToBubble = internalAction({
         //       already-elapsed days: those are in [weekStart, today) so they
         //       are kept, not deleted.
         const weekStart = mondayOfWeek(now);
-        const weekEnd = nextMondayDate(now); // exclusive
+        const weekEnd = bubbleEnd; // exclusive
         const today = detroitDate(now);
         for (const [key, id] of existing) {
           const date = key.slice(-10);
@@ -273,7 +271,7 @@ export const syncWeatherSignalsToBubble = internalAction({
           {},
         );
         const weekStart = mondayOfWeek(now);
-        const weekEnd = forecastEnd(now);
+        const weekEnd = forecastEnd(now, WEATHER_FETCH_DAYS);
         const today = detroitDate(now);
         convexDeleteKeys = convexExisting
           .filter(({ signalKey, date }) => {

@@ -3,7 +3,7 @@
 // table; see the comment on the `operators` table in schema.ts.
 
 import { v } from "convex/values";
-import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { ZONES, CONCEPTS } from "./lib/vocab";
 import { computeAccess } from "./lib/access";
 
@@ -19,7 +19,12 @@ export const getMine = query({
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!op) return null;
-    const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus, freeAccess: op.freeAccess });
+    const access = computeAccess({
+      createdAt: op._creationTime,
+      subscriptionStatus: op.subscriptionStatus,
+      freeAccess: op.freeAccess,
+      powerUser: op.powerUser,
+    });
     return { ...op, access };
   },
 });
@@ -43,6 +48,39 @@ export const setFreeAccess = internalMutation({
     if (!op) throw new Error(`${email} hasn't finished onboarding yet.`);
     await ctx.db.patch("operators", op._id, { freeAccess: args.on ? true : undefined });
     return { email, operator: op.restaurantName, freeAccess: args.on };
+  },
+});
+
+/**
+ * Turn on the 28-day forecast and the Power User tag (or turn them off).
+ * Internal, development or production CLI, never a checkout. Example, dev:
+ *   npx convex run operators:setPowerUser '{"email":"name@example.com","on":true}'
+ */
+export const setPowerUser = internalMutation({
+  args: { email: v.string(), on: v.boolean() },
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+    const users = await ctx.db.query("users").collect();
+    const user = users.find((u) => (u.email ?? "").toLowerCase() === email);
+    if (!user) throw new Error(`No user with email ${email}.`);
+    const op = await ctx.db
+      .query("operators")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", user.clerkId))
+      .unique();
+    if (!op) throw new Error(`${email} hasn't finished onboarding yet.`);
+    await ctx.db.patch("operators", op._id, { powerUser: args.on ? true : undefined });
+    return { email, operator: op.restaurantName, powerUser: args.on };
+  },
+});
+
+/** True when any restaurant on this deployment has the Power User flag.
+ * Event and weather syncs write one shared Bubble table, so the write uses
+ * the longer window when this is true and the 7-day window otherwise. */
+export const anyPowerUser = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const ops = await ctx.db.query("operators").collect();
+    return ops.some((op) => op.powerUser === true);
   },
 });
 

@@ -34,9 +34,9 @@ export function longDate(iso: string): string {
 /** Monday "2026-09-21" -> "September 21–27, 2026" (or "September 28 – October 4,
  * 2026" / "December 28, 2026 – January 3, 2027" when the week crosses a month
  * or year). */
-export function weekLabel(weekStart: string): string {
+export function weekLabel(weekStart: string, weekEnd?: string): string {
   const start = at(weekStart);
-  const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const end = weekEnd ? at(weekEnd) : new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
   const month = (d: Date) => fmt({ month: "long" }).format(d);
   const year = start.getUTCFullYear();
   if (year !== end.getUTCFullYear()) {

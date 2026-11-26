@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { useMyOperator } from "@/app/hooks/useMyOperator";
+import { useAccess } from "@/app/hooks/useAccess";
 import type { WeekData } from "@/app/hooks/useWeek";
 import { useNow } from "@/app/hooks/useNow";
 import { EventDaySelector, REST_OF_WEEK } from "@/app/components/EventDaySelector";
+import { WeekCarousel, weekSlices } from "@/app/components/WeekCarousel";
 import { EventsList, type EmptyKind } from "@/app/components/EventsList";
 import { BriefcaseIcon, BuildingIcon, GlobeIcon, MusicIcon, PeopleIcon, RefreshIcon, TagIcon } from "@/app/components/event-icons";
 import { InfoTip } from "@/app/components/InfoTip";
@@ -64,6 +66,7 @@ export function EventsOverviewView({
   operator: ReturnType<typeof useMyOperator>["operator"];
 }) {
   const [picked, setPicked] = useState<string | null>(null); // a date, REST_OF_WEEK, or null = today
+  const [weekIndex, setWeekIndex] = useState(0);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [sort, setSort] = useState<SortKey>("time");
   const [page, setPage] = useState(1);
@@ -71,33 +74,50 @@ export function EventsOverviewView({
   // never was one) "no events" can't be trusted, so say so instead of showing an empty list as fact.
   // Read the clock after mount so the server and browser render the same thing.
   const now = useNow();
+  const { access } = useAccess();
   const dataGap =
     week.syncedAt === null ? "unavailable" : now !== null && now - week.syncedAt > 36 * 60 * 60 * 1000 ? "stale" : null;
 
-  // On the last day of the week there is no "rest of the week": fall back to today.
-  const lastDay = week.today >= week.weekEnd;
-  const scope = picked === REST_OF_WEEK && lastDay ? week.today : (picked ?? week.today);
+  // Base plan and the trial: 7 days. Power User: 28 days, four carousel weeks.
+  // The server already returns that window; this cap keeps a shorter plan from
+  // showing a later week if the payload is ever longer.
+  const dayLimit = access?.forecastDays ?? week.days.length;
+  const forecastDayList = week.days.slice(0, dayLimit);
+  const allowedDates = new Set(forecastDayList.map((d) => d.date));
+  const forecastEvents = week.events.filter((e) => allowedDates.has(e.date));
+
+  const slices = weekSlices(forecastDayList);
+  const index = Math.min(weekIndex, Math.max(0, slices.length - 1));
+  const shownDays = slices[index] ?? forecastDayList;
+  const sliceStart = shownDays[0]?.date ?? week.weekStart;
+  const sliceEnd = shownDays[shownDays.length - 1]?.date ?? week.weekEnd;
+  // On the last day of the visible week there is no "rest of the week": fall back to today.
+  const lastDay = week.today >= sliceEnd;
+  const scope = picked === REST_OF_WEEK && lastDay ? week.today : (picked ?? (shownDays.some((d) => d.date === week.today) ? week.today : sliceStart));
   const range = scope === REST_OF_WEEK;
+  const rangeStart = week.today > sliceStart ? week.today : sliceStart;
 
   // Events for the chosen scope, with ticket packages folded into their show.
   const scoped = useMemo(() => {
-    const inScope = week.events.filter((e) => (range ? e.date >= week.today : e.date === scope));
+    const inScope = forecastEvents.filter((e) =>
+      range ? e.date >= rangeStart && e.date <= sliceEnd : e.date === scope,
+    );
     return groupListings(inScope);
-  }, [week, scope, range]);
+  }, [forecastEvents, scope, range, rangeStart, sliceEnd]);
 
   // Per day: how many events, and the strongest estimated influence among them.
   const dayInfo = useMemo(() => {
     const info: Record<string, { count: number; top: Influence | null }> = {};
-    for (const d of week.days) {
-      const events = groupListings(week.events.filter((e) => e.date === d.date));
+    for (const d of forecastDayList) {
+      const events = groupListings(forecastEvents.filter((e) => e.date === d.date));
       info[d.date] = { count: events.length, top: topInfluence(events) };
     }
     return info;
-  }, [week]);
+  }, [forecastDayList, forecastEvents]);
 
   const venues = useMemo(
-    () => [...new Set(week.events.map((e) => e.venue).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
-    [week],
+    () => [...new Set(forecastEvents.map((e) => e.venue).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [forecastEvents],
   );
 
   const results = useMemo(() => sortEvents(filterEvents(scoped, filters), sort), [scoped, filters, sort]);
@@ -135,7 +155,7 @@ export function EventsOverviewView({
   return (
     <>
       <h1 className={shared.title}>Events overview</h1>
-      <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
+      <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(sliceStart))}</p>
       <LastUpdated generatedAt={week.syncedAt} />
       {dataGap === "unavailable" && (
         <StaleNotice title="Event data isn't available right now.">
@@ -160,28 +180,41 @@ export function EventsOverviewView({
         Choose a day
         <InfoTip label="the day selector" align="start">
           Pick a day, or the rest of these 7 days. The summary and the event list below update together. The label under
-          each count is the strongest estimated influence among that day&apos;s events. Event data covers the next 7
-          days, starting today. A day past that isn&apos;t covered yet.
+          each count is the strongest estimated influence among that day&apos;s events.
+          {slices.length > 1
+            ? " This plan covers 4 weeks. Slide to the next week for later events."
+            : " Event data covers the next 7 days, starting today. A day past that isn't covered yet."}
         </InfoTip>
       </h2>
-      <EventDaySelector
-        value={scope}
-        onChange={(v) => {
-          setPicked(v);
+      <WeekCarousel
+        count={slices.length}
+        index={index}
+        onIndex={(next) => {
+          const slice = slices[next];
+          setWeekIndex(next);
+          setPicked(slice?.some((d) => d.date === week.today) ? week.today : slice?.[0]?.date ?? null);
           setPage(1);
         }}
-        days={week.days.map((d) => ({
-          date: d.date,
-          day: d.day,
-          count: dayInfo[d.date]?.count ?? 0,
-          top: dayInfo[d.date]?.top ?? null,
-          isToday: d.date === week.today,
-          isPast: d.date < week.today,
-        }))}
-      />
+      >
+        <EventDaySelector
+          value={scope}
+          onChange={(v) => {
+            setPicked(v);
+            setPage(1);
+          }}
+          days={shownDays.map((d) => ({
+            date: d.date,
+            day: d.day,
+            count: dayInfo[d.date]?.count ?? 0,
+            top: dayInfo[d.date]?.top ?? null,
+            isToday: d.date === week.today,
+            isPast: d.date < week.today,
+          }))}
+        />
+      </WeekCarousel>
       <p className={styles.showing}>
         Showing events for{" "}
-        <strong>{range ? `the rest of this week (${monthDay(week.today)} – ${monthDay(week.weekEnd)})` : longDate(scope)}</strong>
+        <strong>{range ? `the rest of this week (${monthDay(rangeStart)} – ${monthDay(sliceEnd)})` : longDate(scope)}</strong>
         {earlier && " (an earlier day)"}
       </p>
 

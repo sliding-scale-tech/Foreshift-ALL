@@ -21,9 +21,10 @@ import {
   dayFromLocalDate,
   daypartFromLocalTime,
   FORECAST_DAYS,
+  POWER_FORECAST_DAYS,
+  bubbleWriteEnd,
   forecastEnd,
   mondayOfWeek,
-  nextMondayDate,
   detroitDate,
   addDays,
 } from "./lib/vocab";
@@ -495,9 +496,10 @@ export const syncEventSignalsToBubble = internalAction({
     let outcome: SyncOutcome | null = null;
     try {
       const now = new Date();
-      // Fetch window: today and the next 6 days. Bubble still stores only this
-      // Monday–Sunday; dates on or after next Monday are written to Convex.
-      const days = args.days ?? FORECAST_DAYS;
+      // Fetch window: today and the next 27 days, so a Power User can read them
+      // in Convex. Bubble stores the rolling window for the longest plan on
+      // this deployment: 28 days when any account is a Power User, otherwise 7.
+      const days = args.days ?? POWER_FORECAST_DAYS;
       const { summary, rows: tmRows } = await computeEventSignalRows(ctx, days);
 
       // No events at all over several days means the fetch broke (key, quota,
@@ -529,6 +531,9 @@ export const syncEventSignalsToBubble = internalAction({
         huntington.summary.discovered > 0;
       const rows = huntington ? [...tmRows, ...huntington.rows] : tmRows;
 
+      const premium = await ctx.runQuery(internal.operators.anyPowerUser, {});
+      const bubbleEnd = bubbleWriteEnd(now, premium ? POWER_FORECAST_DAYS : FORECAST_DAYS);
+
       const existing = await listEventSignalIds();
 
       let created = 0;
@@ -553,9 +558,8 @@ export const syncEventSignalsToBubble = internalAction({
           all_dayparts: row.allDayparts,
         };
         seen.add(row.signal_key);
-        // Bubble keeps this Monday–Sunday only. A date on or after next Monday
-        // is stored in Convex, where the rolling forecast reads it.
-        if (row.date >= nextMondayDate(now)) continue;
+        // Dates on or after the plan's rolling end stay in Convex only.
+        if (row.date >= bubbleEnd) continue;
         const found = existing.get(row.signal_key);
         if (found) {
           await updateEventSignal(found.id, body);
@@ -567,7 +571,7 @@ export const syncEventSignalsToBubble = internalAction({
       }
 
       if (args.deleteStale) {
-        // Retained window is [mondayOfThisWeek, nextMonday). A stored row is
+        // Retained window is [mondayOfThisWeek, bubbleEnd). A stored row is
         // deleted only when it is either:
         //   (a) OUTSIDE that window — a previous week's leftover (or an
         //       undated/junk row). This is the cleanup the old weekly full
@@ -580,7 +584,7 @@ export const syncEventSignalsToBubble = internalAction({
         // days: left untouched so a mid-week (i.e. every daily) run can't wipe
         // Monday's signal on Tuesday.
         const weekStart = mondayOfWeek(now);
-        const weekEnd = nextMondayDate(now); // exclusive
+        const weekEnd = bubbleEnd; // exclusive
         const today = detroitDate(now);
         for (const [key, { id, date }] of existing) {
           const isHuntington = key.startsWith("hp_");
@@ -626,7 +630,7 @@ export const syncEventSignalsToBubble = internalAction({
           {},
         );
         const weekStart = mondayOfWeek(now);
-        const weekEnd = forecastEnd(now);
+        const weekEnd = forecastEnd(now, POWER_FORECAST_DAYS);
         const today = detroitDate(now);
         convexDeleteKeys = convexExisting
           .filter(({ signalKey, date }) => {

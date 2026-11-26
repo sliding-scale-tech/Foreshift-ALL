@@ -106,6 +106,9 @@ export default defineSchema(
       // operators:setFreeAccess, run from the CLI). Separate from the Stripe
       // fields above, so no webhook can overwrite it. Unset = normal paywall.
       freeAccess: v.optional(v.boolean()),
+      // 28-day forecast and the Power User tag. Set by the team after a
+      // Contact Sales enquiry (operators:setPowerUser). Not a Stripe checkout.
+      powerUser: v.optional(v.boolean()),
     })
       .index("by_clerkId", ["clerkId"])
       .index("by_stripeCustomerId", ["stripeCustomerId"]),

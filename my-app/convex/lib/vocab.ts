@@ -160,26 +160,39 @@ export function nextMondayDate(now: Date = new Date()): string {
 // same Mon–Sun week. On Thursday it reaches next Wednesday. On Sunday it
 // reaches the following Saturday.
 export const FORECAST_DAYS = 7;
+// Power User window: four weeks, counted the same way (today is day 1).
+export const POWER_FORECAST_DAYS = 28;
+// Weather covers the rolling 7 days for every account. This WeatherAPI plan
+// returns 7 forecast days, so a Power User does not get a longer weather window.
+export const WEATHER_FETCH_DAYS = 7;
 
-// Today and the six days after it, in order, with the weekday name each date
-// falls on. The name still selects that weekday's baseline.
-export function forecastDates(now: Date = new Date()): { day: Day; date: string }[] {
+// Today and the following days, in order, with the weekday name each date
+// falls on. The name still selects that weekday's baseline. `days` defaults
+// to the Event Intelligence window.
+export function forecastDates(now: Date = new Date(), days?: number): { day: Day; date: string }[] {
+  const count = days ?? FORECAST_DAYS;
   const today = detroitDate(now);
-  return Array.from({ length: FORECAST_DAYS }, (_, i) => {
+  return Array.from({ length: count }, (_, i) => {
     const date = addDays(today, i);
     return { day: dayFromLocalDate(date) as Day, date };
   });
 }
 
-// Exclusive end of the rolling forecast: the day after the seventh day.
-export function forecastEnd(now: Date = new Date()): string {
-  return addDays(detroitDate(now), FORECAST_DAYS);
+// Exclusive end of the rolling forecast: the day after the last included day.
+export function forecastEnd(now: Date = new Date(), days?: number): string {
+  return addDays(detroitDate(now), days ?? FORECAST_DAYS);
+}
+
+// Exclusive end of a Bubble write. Elapsed days of this Monday–Sunday week are
+// earlier than this date, so they stay. `days` is 7 (weather and base) or 28.
+export function bubbleWriteEnd(now: Date = new Date(), days?: number): string {
+  return forecastEnd(now, days);
 }
 
 // A date the app can answer. Earlier days of this Monday–Sunday week stay
-// available as what was recorded. Today through the next 6 days are the forecast.
-export function inOutlookRange(date: string, now: Date = new Date()): boolean {
-  return date >= mondayOfWeek(now) && date < forecastEnd(now);
+// available as what was recorded. Today through the account's forecast are included.
+export function inOutlookRange(date: string, now: Date = new Date(), days?: number): boolean {
+  return date >= mondayOfWeek(now) && date < forecastEnd(now, days);
 }
 
 // Map a Ticketmaster localTime ("HH:MM:SS") to a daypart, using the windows in

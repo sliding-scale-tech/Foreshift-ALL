@@ -22,6 +22,9 @@ export interface AccessInfo {
   reason: "trial" | "subscribed" | "free" | "expired";
   trialEndsAt: number;
   isSubscribed: boolean;
+  /** 7 for Event Intelligence and the trial. 28 for a Power User. */
+  forecastDays: 7 | 28;
+  powerUser: boolean;
 }
 
 export function computeAccess(args: {
@@ -29,11 +32,16 @@ export function computeAccess(args: {
   subscriptionStatus: string | undefined;
   /** operators.freeAccess: the team gave this account full access, no paywall. */
   freeAccess?: boolean;
+  /** operators.powerUser: 28-day forecast, granted after Contact Sales. */
+  powerUser?: boolean;
 }): AccessInfo {
   const trialEndsAt = args.createdAt + TRIAL_MS;
+  const powerUser = args.powerUser === true;
+  const forecastDays: 7 | 28 = powerUser ? 28 : 7;
   const isSubscribed = isPaidStatus(args.subscriptionStatus);
-  if (isSubscribed) return { hasAccess: true, reason: "subscribed", trialEndsAt, isSubscribed };
-  if (args.freeAccess === true) return { hasAccess: true, reason: "free", trialEndsAt, isSubscribed };
-  if (Date.now() < trialEndsAt) return { hasAccess: true, reason: "trial", trialEndsAt, isSubscribed };
-  return { hasAccess: false, reason: "expired", trialEndsAt, isSubscribed };
+  const base = { trialEndsAt, isSubscribed, forecastDays, powerUser };
+  if (isSubscribed) return { hasAccess: true, reason: "subscribed", ...base };
+  if (args.freeAccess === true) return { hasAccess: true, reason: "free", ...base };
+  if (Date.now() < trialEndsAt) return { hasAccess: true, reason: "trial", ...base };
+  return { hasAccess: false, reason: "expired", ...base };
 }
