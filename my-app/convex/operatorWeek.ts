@@ -51,6 +51,7 @@ import {
   DAYPART_WINDOWS,
   keepKnown,
   currentWeekDates,
+  forecastDates,
   type Daypart,
   type Band,
 } from "./lib/vocab";
@@ -68,6 +69,7 @@ function resolveDay(args: {
   zone: string;
   concept: string;
   day: string;
+  date: string;
   dayparts: { daypart: Daypart; base_score: number; base_band: string }[];
   eventsByCell: Map<string, EventSignalRead[]>;
   weatherByZoneDay: Map<string, WeatherSignalRead>;
@@ -79,6 +81,7 @@ function resolveDay(args: {
       zone: args.zone,
       concept: args.concept,
       day: args.day,
+      date: args.date,
       daypart: dp,
       window: DAYPART_WINDOWS[dp],
       base_score: cell?.base_score ?? 0,
@@ -130,21 +133,24 @@ export const computeOperatorWeek = internalAction({
     const weatherByZoneDay = indexWeatherByZoneDay(weather);
 
     const byDay = new Map(records.map((r) => [r.day, r]));
-    const days = DAYS.filter((d) => byDay.has(d)).map((day) => {
+    const days = forecastDates()
+      .filter(({ day }) => byDay.has(day))
+      .map(({ day, date }) => {
       const record = byDay.get(day)!;
       const { dayparts, peak } = resolveDay({
         zone,
         concept,
         day,
+        date,
         dayparts: record.dayparts,
         eventsByCell,
         weatherByZoneDay,
         coeffs,
       });
-      const w = weatherByZoneDay.get(`${zone}|${day}`);
+      const w = weatherByZoneDay.get(`${zone}|${date}`);
       return {
         day,
-        date: w?.date ?? null,
+        date: w?.date ?? date,
         peak: { daypart: peak.daypart, score: peak.score, band: peak.band },
         dayparts: dayparts.map((d) => ({
           daypart: d.daypart,
@@ -324,6 +330,7 @@ async function doSync(
         zone: r.zone,
         concept: r.concept,
         day: r.day,
+        date: weekDates[r.day as (typeof DAYS)[number]] ?? "",
         dayparts: r.dayparts,
         eventsByCell,
         weatherByZoneDay,

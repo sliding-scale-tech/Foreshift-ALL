@@ -13,7 +13,7 @@ import {
   computeWeatherOutlook,
 } from "./lib/outlook";
 import { type CoefficientBundle } from "./lib/resolve";
-import { ZONES, CONCEPTS, DAYS, currentWeekDates, keepKnown } from "./lib/vocab";
+import { ZONES, CONCEPTS, inOutlookRange, keepKnown } from "./lib/vocab";
 
 export const getOutlook = internalAction({
   args: {
@@ -78,11 +78,9 @@ function resolveAsOf(date: string | undefined): Date | undefined {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new Error(`Invalid date: "${date}". Expected format YYYY-MM-DD.`);
   }
-  const week = currentWeekDates(new Date());
-  const allowed = DAYS.map((d) => week[d]);
-  if (!allowed.includes(date)) {
+  if (!inOutlookRange(date)) {
     throw new Error(
-      `Date "${date}" is outside the current week. Must be one of: ${allowed.join(", ")}.`,
+      `Date "${date}" is outside the forecast. It covers this week so far and the next 7 days from today.`,
     );
   }
   return new Date(`${date}T12:00:00Z`);

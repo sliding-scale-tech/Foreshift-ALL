@@ -229,7 +229,7 @@ export const setScope = mutation({
     }
     if (args.date !== undefined) {
       if (args.date !== null && effectiveDate(args.date) !== args.date) {
-        throw new Error("Pick a day from this week.");
+        throw new Error("Pick a day in the next 7 days.");
       }
       patch.date = args.date;
     }

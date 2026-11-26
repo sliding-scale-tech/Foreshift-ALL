@@ -10,8 +10,7 @@
 import {
   ZONES,
   CONCEPTS,
-  DAYS,
-  currentWeekDates,
+  forecastDates,
   detroitDate,
   keepKnown,
   type Zone,
@@ -144,14 +143,12 @@ export type ThreadScopeFields = {
 
 export type EffectiveScope = { zone: Zone; concept: Concept; date: string };
 
-/** The week as the tabs see it, plus today, for the prompt and the date enum. */
+/** The next 7 days, plus today, for the prompt and the date enum. */
 export function weekCalendar(now: Date = new Date()) {
-  const dates = currentWeekDates(now);
-  const days = DAYS.map((day) => ({ day, date: dates[day] }));
-  return { today: detroitDate(now), days };
+  return { today: detroitDate(now), days: forecastDates(now) };
 }
 
-/** Pinned date if it's still inside this week, otherwise today. */
+/** Pinned date if it's still inside the next 7 days, otherwise today. */
 export function effectiveDate(date: string | null, now: Date = new Date()): string {
   const { today, days } = weekCalendar(now);
   return date && days.some((d) => d.date === date) ? date : today;

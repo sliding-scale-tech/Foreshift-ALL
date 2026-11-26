@@ -4,7 +4,7 @@
 //
 // Scope is enforced here, not trusted to the model: a zone / restaurant type the
 // model passes is used only if it is already in scope or the user's message names
-// it (scope.ts resolveScopeArg); a day must be one of this week's dates.
+// it (scope.ts resolveScopeArg); a day must be one of the next 7 days.
 
 import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
@@ -26,7 +26,7 @@ export function makeTools(args: {
   const dates = weekCalendar().days.map((d) => d.date) as [string, ...string[]];
   const zoneArg = z.enum(ZONES).optional().describe("Only if the user named a different zone. Omit otherwise.");
   const conceptArg = z.enum(CONCEPTS).optional().describe("Only if the user named a different restaurant type. Omit otherwise.");
-  const dateArg = z.enum(dates).optional().describe("A date this week. Omit for the day in scope.");
+  const dateArg = z.enum(dates).optional().describe("A date in the next 7 days. Omit for the day in scope.");
 
   /** Apply the scope rule, run the read, and report what came back to the FactBag. */
   async function run(
@@ -76,7 +76,7 @@ export function makeTools(args: {
 
     get_week_overview: createTool({
       description:
-        "The whole Monday-Sunday week: each day's peak period and band, weather and event count, plus the top events (no need to also call list_events). Use for 'this week', 'busiest day', weekend or comparing days.",
+        "The next 7 days starting today: each day's peak period and band, weather and event count, plus the top events (no need to also call list_events). Use for 'this week', 'the next few days', 'busiest day', weekend or comparing days.",
       inputSchema: z.object({ zone: zoneArg, concept: conceptArg }),
       execute: (ctx, input) =>
         run("get_week_overview", input.zone, input.concept, (zone, concept) =>
@@ -86,7 +86,7 @@ export function makeTools(args: {
 
     list_events: createTool({
       description:
-        "Nearby events this week with venue, time, influence and estimated lift. Use for 'any events', 'what's happening', 'what's driving demand'.",
+        "Nearby events in the next 7 days with venue, time, influence and estimated lift. Use for 'any events', 'what's happening', 'what's driving demand'.",
       inputSchema: z.object({
         date: dateArg,
         minInfluence: z.enum(["Low", "Moderate", "High"]).optional().describe("Smallest influence to include."),

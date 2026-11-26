@@ -33,6 +33,7 @@ import {
   ZONES,
   CONCEPTS,
   keepKnown,
+  currentWeekDates,
   type Daypart,
 } from "./vocab";
 
@@ -200,6 +201,7 @@ export async function answerQuestion(
     // same code path the /operator/week endpoint and its cron use.
     const eventsByCell = indexEventsByCell(eventSignals);
     const weatherByZoneDay = indexWeatherByZoneDay(weatherSignals);
+    const weekDates = currentWeekDates();
 
     const computedRecords = records.map((r) => {
       const cells = focusDayparts(r, parsed.dayparts).map((c) =>
@@ -207,6 +209,7 @@ export async function answerQuestion(
           zone: r.zone,
           concept: r.concept,
           day: r.day,
+          date: weekDates[r.day as keyof typeof weekDates] ?? "",
           daypart: c.daypart,
           window: DAYPART_WINDOWS[c.daypart],
           base_score: c.base_score,

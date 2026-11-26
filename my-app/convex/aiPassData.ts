@@ -16,7 +16,7 @@ import { resolveDayOutlook } from "./lib/outlook";
 import { indexEventsByCell, indexWeatherByZoneDay } from "./lib/resolve";
 import { DAYPART_MINUTES, openDuring } from "./lib/hours";
 import type { Doc } from "./_generated/dataModel";
-import { currentWeekDates, DAYS, ZONES, CONCEPTS, keepKnown, scoreToBand, type Daypart, type Day } from "./lib/vocab";
+import { inOutlookRange, dayFromLocalDate, ZONES, CONCEPTS, keepKnown, scoreToBand, type Daypart, type Day } from "./lib/vocab";
 import type { FactorRef, ScopeUsed } from "./lib/aiPass/grounding";
 
 export type ToolPayload = {
@@ -45,7 +45,7 @@ const outsideWeek = (date: string) => ({
   model: {
     ok: false,
     error: "outside_week",
-    message: `${date} is outside the current Monday-Sunday week, which is the only data available.`,
+    message: `${date} is outside the forecast. It covers the next 7 days from today, and earlier days of this week.`,
   },
 });
 
@@ -56,8 +56,8 @@ function knownScope(zone: string, concept: string) {
 }
 
 function dayOfWeekDate(date: string): Day | null {
-  const week = currentWeekDates(new Date());
-  return DAYS.find((d) => week[d] === date) ?? null;
+  if (!inOutlookRange(date)) return null;
+  return dayFromLocalDate(date);
 }
 
 // ---------------------------------------------------------------------------

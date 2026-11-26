@@ -151,9 +151,35 @@ export function daysUntilNextMonday(now: Date = new Date()): number {
 
 // Calendar date (YYYY-MM-DD) of the Monday that STARTS next week — i.e. the
 // exclusive upper bound of the [mondayOfWeek(now), nextMondayDate(now)) window
-// the daily signal syncs retain in Bubble. Just `mondayOfWeek(now)` + 7 days.
+// Bubble still keeps. Convex also keeps the rolling forecast past that Monday.
 export function nextMondayDate(now: Date = new Date()): string {
   return addDays(mondayOfWeek(now), 7);
+}
+
+// How many days a forecast covers, starting today. On a Monday this is the
+// same Mon–Sun week. On Thursday it reaches next Wednesday. On Sunday it
+// reaches the following Saturday.
+export const FORECAST_DAYS = 7;
+
+// Today and the six days after it, in order, with the weekday name each date
+// falls on. The name still selects that weekday's baseline.
+export function forecastDates(now: Date = new Date()): { day: Day; date: string }[] {
+  const today = detroitDate(now);
+  return Array.from({ length: FORECAST_DAYS }, (_, i) => {
+    const date = addDays(today, i);
+    return { day: dayFromLocalDate(date) as Day, date };
+  });
+}
+
+// Exclusive end of the rolling forecast: the day after the seventh day.
+export function forecastEnd(now: Date = new Date()): string {
+  return addDays(detroitDate(now), FORECAST_DAYS);
+}
+
+// A date the app can answer. Earlier days of this Monday–Sunday week stay
+// available as what was recorded. Today through the next 6 days are the forecast.
+export function inOutlookRange(date: string, now: Date = new Date()): boolean {
+  return date >= mondayOfWeek(now) && date < forecastEnd(now);
 }
 
 // Map a Ticketmaster localTime ("HH:MM:SS") to a daypart, using the windows in

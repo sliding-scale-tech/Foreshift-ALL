@@ -73,7 +73,7 @@ export class FactBag {
   /** Plain, data-only stand-in for text we can't vouch for. */
   summaryText(maxChars = 360): string {
     const text = this.summaries.join(" ").trim();
-    if (!text) return "I couldn't find forecast data for that. Try a day this week, such as today or Friday.";
+    if (!text) return "I couldn't find forecast data for that. Try a day in the next 7 days, such as today or Friday.";
     return text.length <= maxChars ? text : `${text.slice(0, maxChars - 1).trimEnd()}…`;
   }
 
@@ -156,7 +156,7 @@ export function mostlyRepeats(text: string, other: string): boolean {
 
 const clip = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1).trimEnd()}…`);
 
-const NO_DATA_TEXT = "I couldn't pull forecast data for that. Try asking about a day this week, such as today or Friday.";
+const NO_DATA_TEXT = "I couldn't pull forecast data for that. Try asking about a day in the next 7 days, such as today or Friday.";
 
 /** Turn the model's `reply` input into the card we store, checked against the data. */
 export function buildCard(input: ReplyInput, bag: FactBag): ReplyCard {
