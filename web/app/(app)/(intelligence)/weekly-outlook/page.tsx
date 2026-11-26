@@ -15,6 +15,7 @@ import { LastUpdated } from "@/app/components/LastUpdated";
 import { LoadError } from "@/app/components/LoadError";
 import { PageLoading } from "@/app/components/PageLoading";
 import { DayDetail, DayStrip, WeekGrid } from "@/app/components/WeekPlanner";
+import { WeekCarousel, weekSlices } from "@/app/components/WeekCarousel";
 import { WeekGlance } from "@/app/components/WeekGlance";
 import { dayDrivers, toDrivers } from "@/app/lib/drivers";
 import { groupListings } from "@/app/lib/events";
@@ -34,25 +35,34 @@ export default function WeeklyOutlookPage() {
   const outlook = useOutlook<WeeklyOutlookResult>("weekly");
 
   const [picked, setPicked] = useState<string | null>(null);
+  const [weekIndex, setWeekIndex] = useState(0);
   const [onlyDay, setOnlyDay] = useState(false);
   const stamp = useRef<HTMLSpanElement>(null);
 
   const restaurant = hasRestaurant(operator);
   const hours = restaurant ? operator?.operatingHours : undefined;
   const plan = useMemo(() => (week ? buildPlan(week, hours) : []), [week, hours]);
+  const pages = useMemo(() => weekSlices(plan), [plan]);
 
   // Nothing renders until the week AND the weekly outlook are both ready.
   if (outlook.status === "error") return <LoadError message={outlook.message} onRetry={outlook.retry} />;
   if (!week || outlook.status !== "ready") return <PageLoading label="Gathering demand insight…" />;
 
-  const selected = picked ?? (plan.some((d) => d.date === week.today) ? week.today : plan[0].date);
-  const selectedIdx = Math.max(0, plan.findIndex((d) => d.date === selected));
-  const selectedPlan = plan[selectedIdx];
+  const pageIdx = Math.min(weekIndex, Math.max(0, pages.length - 1));
+  const shown = pages[pageIdx] ?? plan;
+  const selected =
+    picked && shown.some((d) => d.date === picked)
+      ? picked
+      : shown.some((d) => d.date === week.today)
+        ? week.today
+        : shown[0].date;
+  const selectedIdx = Math.max(0, shown.findIndex((d) => d.date === selected));
+  const selectedPlan = shown[selectedIdx];
   // Ticket packages are folded into their show, exactly as on the Events page, so the counts match.
   const eventsOn = (date: string) => groupListings(week.events.filter((e) => e.date === date));
   const eventCounts = Object.fromEntries(plan.map((d) => [d.date, eventsOn(d.date).length]));
 
-  const { busiest, quietest } = glance(plan);
+  const { busiest, quietest } = glance(shown);
   const allDrivers = toDrivers(outlook.result.drivers);
   // "Show only <day>": all of that day's events (with their estimated effect) and its weather,
   // not just the ones that made the week's top few.
@@ -88,7 +98,7 @@ export default function WeeklyOutlookPage() {
       <div className={styles.titleRow}>
         <div>
           <h1 className={shared.title}>Weekly outlook</h1>
-          <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(week.weekStart))}</p>
+          <p className={shared.subtitle}>{pageSubtitle(operator, weekLabel(shown[0]?.date ?? week.weekStart))}</p>
           <LastUpdated generatedAt={week.syncedAt ?? outlook.generatedAt} />
         </div>
 
@@ -132,30 +142,40 @@ export default function WeeklyOutlookPage() {
         </InfoTip>
       </h2>
 
-      <div className={styles.noPrintStrip}>
-        <DayStrip plan={plan} selected={selected} onSelect={setPicked} />
-      </div>
-      <WeekGrid
-        plan={plan}
-        eventCounts={eventCounts}
-        weather={Object.fromEntries(week.days.map((d) => [d.date, d.weather]))}
-        selected={selected}
-        onSelect={setPicked}
-        onShowEvents={() =>
-          requestAnimationFrame(() => {
-            const el = document.getElementById("day-events");
-            el?.scrollIntoView({ behavior: "smooth", block: "start" });
-            el?.focus({ preventScroll: true });
-          })
-        }
-      />
-      <DayDetail plan={selectedPlan} weekDay={week.days[selectedIdx]} events={eventsOn(selected)} />
+      <WeekCarousel
+        count={pages.length}
+        index={pageIdx}
+        onIndex={(next) => {
+          const slice = pages[next];
+          setWeekIndex(next);
+          if (slice) setPicked(slice.some((d) => d.date === week.today) ? week.today : slice[0].date);
+        }}
+      >
+        <div className={styles.noPrintStrip}>
+          <DayStrip plan={shown} selected={selected} onSelect={setPicked} />
+        </div>
+        <WeekGrid
+          plan={shown}
+          eventCounts={eventCounts}
+          weather={Object.fromEntries(week.days.map((d) => [d.date, d.weather]))}
+          selected={selected}
+          onSelect={setPicked}
+          onShowEvents={() =>
+            requestAnimationFrame(() => {
+              const el = document.getElementById("day-events");
+              el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              el?.focus({ preventScroll: true });
+            })
+          }
+        />
+      </WeekCarousel>
+      <DayDetail plan={selectedPlan} weekDay={week.days.find((d) => d.date === selected) ?? week.days[0]} events={eventsOn(selected)} />
 
       <div className={styles.lower}>
         <DailyTotals
           selected={selectedIdx}
-          onSelect={(i) => setPicked(plan[i].date)}
-          items={plan.map((d) => ({
+          onSelect={(i) => setPicked(shown[i].date)}
+          items={shown.map((d) => ({
             label: d.day,
             score: d.peak?.score ?? null,
             band: d.peak?.band ?? null,

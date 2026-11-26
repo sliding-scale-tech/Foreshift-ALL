@@ -190,7 +190,8 @@ function BillingContent() {
       <h2 className={styles.heading}>Three tiers. One ecosystem.</h2>
       <div className={styles.tiers}>
         {TIERS.map((t) => {
-          const isCurrent = t.buyable && access?.isSubscribed;
+          const isPower = t.plan === "sales-forecasting" && access?.powerUser;
+          const isCurrent = (t.buyable && access?.isSubscribed) || isPower;
           return (
             <section key={t.name} className={`${styles.tier} ${isCurrent ? styles.current : ""}`}>
               <div className={styles.tierHead}>
@@ -217,6 +218,8 @@ function BillingContent() {
                   >
                     {isCurrent ? "Current plan" : busy === "checkout" ? "Redirecting…" : "Upgrade"}
                   </button>
+                ) : isPower ? (
+                  <p className={styles.powerUser}>Power User</p>
                 ) : (
                   // Not self-serve yet: opens the Contact Sales form with this plan chosen.
                   <Link href={`/contact-sales?plan=${t.plan}`} className={`${styles.cta} ${styles.ctaLink}`}>

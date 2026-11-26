@@ -16,7 +16,7 @@ import { resolveDayOutlook } from "./lib/outlook";
 import { indexEventsByCell, indexWeatherByZoneDay } from "./lib/resolve";
 import { DAYPART_MINUTES, openDuring } from "./lib/hours";
 import type { Doc } from "./_generated/dataModel";
-import { inOutlookRange, dayFromLocalDate, ZONES, CONCEPTS, keepKnown, scoreToBand, type Daypart, type Day } from "./lib/vocab";
+import { FORECAST_DAYS, POWER_FORECAST_DAYS, inOutlookRange, dayFromLocalDate, ZONES, CONCEPTS, keepKnown, scoreToBand, type Daypart, type Day } from "./lib/vocab";
 import type { FactorRef, ScopeUsed } from "./lib/aiPass/grounding";
 
 export type ToolPayload = {
@@ -41,13 +41,22 @@ function clock(hhmm: string | null): string | null {
 const pretty = (date: string) =>
   new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
-const outsideWeek = (date: string) => ({
+const outsideWeek = (date: string, days = FORECAST_DAYS) => ({
   model: {
     ok: false,
     error: "outside_week",
-    message: `${date} is outside the forecast. It covers the next 7 days from today, and earlier days of this week.`,
+    message: `${date} is outside the forecast. It covers the next ${days} days from today, and earlier days of this week.`,
   },
 });
+
+async function horizonOf(ctx: QueryCtx, clerkId: string | undefined): Promise<number> {
+  if (!clerkId) return FORECAST_DAYS;
+  const op = await ctx.db
+    .query("operators")
+    .withIndex("by_clerkId", (q) => q.eq("clerkId", clerkId))
+    .unique();
+  return op?.powerUser === true ? POWER_FORECAST_DAYS : FORECAST_DAYS;
+}
 
 function knownScope(zone: string, concept: string) {
   const [z] = keepKnown([zone], ZONES);
@@ -55,8 +64,8 @@ function knownScope(zone: string, concept: string) {
   return z && c ? { zone: z, concept: c } : null;
 }
 
-function dayOfWeekDate(date: string): Day | null {
-  if (!inOutlookRange(date)) return null;
+function dayOfWeekDate(date: string, days = FORECAST_DAYS): Day | null {
+  if (!inOutlookRange(date, new Date(), days)) return null;
   return dayFromLocalDate(date);
 }
 
@@ -65,10 +74,11 @@ function dayOfWeekDate(date: string): Day | null {
 // ---------------------------------------------------------------------------
 
 async function computeDay(ctx: QueryCtx, zone: string, concept: string, date: string, clerkId: string | undefined) {
-  const day = dayOfWeekDate(date);
-  if (!day) return { outside: true as const };
+  const forecastDays = await horizonOf(ctx, clerkId);
+  const day = dayOfWeekDate(date, forecastDays);
+  if (!day) return { outside: true as const, forecastDays };
 
-  const inputs = await readInputs(ctx, { zone, concept, days: [day] });
+  const inputs = await readInputs(ctx, { zone, concept, days: [day], forecastDays });
   const record = inputs.records[0];
   const dayEvents = inputs.events.filter((e) => e.date === date);
   const dayWeather = inputs.weather.filter((w) => w.date === date);
@@ -210,7 +220,7 @@ export const dayData = internalQuery({
     const scope = knownScope(args.zone, args.concept);
     if (!scope) return { model: { ok: false, error: "unknown_scope" } };
     const d = await computeDay(ctx, scope.zone, scope.concept, args.date, args.clerkId);
-    if (d.outside) return outsideWeek(args.date);
+    if (d.outside) return outsideWeek(args.date, d.forecastDays);
     if (d.none) {
       return { model: { ok: false, error: "no_data", message: "No demand data for this zone, restaurant type and day." } };
     }
@@ -241,7 +251,7 @@ export const weatherData = internalQuery({
 
     if (args.date) {
       const d = await computeDay(ctx, scope.zone, scope.concept, args.date, args.clerkId);
-      if (d.outside) return outsideWeek(args.date);
+      if (d.outside) return outsideWeek(args.date, d.forecastDays);
       if (d.none) return { model: { ok: false, error: "no_data" } };
       const periods = d.dayparts.map((p) => ({ daypart: p.daypart, ...(p.weather ?? { condition: null }) }));
       const refs = d.refs.filter((r) => r.type === "weather");
@@ -254,7 +264,8 @@ export const weatherData = internalQuery({
       };
     }
 
-    const week = await buildWeek(ctx, scope.zone, scope.concept);
+    const forecastDays = await horizonOf(ctx, args.clerkId);
+    const week = await buildWeek(ctx, scope.zone, scope.concept, forecastDays);
     const refs: FactorRef[] = [];
     const days = week.days
       .filter((d) => d.weather)
@@ -295,7 +306,8 @@ export const weekData = internalQuery({
   handler: async (ctx, args): Promise<ToolPayload> => {
     const scope = knownScope(args.zone, args.concept);
     if (!scope) return { model: { ok: false, error: "unknown_scope" } };
-    const week = await buildWeek(ctx, scope.zone, scope.concept);
+    const forecastDays = await horizonOf(ctx, args.clerkId);
+    const week = await buildWeek(ctx, scope.zone, scope.concept, forecastDays);
     const refs: FactorRef[] = [];
 
     const days = week.days.map((d) => {
@@ -383,9 +395,10 @@ export const eventsData = internalQuery({
   handler: async (ctx, args): Promise<ToolPayload> => {
     const scope = knownScope(args.zone, args.concept);
     if (!scope) return { model: { ok: false, error: "unknown_scope" } };
-    if (args.date && !dayOfWeekDate(args.date)) return outsideWeek(args.date);
+    const forecastDays = await horizonOf(ctx, args.clerkId);
+    if (args.date && !dayOfWeekDate(args.date, forecastDays)) return outsideWeek(args.date, forecastDays);
 
-    const week = await buildWeek(ctx, scope.zone, scope.concept);
+    const week = await buildWeek(ctx, scope.zone, scope.concept, forecastDays);
     const order = { Low: 0, Moderate: 1, High: 2 } as const;
     const min = order[args.minInfluence ?? "Low"];
     const picked = week.events
@@ -487,12 +500,13 @@ function rankFact(name: string, p: { daypart: Daypart; score: number; band: stri
 
 /** Every zone for one restaurant type on one day, ranked. */
 export const compareAreas = internalQuery({
-  args: { concept: v.string(), date: v.string(), daypart: daypartArg },
+  args: { concept: v.string(), date: v.string(), daypart: daypartArg, clerkId: v.optional(v.string()) },
   handler: async (ctx, args): Promise<ToolPayload> => {
     const [concept] = keepKnown([args.concept], CONCEPTS);
     if (!concept) return { model: { ok: false, error: "unknown_scope" } };
-    const day = dayOfWeekDate(args.date);
-    if (!day) return outsideWeek(args.date);
+    const forecastDays = await horizonOf(ctx, args.clerkId);
+    const day = dayOfWeekDate(args.date, forecastDays);
+    if (!day) return outsideWeek(args.date, forecastDays);
 
     const rows: Doc<"resolvedDemand">[] = [];
     for (const zone of ZONES) {
@@ -533,12 +547,13 @@ export const compareAreas = internalQuery({
 
 /** Every restaurant type in one zone on one day, ranked. */
 export const compareConcepts = internalQuery({
-  args: { zone: v.string(), date: v.string(), daypart: daypartArg },
+  args: { zone: v.string(), date: v.string(), daypart: daypartArg, clerkId: v.optional(v.string()) },
   handler: async (ctx, args): Promise<ToolPayload> => {
     const [zone] = keepKnown([args.zone], ZONES);
     if (!zone) return { model: { ok: false, error: "unknown_scope" } };
-    const day = dayOfWeekDate(args.date);
-    if (!day) return outsideWeek(args.date);
+    const forecastDays = await horizonOf(ctx, args.clerkId);
+    const day = dayOfWeekDate(args.date, forecastDays);
+    if (!day) return outsideWeek(args.date, forecastDays);
 
     const rows: Doc<"resolvedDemand">[] = [];
     for (const concept of CONCEPTS) {

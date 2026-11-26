@@ -93,7 +93,7 @@ button.item {
 
 .user {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
 }
 
@@ -113,6 +113,11 @@ button.item {
 
 .userText {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding-top: 2px;
 }
 
 .userName {
@@ -125,8 +130,24 @@ button.item {
   text-overflow: ellipsis;
 }
 
+.powerUser {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-primary-10);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+}
+
 .userSub {
+  max-width: 100%;
   font-size: 12px;
+  line-height: 16px;
   color: rgba(255, 255, 255, 0.55);
   white-space: nowrap;
   overflow: hidden;

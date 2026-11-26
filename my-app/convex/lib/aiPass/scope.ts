@@ -10,6 +10,7 @@
 import {
   ZONES,
   CONCEPTS,
+  FORECAST_DAYS,
   forecastDates,
   detroitDate,
   keepKnown,
@@ -143,23 +144,23 @@ export type ThreadScopeFields = {
 
 export type EffectiveScope = { zone: Zone; concept: Concept; date: string };
 
-/** The next 7 days, plus today, for the prompt and the date enum. */
-export function weekCalendar(now: Date = new Date()) {
-  return { today: detroitDate(now), days: forecastDates(now) };
+/** The account's forecast days, plus today, for the prompt and the date enum. */
+export function weekCalendar(now: Date = new Date(), days = FORECAST_DAYS) {
+  return { today: detroitDate(now), days: forecastDates(now, days) };
 }
 
-/** Pinned date if it's still inside the next 7 days, otherwise today. */
-export function effectiveDate(date: string | null, now: Date = new Date()): string {
-  const { today, days } = weekCalendar(now);
-  return date && days.some((d) => d.date === date) ? date : today;
+/** Pinned date if it's still inside this account's forecast, otherwise today. */
+export function effectiveDate(date: string | null, now: Date = new Date(), days = FORECAST_DAYS): string {
+  const { today, days: window } = weekCalendar(now, days);
+  return date && window.some((d) => d.date === date) ? date : today;
 }
 
 /** focus (set by a question) > pinned (chips / operator default). */
-export function effectiveScope(t: ThreadScopeFields, now: Date = new Date()): EffectiveScope | null {
+export function effectiveScope(t: ThreadScopeFields, now: Date = new Date(), days = FORECAST_DAYS): EffectiveScope | null {
   const [zone] = keepKnown([t.focusZone ?? t.zone], ZONES);
   const [concept] = keepKnown([t.focusConcept ?? t.concept], CONCEPTS);
   if (!zone || !concept) return null;
-  return { zone, concept, date: effectiveDate(t.date, now) };
+  return { zone, concept, date: effectiveDate(t.date, now, days) };
 }
 
 /**

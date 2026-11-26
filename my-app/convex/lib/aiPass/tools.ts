@@ -10,23 +10,25 @@ import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
 import { internal } from "../../_generated/api";
 import type { ToolPayload } from "../../aiPassData";
-import { ZONES, CONCEPTS } from "../vocab";
+import { FORECAST_DAYS, ZONES, CONCEPTS } from "../vocab";
 import { resolveScopeArg, weekCalendar, type EffectiveScope } from "./scope";
 import { buildCard, type FactBag } from "./grounding";
 
 export function makeTools(args: {
   clerkId: string;
   scope: EffectiveScope;
+  forecastDays?: number;
   /** Zones / restaurant types the user's current message names. */
   named: { zones: ReadonlySet<string>; concepts: ReadonlySet<string> };
   bag: FactBag;
 }) {
   const { clerkId, scope, named, bag } = args;
+  const forecastDays = args.forecastDays ?? FORECAST_DAYS;
 
-  const dates = weekCalendar().days.map((d) => d.date) as [string, ...string[]];
+  const dates = weekCalendar(new Date(), forecastDays).days.map((d) => d.date) as [string, ...string[]];
   const zoneArg = z.enum(ZONES).optional().describe("Only if the user named a different zone. Omit otherwise.");
   const conceptArg = z.enum(CONCEPTS).optional().describe("Only if the user named a different restaurant type. Omit otherwise.");
-  const dateArg = z.enum(dates).optional().describe("A date in the next 7 days. Omit for the day in scope.");
+  const dateArg = z.enum(dates).optional().describe(`A date in the next ${forecastDays} days. Omit for the day in scope.`);
 
   /** Apply the scope rule, run the read, and report what came back to the FactBag. */
   async function run(
@@ -76,7 +78,7 @@ export function makeTools(args: {
 
     get_week_overview: createTool({
       description:
-        "The next 7 days starting today: each day's peak period and band, weather and event count, plus the top events (no need to also call list_events). Use for 'this week', 'the next few days', 'busiest day', weekend or comparing days.",
+        `The next ${forecastDays} days starting today: each day's peak period and band, weather and event count, plus the top events (no need to also call list_events). Use for 'this week', 'the next few days', 'busiest day', weekend or comparing days.`,
       inputSchema: z.object({ zone: zoneArg, concept: conceptArg }),
       execute: (ctx, input) =>
         run("get_week_overview", input.zone, input.concept, (zone, concept) =>
@@ -86,7 +88,7 @@ export function makeTools(args: {
 
     list_events: createTool({
       description:
-        "Nearby events in the next 7 days with venue, time, influence and estimated lift. Use for 'any events', 'what's happening', 'what's driving demand'.",
+        `Nearby events in the next ${forecastDays} days with venue, time, influence and estimated lift. Use for 'any events', 'what's happening', 'what's driving demand'.`,
       inputSchema: z.object({
         date: dateArg,
         minInfluence: z.enum(["Low", "Moderate", "High"]).optional().describe("Smallest influence to include."),
@@ -137,6 +139,7 @@ export function makeTools(args: {
         run("compare_areas", undefined, input.concept, (_zone, concept) =>
           ctx.runQuery(internal.aiPassData.compareAreas, {
             concept,
+            clerkId,
             date: input.date ?? scope.date,
             ...(input.daypart ? { daypart: input.daypart } : {}),
           }),
@@ -155,6 +158,7 @@ export function makeTools(args: {
         run("compare_restaurant_types", input.zone, undefined, (zone) =>
           ctx.runQuery(internal.aiPassData.compareConcepts, {
             zone,
+            clerkId,
             date: input.date ?? scope.date,
             ...(input.daypart ? { daypart: input.daypart } : {}),
           }),

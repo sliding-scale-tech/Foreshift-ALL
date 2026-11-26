@@ -54,6 +54,7 @@ import {
   CONCEPTS,
   DAYS,
   DAYPARTS,
+  FORECAST_DAYS,
   keepKnown,
   scoreToBand,
   detroitDate,
@@ -79,22 +80,24 @@ type OutlookType = "today" | "weekly" | "events" | "weather";
 /** The date a cached outlook is filed under. Weekly is one row per day,
  * because the 7-day window moves every morning. Day-scoped types are one
  * row per calendar date. */
-function cacheDate(type: OutlookType, date: string | undefined): string {
+function cacheDate(type: OutlookType, date: string | undefined, forecastDays = FORECAST_DAYS): string {
   if (type === "weekly") return detroitDate();
   if (!date) return detroitDate();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new Error(`Invalid date: "${date}". Expected format YYYY-MM-DD.`);
   }
-  if (!inOutlookRange(date)) {
+  if (!inOutlookRange(date, new Date(), forecastDays)) {
     throw new Error(
-      `Date "${date}" is outside the forecast. It covers this week so far and the next 7 days from today.`,
+      `Date "${date}" is outside the forecast. It covers this week so far and the next ${forecastDays} days from today.`,
     );
   }
   return date;
 }
 
-function cacheKey(zone: string, concept: string, type: OutlookType, date: string) {
-  return `${zone}__${concept}__${type}__${date}`;
+function cacheKey(zone: string, concept: string, type: OutlookType, date: string, forecastDays = FORECAST_DAYS) {
+  // A 7-day narration and a 28-day narration for the same zone must not share a row.
+  const span = type === "weekly" ? `__d${forecastDays}` : "";
+  return `${zone}__${concept}__${type}__${date}${span}`;
 }
 
 function daysFor(type: OutlookType, date: string): Day[] {
@@ -184,14 +187,19 @@ async function operatorFor(ctx: QueryCtx) {
   if (!op) throw new Error("Finish onboarding first.");
   // The trial / plan gate, enforced here too: the page redirects to Billing, but
   // the data must not be readable by calling these functions directly.
-  const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus, freeAccess: op.freeAccess });
+  const access = computeAccess({
+    createdAt: op._creationTime,
+    subscriptionStatus: op.subscriptionStatus,
+    freeAccess: op.freeAccess,
+    powerUser: op.powerUser,
+  });
   if (!access.hasAccess) throw new Error("Your free trial has ended. Choose a plan on the Billing page to continue.");
   const [zone] = keepKnown([op.zone], ZONES);
   const [concept] = keepKnown([op.conceptType], CONCEPTS);
   if (!zone || !concept) {
     throw new Error(`Operator has an unknown zone/concept: ${op.zone} / ${op.conceptType}`);
   }
-  return { zone, concept };
+  return { zone, concept, forecastDays: access.forecastDays };
 }
 
 // ---------------------------------------------------------------------------
@@ -208,13 +216,14 @@ async function readOutlook(
   concept: string,
   type: OutlookType,
   dateArg: string | undefined,
+  forecastDays = FORECAST_DAYS,
 ) {
-  const date = cacheDate(type, dateArg);
+  const date = cacheDate(type, dateArg, forecastDays);
   const days = daysFor(type, date);
 
   const cached = await ctx.db
     .query("outlookCache")
-    .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, type, date)))
+    .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, type, date, forecastDays)))
     .unique();
   const current = await fingerprint(ctx, zone, concept, days);
 
@@ -248,8 +257,8 @@ async function readOutlook(
 export const getMine = query({
   args: { type: outlookType, date: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const { zone, concept } = await operatorFor(ctx);
-    return readOutlook(ctx, zone, concept, args.type, args.date);
+    const { zone, concept, forecastDays } = await operatorFor(ctx);
+    return readOutlook(ctx, zone, concept, args.type, args.date, forecastDays);
   },
 });
 
@@ -278,13 +287,13 @@ export const getSample = query({
 export const getWeek = query({
   args: {},
   handler: async (ctx) => {
-    const { zone, concept } = await operatorFor(ctx);
-    return buildWeek(ctx, zone, concept);
+    const { zone, concept, forecastDays } = await operatorFor(ctx);
+    return buildWeek(ctx, zone, concept, forecastDays);
   },
 });
 
-export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
-  const window = forecastDates();
+export async function buildWeek(ctx: QueryCtx, zone: string, concept: string, forecastDays = FORECAST_DAYS) {
+  const window = forecastDates(new Date(), forecastDays);
 
   const demandRows = await ctx.db
     .query("resolvedDemand")
@@ -381,7 +390,7 @@ export async function buildWeek(ctx: QueryCtx, zone: string, concept: string) {
   // Weather's effect on each day, worked out cell by cell with the same
   // resolveCell math the Weather page's period rows come from, so a day card
   // and that day's rows can't disagree.
-  const inputs = await readInputs(ctx, { zone, concept, days: [] });
+  const inputs = await readInputs(ctx, { zone, concept, days: [], forecastDays });
   const coeffs = await readCoefficients(ctx);
   const weatherImpactOf = (day: Day, date: string) => {
     const record = inputs.records.find((r) => r.day === day);
@@ -604,20 +613,26 @@ export async function buildEventImpact(ctx: QueryCtx, zone: string, concept: str
 /** Convex mirror rows -> the same shapes the Bubble readers return, so
  * lib/outlook.ts runs unchanged. */
 export const loadInputs = internalQuery({
-  args: { zone: v.string(), concept: v.string(), days: v.array(v.string()) },
+  args: {
+    zone: v.string(),
+    concept: v.string(),
+    days: v.array(v.string()),
+    forecastDays: v.optional(v.number()),
+  },
   handler: async (ctx, args): Promise<OutlookInputs> => readInputs(ctx, args),
 });
 
 // loadInputs' body, also used directly by getWeek. `days: []` = every day.
 export async function readInputs(
   ctx: QueryCtx,
-  args: { zone: string; concept: string; days: string[] },
+  args: { zone: string; concept: string; days: string[]; forecastDays?: number },
 ): Promise<OutlookInputs> {
   const inDays = (d: string | undefined) => args.days.length === 0 || args.days.includes(d ?? "");
+  const horizon = args.forecastDays ?? FORECAST_DAYS;
   // A weekday name matches both this Wednesday and next Wednesday. Keep a row
   // only when its calendar date is still in range: this week so far, plus the
-  // next 7 days. An older week's leftover then cannot pass for this one.
-  const inRange = (date: string | undefined) => date !== undefined && inOutlookRange(date);
+  // account's forecast. An older week's leftover then cannot pass for this one.
+  const inRange = (date: string | undefined) => date !== undefined && inOutlookRange(date, new Date(), horizon);
 
   const base = await ctx.db
     .query("demandScores")
@@ -696,17 +711,19 @@ async function statusOf(
   concept: string,
   type: OutlookType,
   dateArg: string | undefined,
+  forecastDays = FORECAST_DAYS,
 ) {
-  const date = cacheDate(type, dateArg);
+  const date = cacheDate(type, dateArg, forecastDays);
   const cached = await ctx.db
     .query("outlookCache")
-    .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, type, date)))
+    .withIndex("by_key", (q) => q.eq("key", cacheKey(zone, concept, type, date, forecastDays)))
     .unique();
   return {
     zone,
     concept,
     date,
-    key: cacheKey(zone, concept, type, date),
+    forecastDays,
+    key: cacheKey(zone, concept, type, date, forecastDays),
     fingerprint: await fingerprint(ctx, zone, concept, daysFor(type, date)),
     cachedFingerprint: cached?.fingerprint ?? null,
     cachedAt: cached?.generatedAt ?? null,
@@ -716,8 +733,8 @@ async function statusOf(
 export const status = internalQuery({
   args: { type: outlookType, date: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const { zone, concept } = await operatorFor(ctx);
-    return statusOf(ctx, zone, concept, args.type, args.date);
+    const { zone, concept, forecastDays } = await operatorFor(ctx);
+    return statusOf(ctx, zone, concept, args.type, args.date, forecastDays);
   },
 });
 
@@ -743,6 +760,7 @@ type OutlookStatus = {
   zone: string;
   concept: string;
   date: string;
+  forecastDays: number;
   key: string;
   fingerprint: string;
   cachedFingerprint: string | null;
@@ -773,6 +791,7 @@ async function generateIfStale(
     zone,
     concept,
     days,
+    forecastDays: s.forecastDays,
   });
   const coeffs: CoefficientBundle = await ctx.runQuery(internal.coefficients.getAll, {});
 
@@ -791,7 +810,7 @@ async function generateIfStale(
   const common = { zone, concept, coeffs, inputs, narrators };
   const result =
     type === "weekly"
-      ? await computeWeeklyOutlook({ ...common, now })
+      ? await computeWeeklyOutlook({ ...common, now, forecastDays: s.forecastDays })
       : type === "events"
         ? await computeEventOutlook({ ...common, now })
         : type === "weather"

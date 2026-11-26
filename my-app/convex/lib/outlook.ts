@@ -734,9 +734,11 @@ export async function computeWeeklyOutlook(args: {
   now?: Date;
   inputs?: OutlookInputs;
   narrators?: Narrators;
+  /** 7 for Event Intelligence, 28 for a Power User. */
+  forecastDays?: number;
 }): Promise<WeeklyOutlookResult> {
   const now = args.now ?? new Date();
-  const window = forecastDates(now);
+  const window = forecastDates(now, args.forecastDays);
   const weekStart = window[0].date;
   const weekEnd = window[window.length - 1].date;
 

@@ -66,11 +66,22 @@ async function requireOperator(ctx: QueryCtx) {
   const [zone] = keepKnown([op.zone], ZONES);
   const [concept] = keepKnown([op.conceptType], CONCEPTS);
   if (!zone || !concept) throw new Error("Your zone or restaurant type needs updating in Settings.");
-  return { clerkId: identity.subject, op, zone, concept };
+  const access = computeAccess({
+    createdAt: op._creationTime,
+    subscriptionStatus: op.subscriptionStatus,
+    freeAccess: op.freeAccess,
+    powerUser: op.powerUser,
+  });
+  return { clerkId: identity.subject, op, zone, concept, forecastDays: access.forecastDays };
 }
 
 function requireAccess(op: Doc<"operators">) {
-  const access = computeAccess({ createdAt: op._creationTime, subscriptionStatus: op.subscriptionStatus, freeAccess: op.freeAccess });
+  const access = computeAccess({
+    createdAt: op._creationTime,
+    subscriptionStatus: op.subscriptionStatus,
+    freeAccess: op.freeAccess,
+    powerUser: op.powerUser,
+  });
   if (!access.hasAccess) throw new Error("Your free trial has ended. Upgrade to keep using AI Pass.");
 }
 
@@ -136,7 +147,13 @@ export const newChatContext = query({
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!op) return null;
-    const { today, days } = weekCalendar();
+    const access = computeAccess({
+      createdAt: op._creationTime,
+      subscriptionStatus: op.subscriptionStatus,
+      freeAccess: op.freeAccess,
+      powerUser: op.powerUser,
+    });
+    const { today, days } = weekCalendar(new Date(), access.forecastDays);
     return { homeZone: op.zone, homeConcept: op.conceptType, today, week: days };
   },
 });
@@ -156,8 +173,16 @@ export const getThread = query({
       .query("operators")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
       .unique();
-    const scope = effectiveScope(t);
-    const { today, days } = weekCalendar();
+    const access = op
+      ? computeAccess({
+          createdAt: op._creationTime,
+          subscriptionStatus: op.subscriptionStatus,
+          freeAccess: op.freeAccess,
+          powerUser: op.powerUser,
+        })
+      : null;
+    const scope = effectiveScope(t, new Date(), access?.forecastDays);
+    const { today, days } = weekCalendar(new Date(), access?.forecastDays);
     return {
       threadId: t.threadId,
       title: t.title,
@@ -211,7 +236,7 @@ export const setScope = mutation({
     date: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const { clerkId } = await requireOperator(ctx);
+    const { clerkId, forecastDays } = await requireOperator(ctx);
     const t = await ownThread(ctx, args.threadId, clerkId);
     const patch: Partial<Doc<"aiPassThreads">> = { updatedAt: Date.now() };
 
@@ -228,8 +253,8 @@ export const setScope = mutation({
       patch.focusConcept = undefined;
     }
     if (args.date !== undefined) {
-      if (args.date !== null && effectiveDate(args.date) !== args.date) {
-        throw new Error("Pick a day in the next 7 days.");
+      if (args.date !== null && effectiveDate(args.date, new Date(), forecastDays) !== args.date) {
+        throw new Error(`Pick a day in the next ${forecastDays} days.`);
       }
       patch.date = args.date;
     }
@@ -329,7 +354,21 @@ export const runContext = internalQuery({
       .withIndex("by_clerkId", (q) => q.eq("clerkId", thread.clerkId))
       .unique();
     if (!op) return null;
-    return { thread, restaurantName: op.restaurantName, address: op.address, homeZone: op.zone, homeConcept: op.conceptType, operatingHours: op.operatingHours };
+    const access = computeAccess({
+      createdAt: op._creationTime,
+      subscriptionStatus: op.subscriptionStatus,
+      freeAccess: op.freeAccess,
+      powerUser: op.powerUser,
+    });
+    return {
+      thread,
+      restaurantName: op.restaurantName,
+      address: op.address,
+      homeZone: op.zone,
+      homeConcept: op.conceptType,
+      operatingHours: op.operatingHours,
+      forecastDays: access.forecastDays,
+    };
   },
 });
 
@@ -356,6 +395,7 @@ type ReplyArgs = {
   homeZone: string;
   homeConcept: string;
   operatingHours: { day: string; isClosed: boolean; openTime?: string; closeTime?: string }[];
+  forecastDays?: number;
 };
 
 /** One try with one model: the model calls the data tools, then `reply`. Streams into the thread. */
@@ -364,6 +404,7 @@ async function attemptReply(ctx: ActionCtx, a: ReplyArgs, modelName: string): Pr
   const tools = makeTools({
     clerkId: a.clerkId,
     scope: a.scope,
+    forecastDays: a.forecastDays,
     named: { zones: new Set(zonesNamedIn(a.prompt)), concepts: new Set(conceptsNamedIn(a.prompt)) },
     bag,
   });
@@ -376,6 +417,7 @@ async function attemptReply(ctx: ActionCtx, a: ReplyArgs, modelName: string): Pr
       homeConcept: a.homeConcept,
       operatingHours: a.operatingHours,
       scope: a.scope,
+      forecastDays: a.forecastDays,
       unconfirmed: nearMisses(a.prompt),
     });
 
@@ -500,7 +542,7 @@ export const generateReply = internalAction({
     const rc = await ctx.runQuery(internal.aiPass.runContext, { threadId: args.threadId });
     if (!rc) return null;
     try {
-      const scope = effectiveScope(rc.thread);
+      const scope = effectiveScope(rc.thread, new Date(), rc.forecastDays);
       if (!scope) throw new Error("This chat's zone or restaurant type is no longer valid.");
       await runReply(ctx, {
         threadId: args.threadId,
@@ -513,6 +555,7 @@ export const generateReply = internalAction({
         homeZone: rc.homeZone,
         homeConcept: rc.homeConcept,
         operatingHours: rc.operatingHours,
+        forecastDays: rc.forecastDays,
       });
     } catch (err) {
       // Not a model failure (e.g. the thread's scope is no longer valid): still end on a friendly reply.

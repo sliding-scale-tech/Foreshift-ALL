@@ -7,6 +7,8 @@ export type AccessInfo = {
   reason: "trial" | "subscribed" | "free" | "expired";
   trialEndsAt: number;
   isSubscribed: boolean;
+  forecastDays: 7 | 28;
+  powerUser: boolean;
 };
 
 // Whether the signed-in operator can see the Intelligence pages right now —
